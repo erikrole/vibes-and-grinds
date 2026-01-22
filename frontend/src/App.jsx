@@ -107,16 +107,16 @@ export default function App() {
     <div className="min-h-screen bg-stone-50">
       {/* Header */}
       <header className="bg-white border-b border-stone-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="text-4xl">☕</div>
-              <h1 className="text-4xl font-black tracking-tight text-stone-900" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="text-3xl sm:text-4xl">☕</div>
+              <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-900" style={{ fontFamily: "'Playfair Display', serif" }}>
                 Vibes & Grinds
               </h1>
             </div>
             {!showForm && !editingVisit && (
-              <button onClick={() => setShowForm(true)} className="btn-primary">
+              <button onClick={() => setShowForm(true)} className="btn-primary hidden md:block">
                 Add Visit
               </button>
             )}
@@ -258,11 +258,11 @@ export default function App() {
       {!showForm && !editingVisit && (
         <button
           onClick={() => setShowForm(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-stone-800 text-stone-50 rounded-full shadow-lg hover:bg-stone-900 transition-all flex items-center justify-center z-50 hover:scale-110"
+          className="fixed bottom-5 right-5 md:bottom-6 md:right-6 w-16 h-16 md:w-14 md:h-14 bg-stone-800 text-stone-50 rounded-full shadow-lg hover:bg-stone-900 transition-all flex items-center justify-center z-50 hover:scale-110 active:scale-95"
           aria-label="Add Visit"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          <svg className="w-7 h-7 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
           </svg>
         </button>
       )}
