@@ -82,6 +82,7 @@ export default function App() {
     return (
       visit.coffee_shop_name.toLowerCase().includes(query) ||
       visit.city?.toLowerCase().includes(query) ||
+      visit.opponent?.toLowerCase().includes(query) ||
       visit.coffee_order?.toLowerCase().includes(query)
     );
   });
@@ -208,7 +209,7 @@ export default function App() {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search by shop name, city, or order..."
+                placeholder="Search by shop name, city, opponent, or order..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full px-4 py-3 pl-11 border border-stone-300 rounded-md focus:outline-none focus:ring-1 focus:ring-stone-400 bg-white"

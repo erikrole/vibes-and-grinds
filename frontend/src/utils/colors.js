@@ -1,25 +1,24 @@
 /**
  * Get color for a rating on a 0-10 scale
- * Warm tones: Bronze (0) -> Gold (5) -> Deep Gold (10)
- * More sophisticated, classy color palette
+ * Red (0) -> Yellow (5) -> Green (10)
  */
 export function getRatingColor(rating) {
   // Clamp rating between 0 and 10
   const clampedRating = Math.max(0, Math.min(10, rating));
 
   if (clampedRating <= 5) {
-    // Warm gray to bronze (0-5)
+    // Red to Yellow (0-5)
     const percentage = clampedRating / 5;
-    const r = Math.round(120 + (184 - 120) * percentage);
-    const g = Math.round(113 + (134 - 113) * percentage);
-    const b = Math.round(99 + (91 - 99) * percentage);
+    const r = 220; // Red component (stays high)
+    const g = Math.round(38 + (184 - 38) * percentage); // Green increases
+    const b = 38; // Blue component (stays low)
     return `rgb(${r}, ${g}, ${b})`;
   } else {
-    // Bronze to rich gold (5-10)
+    // Yellow to Green (5-10)
     const percentage = (clampedRating - 5) / 5;
-    const r = Math.round(184 + (180 - 184) * percentage);
-    const g = Math.round(134 + (134 - 134) * percentage);
-    const b = Math.round(91 + (52 - 91) * percentage);
+    const r = Math.round(220 - (220 - 34) * percentage); // Red decreases
+    const g = Math.round(184 + (197 - 184) * percentage); // Green increases
+    const b = Math.round(38 + (94 - 38) * percentage); // Blue increases
     return `rgb(${r}, ${g}, ${b})`;
   }
 }

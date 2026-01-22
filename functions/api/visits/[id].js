@@ -34,6 +34,7 @@ export async function onRequestPut({ params, request, env }) {
       date,
       coffee_shop_name,
       city,
+      opponent,
       coffee_shop_address,
       coffee_shop_place_id,
       coffee_shop_lat,
@@ -54,7 +55,7 @@ export async function onRequestPut({ params, request, env }) {
 
     await env.DB.prepare(
       `UPDATE coffee_visits SET
-        date = ?, coffee_shop_name = ?, city = ?, coffee_shop_address = ?,
+        date = ?, coffee_shop_name = ?, city = ?, opponent = ?, coffee_shop_address = ?,
         coffee_shop_place_id = ?, coffee_shop_lat = ?, coffee_shop_lng = ?,
         coffee_order = ?, vibe_rating = ?, coffee_rating = ?, notes = ?
       WHERE id = ?`
@@ -62,6 +63,7 @@ export async function onRequestPut({ params, request, env }) {
       date,
       coffee_shop_name,
       city,
+      opponent,
       coffee_shop_address,
       coffee_shop_place_id,
       coffee_shop_lat,

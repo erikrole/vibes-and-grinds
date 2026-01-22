@@ -29,8 +29,12 @@ export default function VisitCard({ visit, onEdit, onDelete }) {
               <h3 className="coffee-shop-name text-2xl md:text-3xl mb-2 leading-tight">
                 {visit.coffee_shop_name}
               </h3>
-              {visit.city && (
-                <p className="text-sm text-stone-500 tracking-wide font-light">{visit.city}</p>
+              {(visit.city || visit.opponent) && (
+                <p className="text-sm text-stone-500 tracking-wide font-light">
+                  {visit.city}
+                  {visit.city && visit.opponent && ' – '}
+                  {visit.opponent}
+                </p>
               )}
             </div>
             <div className="relative ml-4 flex-shrink-0">

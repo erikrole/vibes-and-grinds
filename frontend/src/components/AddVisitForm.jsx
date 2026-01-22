@@ -8,6 +8,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
       date: new Date().toISOString().split('T')[0],
       coffee_shop_name: '',
       city: '',
+      opponent: '',
       coffee_shop_address: '',
       coffee_order: '',
       vibe_rating: '',
@@ -117,6 +118,21 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
             value={formData.city}
             onChange={handleInputChange}
             placeholder="e.g., Minneapolis, MN"
+            className="input-field"
+          />
+        </div>
+
+        {/* Opponent */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Opponent
+          </label>
+          <input
+            type="text"
+            name="opponent"
+            value={formData.opponent}
+            onChange={handleInputChange}
+            placeholder="e.g., Michigan Wolverines"
             className="input-field"
           />
         </div>
