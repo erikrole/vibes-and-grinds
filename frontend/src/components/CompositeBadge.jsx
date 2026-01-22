@@ -12,7 +12,8 @@ export default function CompositeBadge({ composite }) {
         style={{
           backgroundColor: bgColor,
           color: textColor,
-          borderColor: `${bgColor}dd`
+          borderColor: `${bgColor}dd`,
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
         }}
       >
         {composite.toFixed(1)}
