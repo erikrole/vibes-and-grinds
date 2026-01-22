@@ -1,5 +1,39 @@
 import { useState } from 'react';
 
+// Big Ten city to team mapping
+const BIG_TEN_TEAMS = {
+  'minneapolis': 'Minnesota Golden Gophers',
+  'minneapolis, mn': 'Minnesota Golden Gophers',
+  'madison': 'Wisconsin Badgers',
+  'madison, wi': 'Wisconsin Badgers',
+  'ann arbor': 'Michigan Wolverines',
+  'ann arbor, mi': 'Michigan Wolverines',
+  'east lansing': 'Michigan State Spartans',
+  'east lansing, mi': 'Michigan State Spartans',
+  'columbus': 'Ohio State Buckeyes',
+  'columbus, oh': 'Ohio State Buckeyes',
+  'state college': 'Penn State Nittany Lions',
+  'state college, pa': 'Penn State Nittany Lions',
+  'bloomington': 'Indiana Hoosiers',
+  'bloomington, in': 'Indiana Hoosiers',
+  'west lafayette': 'Purdue Boilermakers',
+  'west lafayette, in': 'Purdue Boilermakers',
+  'champaign': 'Illinois Fighting Illini',
+  'champaign, il': 'Illinois Fighting Illini',
+  'evanston': 'Northwestern Wildcats',
+  'evanston, il': 'Northwestern Wildcats',
+  'lincoln': 'Nebraska Cornhuskers',
+  'lincoln, ne': 'Nebraska Cornhuskers',
+  'iowa city': 'Iowa Hawkeyes',
+  'iowa city, ia': 'Iowa Hawkeyes',
+  'college park': 'Maryland Terrapins',
+  'college park, md': 'Maryland Terrapins',
+  'piscataway': 'Rutgers Scarlet Knights',
+  'piscataway, nj': 'Rutgers Scarlet Knights',
+  'milwaukee': 'Villanova',
+  'milwaukee, wi': 'Villanova',
+};
+
 export default function AddVisitForm({ onSubmit, onCancel, initialData = null }) {
   const isEditing = Boolean(initialData);
 
@@ -21,7 +55,18 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    const updates = { [name]: value };
+
+    // Auto-fill opponent when city changes
+    if (name === 'city' && value) {
+      const cityLower = value.toLowerCase().trim();
+      const matchedTeam = BIG_TEN_TEAMS[cityLower];
+      if (matchedTeam && !formData.opponent) {
+        updates.opponent = matchedTeam;
+      }
+    }
+
+    setFormData({ ...formData, ...updates });
 
     // Clear error when user starts typing
     if (errors[name]) {
