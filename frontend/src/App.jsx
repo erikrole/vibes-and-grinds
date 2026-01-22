@@ -152,11 +152,12 @@ export default function App() {
           <div className="flex flex-col gap-4 mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h2 className="text-3xl font-bold text-stone-900 mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>Coffee Shop Visits</h2>
-                <p className="text-stone-600 text-sm tracking-wide">
-                  {sortedVisits.length} of {visits.length} {visits.length === 1 ? 'visit' : 'visits'}
-                  {searchQuery && ' (filtered)'}
-                </p>
+                <h2 className="text-3xl font-bold text-stone-900 mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>Visits</h2>
+                {searchQuery && (
+                  <p className="text-stone-600 text-sm tracking-wide">
+                    {sortedVisits.length} of {visits.length} {visits.length === 1 ? 'visit' : 'visits'}
+                  </p>
+                )}
               </div>
               <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
                 <span className="text-sm text-stone-500 hidden sm:block tracking-wide">Sort by:</span>
@@ -250,7 +251,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="mt-20 py-8 text-center text-stone-400 text-sm tracking-wide border-t border-stone-200">
-        <p>Built for tracking coffee shop adventures</p>
+        <p>Built for logging AJ Harrison's road coffee orders</p>
       </footer>
     </div>
   );
