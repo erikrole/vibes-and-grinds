@@ -115,7 +115,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
   return (
     <div className="card">
       <h2 className="text-2xl font-bold mb-6">
-        {isEditing ? 'Edit Coffee Shop Visit' : 'Add Coffee Shop Visit'}
+        {isEditing ? 'Edit Visit' : 'Add Visit'}
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -144,7 +144,6 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
             name="coffee_shop_name"
             value={formData.coffee_shop_name}
             onChange={handleInputChange}
-            placeholder="e.g., Blue Bottle Coffee"
             className="input-field"
           />
           {errors.coffee_shop_name && (
@@ -162,7 +161,6 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
             name="city"
             value={formData.city}
             onChange={handleInputChange}
-            placeholder="e.g., Minneapolis, MN"
             className="input-field"
           />
         </div>
@@ -177,7 +175,6 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
             name="opponent"
             value={formData.opponent}
             onChange={handleInputChange}
-            placeholder="e.g., Michigan Wolverines"
             className="input-field"
           />
         </div>
@@ -192,7 +189,6 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
             name="coffee_shop_address"
             value={formData.coffee_shop_address}
             onChange={handleInputChange}
-            placeholder="e.g., 123 Main St"
             className="input-field"
           />
         </div>
@@ -207,7 +203,6 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
             name="coffee_order"
             value={formData.coffee_order}
             onChange={handleInputChange}
-            placeholder="e.g., Cappuccino, Flat White"
             className="input-field"
           />
         </div>
@@ -226,7 +221,6 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
               step="0.1"
               min="0"
               max="10"
-              placeholder="7.5"
               className="input-field"
             />
             {errors.vibe_rating && (
@@ -246,7 +240,6 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
               step="0.1"
               min="0"
               max="10"
-              placeholder="8.0"
               className="input-field"
             />
             {errors.coffee_rating && (
@@ -264,7 +257,6 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
             name="notes"
             value={formData.notes}
             onChange={handleInputChange}
-            placeholder="Any additional thoughts..."
             rows="3"
             className="input-field resize-none"
           />
