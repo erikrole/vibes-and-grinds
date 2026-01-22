@@ -39,7 +39,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
 
   const [formData, setFormData] = useState(
     initialData || {
-      date: new Date().toISOString().split('T')[0'),
+      date: new Date().toISOString().split('T')[0],
       coffee_shop_name: '',
       city: '',
       opponent: '',
