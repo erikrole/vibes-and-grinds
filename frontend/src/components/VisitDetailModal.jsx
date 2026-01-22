@@ -1,8 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import RatingBadge from './RatingBadge';
 import CompositeBadge from './CompositeBadge';
 
-export default function VisitDetailModal({ visit, visits, onClose }) {
+export default function VisitDetailModal({ visit, visits, onClose, onUpdate }) {
+  const [showPhotoMenu, setShowPhotoMenu] = useState(false);
+  const [uploading, setUploading] = useState(false);
   // Calculate how many times this shop has been visited
   const shopVisits = visits.filter(
     v => v.coffee_shop_name.toLowerCase() === visit.coffee_shop_name.toLowerCase()
@@ -22,6 +24,64 @@ export default function VisitDetailModal({ visit, visits, onClose }) {
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [onClose]);
+
+  const handlePhotoUpload = async (file) => {
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: uploadFormData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload photo');
+      }
+
+      const { url } = await response.json();
+
+      // Update the visit with the new photo URL
+      await onUpdate(visit.id, { ...visit, photo_url: url });
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      alert('Failed to upload photo. Please try again.');
+    } finally {
+      setUploading(false);
+      setShowPhotoMenu(false);
+    }
+  };
+
+  const handleAddPhoto = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) handlePhotoUpload(file);
+    };
+    input.click();
+  };
+
+  const handleReplacePhoto = () => {
+    setShowPhotoMenu(false);
+    handleAddPhoto();
+  };
+
+  const handleDeletePhoto = async () => {
+    setShowPhotoMenu(false);
+    if (confirm('Are you sure you want to delete this photo?')) {
+      try {
+        await onUpdate(visit.id, { ...visit, photo_url: null });
+      } catch (error) {
+        console.error('Error deleting photo:', error);
+        alert('Failed to delete photo. Please try again.');
+      }
+    }
+  };
 
   // Format date
   const formattedDate = new Date(visit.date).toLocaleDateString('en-US', {
@@ -60,20 +120,73 @@ export default function VisitDetailModal({ visit, visits, onClose }) {
             </h2>
 
             {/* Photo with Notes Overlay */}
-            {visit.photo_url && (
-              <div className="mb-6 rounded-lg overflow-hidden relative">
-                <img
-                  src={visit.photo_url}
-                  alt={visit.coffee_shop_name}
-                  className="w-full h-auto object-cover"
-                />
-                {visit.notes && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-6 pt-12">
-                    <p className="text-white text-lg leading-relaxed">{visit.notes}</p>
+            <div className="mb-6 rounded-lg overflow-hidden relative min-h-[300px] bg-stone-100 flex items-end">
+              {visit.photo_url ? (
+                <>
+                  <img
+                    src={visit.photo_url}
+                    alt={visit.coffee_shop_name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  {/* Photo Menu */}
+                  <div className="absolute top-4 right-4 z-10">
+                    <button
+                      onClick={() => setShowPhotoMenu(!showPhotoMenu)}
+                      className="bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+                      disabled={uploading}
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                      </svg>
+                    </button>
+                    {showPhotoMenu && (
+                      <>
+                        <div className="fixed inset-0" onClick={() => setShowPhotoMenu(false)} />
+                        <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-20 border border-stone-200">
+                          <button
+                            onClick={handleReplacePhoto}
+                            className="w-full text-left px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50 rounded-t-md transition-colors"
+                          >
+                            Replace
+                          </button>
+                          <button
+                            onClick={handleDeletePhoto}
+                            className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-b-md transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
+                </>
+              ) : (
+                <>
+                  {/* Add Photo Button */}
+                  <button
+                    onClick={handleAddPhoto}
+                    disabled={uploading}
+                    className="absolute top-4 right-4 bg-stone-800 text-stone-50 px-4 py-2 rounded-md hover:bg-stone-900 transition-colors text-sm font-medium disabled:opacity-50"
+                  >
+                    {uploading ? 'Uploading...' : 'Add Photo'}
+                  </button>
+                </>
+              )}
+
+              {/* Notes Overlay - Fancy Blockquote */}
+              {visit.notes && (
+                <div className="relative w-full bg-gradient-to-t from-black/80 via-black/50 to-transparent p-8 pt-16">
+                  <blockquote className="relative">
+                    <svg className="absolute -top-4 -left-2 w-12 h-12 text-white/30" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+                    </svg>
+                    <p className="text-white text-lg leading-relaxed italic pl-8">
+                      {visit.notes}
+                    </p>
+                  </blockquote>
+                </div>
+              )}
+            </div>
 
             {/* Visit Details */}
             <div className="space-y-2 mb-6">
@@ -103,11 +216,6 @@ export default function VisitDetailModal({ visit, visits, onClose }) {
               {visit.coffee_shop_address && (
                 <p className="text-stone-700">
                   <span className="font-semibold">Address:</span> {visit.coffee_shop_address}
-                </p>
-              )}
-              {visit.notes && !visit.photo_url && (
-                <p className="text-stone-700 pt-2">
-                  <span className="font-semibold">Notes:</span> {visit.notes}
                 </p>
               )}
             </div>
@@ -148,7 +256,7 @@ export default function VisitDetailModal({ visit, visits, onClose }) {
               <div className="flex flex-col items-center">
                 <span className="text-xs text-stone-500 mb-2 font-medium tracking-widest uppercase">Total</span>
                 <div
-                  className="px-5 py-3 rounded-md font-black text-2xl w-[75px] text-center border-2 tabular-nums"
+                  className="px-4 py-3 rounded-md font-black text-2xl w-[85px] text-center border-2 tabular-nums"
                   style={{
                     backgroundColor: getRatingColor(visit.composite_score / 2),
                     color: getTextColor(visit.composite_score / 2),

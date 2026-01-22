@@ -176,8 +176,8 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
   };
 
   return (
-    <div className="card">
-      <h2 className="text-2xl font-bold mb-6">
+    <div>
+      <h2 className="coffee-shop-name text-4xl md:text-5xl mb-6 pr-8">
         {isEditing ? 'Edit Visit' : 'Add Visit'}
       </h2>
 
