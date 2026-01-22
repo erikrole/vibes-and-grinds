@@ -9,6 +9,7 @@ export default function App() {
   const [showForm, setShowForm] = useState(false);
   const [editingVisit, setEditingVisit] = useState(null);
   const [error, setError] = useState(null);
+  const [sortBy, setSortBy] = useState('date');
 
   useEffect(() => {
     loadVisits();
@@ -62,6 +63,21 @@ export default function App() {
     setEditingVisit(null);
   };
 
+  const sortedVisits = [...visits].sort((a, b) => {
+    switch (sortBy) {
+      case 'date':
+        return new Date(b.date) - new Date(a.date);
+      case 'vibe':
+        return b.vibe_rating - a.vibe_rating;
+      case 'coffee':
+        return b.coffee_rating - a.coffee_rating;
+      case 'composite':
+        return b.composite_score - a.composite_score;
+      default:
+        return 0;
+    }
+  });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
       {/* Header */}
@@ -70,10 +86,7 @@ export default function App() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="text-4xl">☕</div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Vibes & Grinds</h1>
-                <p className="text-sm text-gray-500 mt-1">Basketball Road Trip Coffee Tracker</p>
-              </div>
+              <h1 className="text-3xl font-bold text-gray-900">Vibes & Grinds</h1>
             </div>
             {!showForm && !editingVisit && (
               <button onClick={() => setShowForm(true)} className="btn-primary">
@@ -109,13 +122,60 @@ export default function App() {
         )}
 
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Coffee Shop Visits</h2>
-          <p className="text-gray-600">
-            {visits.length} {visits.length === 1 ? 'visit' : 'visits'} logged
-          </p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Coffee Shop Visits</h2>
+              <p className="text-gray-600">
+                {visits.length} {visits.length === 1 ? 'visit' : 'visits'} logged
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <span className="text-sm text-gray-500 self-center mr-2">Sort by:</span>
+              <button
+                onClick={() => setSortBy('date')}
+                className={`px-3 py-1 text-sm rounded ${
+                  sortBy === 'date'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Date
+              </button>
+              <button
+                onClick={() => setSortBy('vibe')}
+                className={`px-3 py-1 text-sm rounded ${
+                  sortBy === 'vibe'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Vibe
+              </button>
+              <button
+                onClick={() => setSortBy('coffee')}
+                className={`px-3 py-1 text-sm rounded ${
+                  sortBy === 'coffee'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Coffee
+              </button>
+              <button
+                onClick={() => setSortBy('composite')}
+                className={`px-3 py-1 text-sm rounded ${
+                  sortBy === 'composite'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Total
+              </button>
+            </div>
+          </div>
         </div>
 
-        <VisitList visits={visits} loading={loading} onEdit={handleEditVisit} />
+        <VisitList visits={sortedVisits} loading={loading} onEdit={handleEditVisit} />
       </main>
 
       {/* Footer */}

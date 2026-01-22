@@ -13,7 +13,6 @@ export default function CompositeBadge({ composite }) {
       >
         {composite.toFixed(1)}
       </div>
-      <span className="text-xs text-gray-400 mt-1">/ 20</span>
     </div>
   );
 }

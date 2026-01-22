@@ -13,7 +13,6 @@ export default function RatingBadge({ rating, label, maxRating = 10 }) {
       >
         {rating.toFixed(1)}
       </div>
-      <span className="text-xs text-gray-400 mt-1">/ {maxRating}</span>
     </div>
   );
 }
