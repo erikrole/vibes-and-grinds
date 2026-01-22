@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PhotoCropper from './PhotoCropper';
 
 // Big Ten city to team mapping
 const BIG_TEN_TEAMS = {
@@ -66,6 +67,8 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(initialData?.photo_url || null);
   const [uploading, setUploading] = useState(false);
+  const [cropping, setCropping] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState(null);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -91,13 +94,37 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setPhotoFile(file);
-      // Create preview
+      // Show cropper
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreview(reader.result);
+      reader.onload = () => {
+        setImageToCrop(reader.result);
+        setCropping(true);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCropComplete = (croppedFile) => {
+    setCropping(false);
+    setImageToCrop(null);
+    setPhotoFile(croppedFile);
+    // Create preview from cropped file
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoPreview(reader.result);
+    };
+    reader.readAsDataURL(croppedFile);
+  };
+
+  const handleCropCancel = () => {
+    setCropping(false);
+    setImageToCrop(null);
+  };
+
+  const handleRecropPhoto = () => {
+    if (photoPreview) {
+      setImageToCrop(photoPreview);
+      setCropping(true);
     }
   };
 
@@ -342,15 +369,28 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
                 alt="Preview"
                 className="w-full h-48 object-cover rounded-lg border border-stone-300"
               />
-              <button
-                type="button"
-                onClick={removePhoto}
-                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="absolute top-2 right-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleRecropPhoto}
+                  className="bg-stone-600 text-white rounded-full p-2 hover:bg-stone-700 transition-colors shadow-lg"
+                  title="Recrop photo"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={removePhoto}
+                  className="bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
+                  title="Remove photo"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
           ) : (
             <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-stone-300 border-dashed rounded-lg cursor-pointer hover:bg-stone-50 transition-colors">
@@ -400,6 +440,15 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
           </button>
         </div>
       </form>
+
+      {/* Photo Cropper Modal */}
+      {cropping && imageToCrop && (
+        <PhotoCropper
+          imageUrl={imageToCrop}
+          onComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+        />
+      )}
     </div>
   );
 }

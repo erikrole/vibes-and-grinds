@@ -270,6 +270,8 @@ export default function App() {
             await updateVisit(id, updatedData);
             await loadVisits();
           }}
+          onEdit={handleEditVisit}
+          onDelete={handleDeleteVisit}
         />
       )}
 

@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
 import RatingBadge from './RatingBadge';
 import CompositeBadge from './CompositeBadge';
+import PhotoCropper from './PhotoCropper';
 
-export default function VisitDetailModal({ visit, visits, onClose, onUpdate }) {
+export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onEdit, onDelete }) {
   const [showPhotoMenu, setShowPhotoMenu] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [cropping, setCropping] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState(null);
   // Calculate how many times this shop has been visited
   const shopVisits = visits.filter(
     v => v.coffee_shop_name.toLowerCase() === visit.coffee_shop_name.toLowerCase()
@@ -61,14 +65,40 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate }) {
     input.accept = 'image/*';
     input.onchange = (e) => {
       const file = e.target.files[0];
-      if (file) handlePhotoUpload(file);
+      if (file) {
+        // Create a URL for the file to display in the cropper
+        const reader = new FileReader();
+        reader.onload = () => {
+          setImageToCrop(reader.result);
+          setCropping(true);
+        };
+        reader.readAsDataURL(file);
+      }
     };
     input.click();
+  };
+
+  const handleCropComplete = async (croppedFile) => {
+    setCropping(false);
+    setImageToCrop(null);
+    await handlePhotoUpload(croppedFile);
+  };
+
+  const handleCropCancel = () => {
+    setCropping(false);
+    setImageToCrop(null);
   };
 
   const handleReplacePhoto = () => {
     setShowPhotoMenu(false);
     handleAddPhoto();
+  };
+
+  const handleRecropPhoto = () => {
+    setShowPhotoMenu(false);
+    // Use the existing photo URL for re-cropping
+    setImageToCrop(visit.photo_url);
+    setCropping(true);
   };
 
   const handleDeletePhoto = async () => {
@@ -80,6 +110,20 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate }) {
         console.error('Error deleting photo:', error);
         alert('Failed to delete photo. Please try again.');
       }
+    }
+  };
+
+  const handleEdit = () => {
+    setShowMenu(false);
+    onEdit(visit);
+    onClose();
+  };
+
+  const handleDelete = () => {
+    setShowMenu(false);
+    if (confirm(`Are you sure you want to delete the visit to ${visit.coffee_shop_name}?`)) {
+      onDelete(visit.id);
+      onClose();
     }
   };
 
@@ -103,16 +147,51 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate }) {
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 text-stone-400 hover:text-stone-600 transition-colors z-10"
-            aria-label="Close"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          {/* Menu and Close buttons */}
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+            {/* 3-dot menu */}
+            <div className="relative">
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="text-stone-400 hover:text-stone-600 p-1 transition-colors"
+                aria-label="Menu"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                </svg>
+              </button>
+              {showMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+                  <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-20 border border-stone-200">
+                    <button
+                      onClick={handleEdit}
+                      className="w-full text-left px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50 rounded-t-md transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-b-md transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Close button */}
+            <button
+              onClick={onClose}
+              className="text-stone-400 hover:text-stone-600 transition-colors"
+              aria-label="Close"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
 
           <div className="p-6 sm:p-8">
             {/* Header - Big Title */}
@@ -145,8 +224,14 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate }) {
                         <div className="fixed inset-0" onClick={() => setShowPhotoMenu(false)} />
                         <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-20 border border-stone-200">
                           <button
-                            onClick={handleReplacePhoto}
+                            onClick={handleRecropPhoto}
                             className="w-full text-left px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50 rounded-t-md transition-colors"
+                          >
+                            Recrop
+                          </button>
+                          <button
+                            onClick={handleReplacePhoto}
+                            className="w-full text-left px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50 transition-colors"
                           >
                             Replace
                           </button>
@@ -273,6 +358,15 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate }) {
           </div>
         </div>
       </div>
+
+      {/* Photo Cropper Modal */}
+      {cropping && imageToCrop && (
+        <PhotoCropper
+          imageUrl={imageToCrop}
+          onComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+        />
+      )}
     </div>
   );
 }
