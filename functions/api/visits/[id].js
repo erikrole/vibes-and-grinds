@@ -85,7 +85,11 @@ export async function onRequestPut({ params, request, env }) {
     });
   } catch (error) {
     console.error('Error updating visit:', error);
-    return new Response(JSON.stringify({ error: 'Failed to update visit' }), {
+    return new Response(JSON.stringify({
+      error: 'Failed to update visit',
+      details: error.message,
+      stack: error.stack
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });

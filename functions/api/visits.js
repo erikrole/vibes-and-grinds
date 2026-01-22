@@ -84,7 +84,11 @@ export async function onRequestPost({ request, env }) {
     });
   } catch (error) {
     console.error('Error creating visit:', error);
-    return new Response(JSON.stringify({ error: 'Failed to create visit' }), {
+    return new Response(JSON.stringify({
+      error: 'Failed to create visit',
+      details: error.message,
+      stack: error.stack
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
