@@ -103,18 +103,20 @@ export default function App() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
+    <div className="min-h-screen bg-stone-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="bg-white border-b border-stone-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <div className="text-4xl">☕</div>
-              <h1 className="text-3xl font-bold text-gray-900">Vibes & Grinds</h1>
+              <h1 className="text-4xl font-black tracking-tight text-stone-900" style={{ fontFamily: "'Playfair Display', serif" }}>
+                Vibes & Grinds
+              </h1>
             </div>
             {!showForm && !editingVisit && (
               <button onClick={() => setShowForm(true)} className="btn-primary">
-                + Add Visit
+                Add Visit
               </button>
             )}
           </div>
@@ -124,7 +126,7 @@ export default function App() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-800 px-5 py-4 rounded-md">
             {error}
           </div>
         )}
@@ -149,51 +151,51 @@ export default function App() {
           <div className="flex flex-col gap-4 mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Coffee Shop Visits</h2>
-                <p className="text-gray-600">
+                <h2 className="text-3xl font-bold text-stone-900 mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>Coffee Shop Visits</h2>
+                <p className="text-stone-600 text-sm tracking-wide">
                   {sortedVisits.length} of {visits.length} {visits.length === 1 ? 'visit' : 'visits'}
                   {searchQuery && ' (filtered)'}
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                <span className="text-sm text-gray-500 hidden sm:block">Sort by:</span>
+                <span className="text-sm text-stone-500 hidden sm:block tracking-wide">Sort by:</span>
                 <div className="flex gap-2 flex-wrap">
                   <button
                     onClick={() => setSortBy('date')}
-                    className={`px-3 py-1 text-sm rounded ${
+                    className={`px-4 py-1.5 text-sm rounded transition-all ${
                       sortBy === 'date'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-stone-800 text-stone-50'
+                        : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
                     }`}
                   >
                     Date
                   </button>
                   <button
                     onClick={() => setSortBy('vibe')}
-                    className={`px-3 py-1 text-sm rounded ${
+                    className={`px-4 py-1.5 text-sm rounded transition-all ${
                       sortBy === 'vibe'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-stone-800 text-stone-50'
+                        : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
                     }`}
                   >
                     Vibe
                   </button>
                   <button
                     onClick={() => setSortBy('coffee')}
-                    className={`px-3 py-1 text-sm rounded ${
+                    className={`px-4 py-1.5 text-sm rounded transition-all ${
                       sortBy === 'coffee'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-stone-800 text-stone-50'
+                        : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
                     }`}
                   >
                     Coffee
                   </button>
                   <button
                     onClick={() => setSortBy('composite')}
-                    className={`px-3 py-1 text-sm rounded ${
+                    className={`px-4 py-1.5 text-sm rounded transition-all ${
                       sortBy === 'composite'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-stone-800 text-stone-50'
+                        : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
                     }`}
                   >
                     Total
@@ -209,10 +211,10 @@ export default function App() {
                 placeholder="Search by shop name, city, or order..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 pl-11 border border-stone-300 rounded-md focus:outline-none focus:ring-1 focus:ring-stone-400 bg-white"
               />
               <svg
-                className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
+                className="absolute left-3.5 top-3.5 h-5 w-5 text-stone-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -227,7 +229,7 @@ export default function App() {
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-3 text-stone-400 hover:text-stone-600"
                 >
                   <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                     <path
@@ -246,8 +248,8 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-16 py-8 text-center text-gray-500 text-sm">
-        <p>Built for tracking coffee shop adventures on basketball road trips</p>
+      <footer className="mt-20 py-8 text-center text-stone-400 text-sm tracking-wide border-t border-stone-200">
+        <p>Built for tracking coffee shop adventures</p>
       </footer>
     </div>
   );

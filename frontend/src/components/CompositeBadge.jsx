@@ -6,10 +6,14 @@ export default function CompositeBadge({ composite }) {
 
   return (
     <div className="flex flex-col items-center">
-      <span className="text-xs text-gray-500 mb-1 font-medium">Total</span>
+      <span className="text-xs text-stone-500 mb-2 font-medium tracking-widest uppercase">Total</span>
       <div
-        className="px-5 py-3 rounded-xl font-bold text-2xl min-w-[80px] text-center shadow-md"
-        style={{ backgroundColor: bgColor, color: textColor }}
+        className="px-6 py-4 rounded-md font-black text-3xl min-w-[90px] text-center border-2"
+        style={{
+          backgroundColor: bgColor,
+          color: textColor,
+          borderColor: `${bgColor}dd`
+        }}
       >
         {composite.toFixed(1)}
       </div>

@@ -6,9 +6,9 @@ export default function RatingBadge({ rating, label, maxRating = 10 }) {
 
   return (
     <div className="flex flex-col items-center">
-      <span className="text-xs text-gray-500 mb-1 font-medium">{label}</span>
+      <span className="text-xs text-stone-500 mb-2 font-medium tracking-widest uppercase">{label}</span>
       <div
-        className="px-4 py-2 rounded-lg font-bold text-lg min-w-[60px] text-center shadow-sm"
+        className="px-5 py-2.5 rounded-md font-bold text-lg min-w-[70px] text-center border border-stone-200"
         style={{ backgroundColor: bgColor, color: textColor }}
       >
         {rating.toFixed(1)}
