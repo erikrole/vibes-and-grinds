@@ -1,7 +1,7 @@
 import RatingBadge from './RatingBadge';
 import CompositeBadge from './CompositeBadge';
 
-export default function VisitCard({ visit }) {
+export default function VisitCard({ visit, onEdit }) {
   const formattedDate = new Date(visit.date).toLocaleDateString('en-US', {
     weekday: 'short',
     year: 'numeric',
@@ -24,6 +24,12 @@ export default function VisitCard({ visit }) {
                 <p className="text-sm text-gray-500 mt-1">{visit.coffee_shop_address}</p>
               )}
             </div>
+            <button
+              onClick={() => onEdit(visit)}
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium ml-4"
+            >
+              Edit
+            </button>
           </div>
 
           <div className="space-y-2 mt-3">

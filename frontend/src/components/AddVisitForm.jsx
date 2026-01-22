@@ -1,16 +1,20 @@
 import { useState } from 'react';
 
-export default function AddVisitForm({ onSubmit, onCancel }) {
-  const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    coffee_shop_name: '',
-    city: '',
-    coffee_shop_address: '',
-    coffee_order: '',
-    vibe_rating: '',
-    coffee_rating: '',
-    notes: '',
-  });
+export default function AddVisitForm({ onSubmit, onCancel, initialData = null }) {
+  const isEditing = Boolean(initialData);
+
+  const [formData, setFormData] = useState(
+    initialData || {
+      date: new Date().toISOString().split('T')[0],
+      coffee_shop_name: '',
+      city: '',
+      coffee_shop_address: '',
+      coffee_order: '',
+      vibe_rating: '',
+      coffee_rating: '',
+      notes: '',
+    }
+  );
 
   const [errors, setErrors] = useState({});
 
@@ -64,7 +68,9 @@ export default function AddVisitForm({ onSubmit, onCancel }) {
 
   return (
     <div className="card">
-      <h2 className="text-2xl font-bold mb-6">Add Coffee Shop Visit</h2>
+      <h2 className="text-2xl font-bold mb-6">
+        {isEditing ? 'Edit Coffee Shop Visit' : 'Add Coffee Shop Visit'}
+      </h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Date */}
@@ -206,7 +212,7 @@ export default function AddVisitForm({ onSubmit, onCancel }) {
         {/* Buttons */}
         <div className="flex gap-3 pt-4">
           <button type="submit" className="btn-primary flex-1">
-            Add Visit
+            {isEditing ? 'Save Changes' : 'Add Visit'}
           </button>
           <button type="button" onClick={onCancel} className="btn-secondary">
             Cancel

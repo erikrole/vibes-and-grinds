@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import AddVisitForm from './components/AddVisitForm';
 import VisitList from './components/VisitList';
-import { fetchVisits, createVisit } from './utils/api';
+import { fetchVisits, createVisit, updateVisit } from './utils/api';
 
 export default function App() {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingVisit, setEditingVisit] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -39,6 +40,28 @@ export default function App() {
     }
   };
 
+  const handleEditVisit = (visit) => {
+    setEditingVisit(visit);
+    setShowForm(false);
+  };
+
+  const handleUpdateVisit = async (visitData) => {
+    try {
+      setError(null);
+      const updatedVisit = await updateVisit(editingVisit.id, visitData);
+      setVisits(visits.map((v) => (v.id === editingVisit.id ? updatedVisit : v)));
+      setEditingVisit(null);
+    } catch (err) {
+      setError('Failed to update visit. Please try again.');
+      console.error(err);
+    }
+  };
+
+  const handleCancelForm = () => {
+    setShowForm(false);
+    setEditingVisit(null);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
       {/* Header */}
@@ -52,7 +75,7 @@ export default function App() {
                 <p className="text-sm text-gray-500 mt-1">Basketball Road Trip Coffee Tracker</p>
               </div>
             </div>
-            {!showForm && (
+            {!showForm && !editingVisit && (
               <button onClick={() => setShowForm(true)} className="btn-primary">
                 + Add Visit
               </button>
@@ -71,7 +94,17 @@ export default function App() {
 
         {showForm && (
           <div className="mb-8">
-            <AddVisitForm onSubmit={handleAddVisit} onCancel={() => setShowForm(false)} />
+            <AddVisitForm onSubmit={handleAddVisit} onCancel={handleCancelForm} />
+          </div>
+        )}
+
+        {editingVisit && (
+          <div className="mb-8">
+            <AddVisitForm
+              initialData={editingVisit}
+              onSubmit={handleUpdateVisit}
+              onCancel={handleCancelForm}
+            />
           </div>
         )}
 
@@ -82,7 +115,7 @@ export default function App() {
           </p>
         </div>
 
-        <VisitList visits={visits} loading={loading} />
+        <VisitList visits={visits} loading={loading} onEdit={handleEditVisit} />
       </main>
 
       {/* Footer */}
