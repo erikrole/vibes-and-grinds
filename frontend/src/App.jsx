@@ -253,6 +253,19 @@ export default function App() {
       <footer className="mt-20 py-8 text-center text-stone-400 text-sm tracking-wide border-t border-stone-200">
         <p>Built for logging AJ Harrison's road coffee orders</p>
       </footer>
+
+      {/* Floating Action Button */}
+      {!showForm && !editingVisit && (
+        <button
+          onClick={() => setShowForm(true)}
+          className="fixed bottom-6 right-6 w-14 h-14 bg-stone-800 text-stone-50 rounded-full shadow-lg hover:bg-stone-900 transition-all flex items-center justify-center z-50 hover:scale-110"
+          aria-label="Add Visit"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
