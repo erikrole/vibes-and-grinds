@@ -19,7 +19,9 @@ export async function createVisit(visitData) {
     body: JSON.stringify(visitData),
   });
   if (!response.ok) {
-    throw new Error('Failed to create visit');
+    const errorData = await response.json().catch(() => ({}));
+    console.error('Create visit error:', errorData);
+    throw new Error(errorData.error || 'Failed to create visit');
   }
   return response.json();
 }
