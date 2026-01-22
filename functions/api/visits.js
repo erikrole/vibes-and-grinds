@@ -1,0 +1,88 @@
+// GET /api/visits - Get all visits
+// POST /api/visits - Create a new visit
+
+export async function onRequestGet({ env }) {
+  try {
+    const { results } = await env.DB.prepare(
+      'SELECT * FROM coffee_visits ORDER BY date DESC, created_at DESC'
+    ).all();
+
+    return new Response(JSON.stringify(results), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('Error fetching visits:', error);
+    return new Response(JSON.stringify({ error: 'Failed to fetch visits' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+export async function onRequestPost({ request, env }) {
+  try {
+    const body = await request.json();
+    const {
+      date,
+      coffee_shop_name,
+      coffee_shop_address,
+      coffee_shop_place_id,
+      coffee_shop_lat,
+      coffee_shop_lng,
+      coffee_order,
+      vibe_rating,
+      coffee_rating,
+      notes,
+    } = body;
+
+    // Validation
+    if (!date || !coffee_shop_name || vibe_rating === undefined || coffee_rating === undefined) {
+      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (vibe_rating < 0 || vibe_rating > 10 || coffee_rating < 0 || coffee_rating > 10) {
+      return new Response(JSON.stringify({ error: 'Ratings must be between 0 and 10' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Insert the visit
+    const result = await env.DB.prepare(
+      `INSERT INTO coffee_visits (
+        date, coffee_shop_name, coffee_shop_address, coffee_shop_place_id,
+        coffee_shop_lat, coffee_shop_lng, coffee_order, vibe_rating, coffee_rating, notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      date,
+      coffee_shop_name,
+      coffee_shop_address,
+      coffee_shop_place_id,
+      coffee_shop_lat,
+      coffee_shop_lng,
+      coffee_order,
+      vibe_rating,
+      coffee_rating,
+      notes
+    ).run();
+
+    // Fetch the newly created visit
+    const { results } = await env.DB.prepare(
+      'SELECT * FROM coffee_visits WHERE id = ?'
+    ).bind(result.meta.last_row_id).all();
+
+    return new Response(JSON.stringify(results[0]), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('Error creating visit:', error);
+    return new Response(JSON.stringify({ error: 'Failed to create visit' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}

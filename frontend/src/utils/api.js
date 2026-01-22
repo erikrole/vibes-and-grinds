@@ -1,4 +1,6 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Use relative URLs in production (for Cloudflare Pages Functions)
+// Use full URL in development
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 export async function fetchVisits() {
   const response = await fetch(`${API_URL}/api/visits`);

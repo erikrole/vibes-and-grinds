@@ -1,0 +1,11 @@
+name = "vibes-and-grinds"
+compatibility_date = "2024-01-01"
+
+# Cloudflare Pages configuration
+pages_build_output_dir = "frontend/dist"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "vibes-and-grinds-db"
+database_id = "your-database-id-will-go-here"

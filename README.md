@@ -2,6 +2,10 @@
 
 A beautiful web app for tracking coffee shop visits during basketball road trips. Rate the vibe, rate the coffee, and keep track of all your caffeinated adventures!
 
+**🚀 Live at:** [coffee.erikrole.com](https://coffee.erikrole.com)
+
+> **Deploying to Cloudflare?** See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete instructions on deploying to Cloudflare Pages with D1 database.
+
 ## Features
 
 - **Clean, Modern Interface** - Beautiful card-based design with intuitive layout
@@ -21,8 +25,9 @@ A beautiful web app for tracking coffee shop visits during basketball road trips
 - **Google Maps/Places API** - Autocomplete and location data
 
 ### Backend
-- **Node.js & Express** - RESTful API
-- **SQLite** - Lightweight database (easy to upgrade to PostgreSQL)
+- **Node.js & Express** - RESTful API (local development)
+- **Cloudflare Pages Functions** - Production API
+- **SQLite / Cloudflare D1** - Lightweight, globally distributed database
 - **CORS enabled** - Frontend/backend communication
 
 ## Getting Started
