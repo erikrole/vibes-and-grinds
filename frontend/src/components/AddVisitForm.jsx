@@ -53,6 +53,9 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
   );
 
   const [errors, setErrors] = useState({});
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(initialData?.photo_url || null);
+  const [uploading, setUploading] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -73,6 +76,25 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
+  };
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPhotoFile(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removePhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setFormData({ ...formData, photo_url: '' });
   };
 
   const validate = () => {
@@ -97,20 +119,50 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validate()) {
       return;
     }
 
-    const submitData = {
-      ...formData,
-      vibe_rating: parseFloat(formData.vibe_rating),
-      coffee_rating: parseFloat(formData.coffee_rating),
-    };
+    setUploading(true);
 
-    onSubmit(submitData);
+    try {
+      let photoUrl = formData.photo_url;
+
+      // Upload photo if there's a new file
+      if (photoFile) {
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', photoFile);
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: uploadFormData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to upload photo');
+        }
+
+        const { url } = await response.json();
+        photoUrl = url;
+      }
+
+      const submitData = {
+        ...formData,
+        vibe_rating: parseFloat(formData.vibe_rating),
+        coffee_rating: parseFloat(formData.coffee_rating),
+        photo_url: photoUrl,
+      };
+
+      onSubmit(submitData);
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      setErrors({ ...errors, photo: 'Failed to upload photo. Please try again.' });
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -249,19 +301,50 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
           </div>
         </div>
 
-        {/* Photo URL */}
+        {/* Photo */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Photo URL
+            Photo
           </label>
-          <input
-            type="url"
-            name="photo_url"
-            value={formData.photo_url}
-            onChange={handleInputChange}
-            className="input-field"
-          />
-          <p className="text-xs text-stone-500 mt-1">Paste a URL to a photo of the coffee shop or your order</p>
+          {photoPreview ? (
+            <div className="relative">
+              <img
+                src={photoPreview}
+                alt="Preview"
+                className="w-full h-48 object-cover rounded-lg border border-stone-300"
+              />
+              <button
+                type="button"
+                onClick={removePhoto}
+                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-stone-300 border-dashed rounded-lg cursor-pointer hover:bg-stone-50 transition-colors">
+              <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                <svg className="w-10 h-10 mb-3 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <p className="mb-2 text-sm text-stone-500">
+                  <span className="font-semibold">Click to upload</span> or drag and drop
+                </p>
+                <p className="text-xs text-stone-400">PNG, JPG, HEIC (MAX. 10MB)</p>
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                className="hidden"
+              />
+            </label>
+          )}
+          {errors.photo && (
+            <p className="text-red-500 text-sm mt-1">{errors.photo}</p>
+          )}
         </div>
 
         {/* Notes */}
@@ -280,10 +363,10 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
 
         {/* Buttons */}
         <div className="flex gap-3 pt-4">
-          <button type="submit" className="btn-primary flex-1">
-            {isEditing ? 'Save Changes' : 'Add Visit'}
+          <button type="submit" className="btn-primary flex-1" disabled={uploading}>
+            {uploading ? 'Uploading...' : isEditing ? 'Save Changes' : 'Add Visit'}
           </button>
-          <button type="button" onClick={onCancel} className="btn-secondary">
+          <button type="button" onClick={onCancel} className="btn-secondary" disabled={uploading}>
             Cancel
           </button>
         </div>
