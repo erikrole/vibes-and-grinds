@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import AddVisitForm from './components/AddVisitForm';
 import VisitList from './components/VisitList';
+import VisitDetailModal from './components/VisitDetailModal';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
 
 export default function App() {
@@ -8,6 +9,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingVisit, setEditingVisit] = useState(null);
+  const [viewingVisit, setViewingVisit] = useState(null);
   const [error, setError] = useState(null);
   const [sortBy, setSortBy] = useState('date');
   const [searchQuery, setSearchQuery] = useState('');
@@ -246,7 +248,13 @@ export default function App() {
           </div>
         </div>
 
-        <VisitList visits={sortedVisits} loading={loading} onEdit={handleEditVisit} onDelete={handleDeleteVisit} />
+        <VisitList
+          visits={sortedVisits}
+          loading={loading}
+          onEdit={handleEditVisit}
+          onDelete={handleDeleteVisit}
+          onViewDetails={setViewingVisit}
+        />
       </main>
 
       {/* Footer */}
@@ -265,6 +273,15 @@ export default function App() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
           </svg>
         </button>
+      )}
+
+      {/* Visit Detail Modal */}
+      {viewingVisit && (
+        <VisitDetailModal
+          visit={viewingVisit}
+          visits={visits}
+          onClose={() => setViewingVisit(null)}
+        />
       )}
     </div>
   );

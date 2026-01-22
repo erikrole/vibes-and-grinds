@@ -43,6 +43,7 @@ export async function onRequestPut({ params, request, env }) {
       vibe_rating,
       coffee_rating,
       notes,
+      photo_url,
     } = body;
 
     // Validation
@@ -58,7 +59,7 @@ export async function onRequestPut({ params, request, env }) {
       `UPDATE coffee_visits SET
         date = ?, coffee_shop_name = ?, city = ?, opponent = ?, coffee_shop_address = ?,
         coffee_shop_place_id = ?, coffee_shop_lat = ?, coffee_shop_lng = ?,
-        coffee_order = ?, vibe_rating = ?, coffee_rating = ?, notes = ?
+        coffee_order = ?, vibe_rating = ?, coffee_rating = ?, notes = ?, photo_url = ?
       WHERE id = ?`
     ).bind(
       date,
@@ -73,6 +74,7 @@ export async function onRequestPut({ params, request, env }) {
       vibe_rating,
       coffee_rating,
       notes || null,
+      photo_url || null,
       params.id
     ).run();
 

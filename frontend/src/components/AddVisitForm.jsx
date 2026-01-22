@@ -39,7 +39,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
 
   const [formData, setFormData] = useState(
     initialData || {
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toISOString().split('T')[0'),
       coffee_shop_name: '',
       city: '',
       opponent: '',
@@ -48,6 +48,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
       vibe_rating: '',
       coffee_rating: '',
       notes: '',
+      photo_url: '',
     }
   );
 
@@ -246,6 +247,21 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
               <p className="text-red-500 text-sm mt-1">{errors.coffee_rating}</p>
             )}
           </div>
+        </div>
+
+        {/* Photo URL */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Photo URL
+          </label>
+          <input
+            type="url"
+            name="photo_url"
+            value={formData.photo_url}
+            onChange={handleInputChange}
+            className="input-field"
+          />
+          <p className="text-xs text-stone-500 mt-1">Paste a URL to a photo of the coffee shop or your order</p>
         </div>
 
         {/* Notes */}

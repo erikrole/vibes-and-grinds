@@ -2,7 +2,7 @@ import { useState } from 'react';
 import RatingBadge from './RatingBadge';
 import CompositeBadge from './CompositeBadge';
 
-export default function VisitCard({ visit, onEdit, onDelete }) {
+export default function VisitCard({ visit, onEdit, onDelete, onViewDetails }) {
   const [showMenu, setShowMenu] = useState(false);
 
   const formattedDate = new Date(visit.date).toLocaleDateString('en-US', {
@@ -26,7 +26,10 @@ export default function VisitCard({ visit, onEdit, onDelete }) {
         <div className="flex-1">
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
-              <h3 className="coffee-shop-name text-2xl md:text-3xl mb-2 leading-tight">
+              <h3
+                onClick={() => onViewDetails(visit)}
+                className="coffee-shop-name text-2xl md:text-3xl mb-2 leading-tight cursor-pointer hover:text-stone-700 transition-colors"
+              >
                 {visit.coffee_shop_name}
               </h3>
               {(visit.city || visit.opponent) && (

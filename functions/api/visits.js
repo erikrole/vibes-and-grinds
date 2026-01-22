@@ -35,6 +35,7 @@ export async function onRequestPost({ request, env }) {
       vibe_rating,
       coffee_rating,
       notes,
+      photo_url,
     } = body;
 
     // Validation
@@ -56,8 +57,8 @@ export async function onRequestPost({ request, env }) {
     const result = await env.DB.prepare(
       `INSERT INTO coffee_visits (
         date, coffee_shop_name, city, opponent, coffee_shop_address, coffee_shop_place_id,
-        coffee_shop_lat, coffee_shop_lng, coffee_order, vibe_rating, coffee_rating, notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        coffee_shop_lat, coffee_shop_lng, coffee_order, vibe_rating, coffee_rating, notes, photo_url
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       date,
       coffee_shop_name,
@@ -70,7 +71,8 @@ export async function onRequestPost({ request, env }) {
       coffee_order || null,
       vibe_rating,
       coffee_rating,
-      notes || null
+      notes || null,
+      photo_url || null
     ).run();
 
     // Fetch the newly created visit

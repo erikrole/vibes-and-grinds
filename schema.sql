@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS coffee_visits (
   coffee_rating REAL NOT NULL CHECK(coffee_rating >= 0 AND coffee_rating <= 10),
   composite_score REAL GENERATED ALWAYS AS (vibe_rating + coffee_rating) STORED,
   notes TEXT,
+  photo_url TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 

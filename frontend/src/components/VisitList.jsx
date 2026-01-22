@@ -1,6 +1,6 @@
 import VisitCard from './VisitCard';
 
-export default function VisitList({ visits, loading, onEdit, onDelete }) {
+export default function VisitList({ visits, loading, onEdit, onDelete, onViewDetails }) {
   if (loading) {
     return (
       <div className="text-center py-12">
@@ -23,7 +23,13 @@ export default function VisitList({ visits, loading, onEdit, onDelete }) {
   return (
     <div className="space-y-4">
       {visits.map((visit) => (
-        <VisitCard key={visit.id} visit={visit} onEdit={onEdit} onDelete={onDelete} />
+        <VisitCard
+          key={visit.id}
+          visit={visit}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onViewDetails={onViewDetails}
+        />
       ))}
     </div>
   );
