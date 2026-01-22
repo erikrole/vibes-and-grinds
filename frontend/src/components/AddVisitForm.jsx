@@ -1,14 +1,10 @@
 import { useState } from 'react';
-import PlacesAutocomplete from './PlacesAutocomplete';
 
 export default function AddVisitForm({ onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     coffee_shop_name: '',
     coffee_shop_address: '',
-    coffee_shop_place_id: '',
-    coffee_shop_lat: null,
-    coffee_shop_lng: null,
     coffee_order: '',
     vibe_rating: '',
     coffee_rating: '',
@@ -16,17 +12,6 @@ export default function AddVisitForm({ onSubmit, onCancel }) {
   });
 
   const [errors, setErrors] = useState({});
-
-  const handlePlaceSelected = (place) => {
-    setFormData({
-      ...formData,
-      coffee_shop_name: place.name,
-      coffee_shop_address: place.address,
-      coffee_shop_place_id: place.place_id,
-      coffee_shop_lat: place.lat,
-      coffee_shop_lng: place.lng,
-    });
-  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -99,16 +84,34 @@ export default function AddVisitForm({ onSubmit, onCancel }) {
         {/* Coffee Shop */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Coffee Shop <span className="text-red-500">*</span>
+            Coffee Shop Name <span className="text-red-500">*</span>
           </label>
-          <PlacesAutocomplete
+          <input
+            type="text"
+            name="coffee_shop_name"
             value={formData.coffee_shop_name}
             onChange={handleInputChange}
-            onPlaceSelected={handlePlaceSelected}
+            placeholder="e.g., Blue Bottle Coffee"
+            className="input-field"
           />
           {errors.coffee_shop_name && (
             <p className="text-red-500 text-sm mt-1">{errors.coffee_shop_name}</p>
           )}
+        </div>
+
+        {/* Address */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Address
+          </label>
+          <input
+            type="text"
+            name="coffee_shop_address"
+            value={formData.coffee_shop_address}
+            onChange={handleInputChange}
+            placeholder="e.g., 123 Main St, City, State"
+            className="input-field"
+          />
         </div>
 
         {/* Coffee Order */}
