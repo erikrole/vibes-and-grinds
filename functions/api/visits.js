@@ -52,7 +52,7 @@ export async function onRequestPost({ request, env }) {
       });
     }
 
-    // Insert the visit
+    // Insert the visit (convert undefined to null for optional fields)
     const result = await env.DB.prepare(
       `INSERT INTO coffee_visits (
         date, coffee_shop_name, city, opponent, coffee_shop_address, coffee_shop_place_id,
@@ -61,16 +61,16 @@ export async function onRequestPost({ request, env }) {
     ).bind(
       date,
       coffee_shop_name,
-      city,
-      opponent,
-      coffee_shop_address,
-      coffee_shop_place_id,
-      coffee_shop_lat,
-      coffee_shop_lng,
-      coffee_order,
+      city || null,
+      opponent || null,
+      coffee_shop_address || null,
+      coffee_shop_place_id || null,
+      coffee_shop_lat || null,
+      coffee_shop_lng || null,
+      coffee_order || null,
       vibe_rating,
       coffee_rating,
-      notes
+      notes || null
     ).run();
 
     // Fetch the newly created visit

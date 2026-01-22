@@ -53,6 +53,7 @@ export async function onRequestPut({ params, request, env }) {
       });
     }
 
+    // Update the visit (convert undefined to null for optional fields)
     await env.DB.prepare(
       `UPDATE coffee_visits SET
         date = ?, coffee_shop_name = ?, city = ?, opponent = ?, coffee_shop_address = ?,
@@ -62,16 +63,16 @@ export async function onRequestPut({ params, request, env }) {
     ).bind(
       date,
       coffee_shop_name,
-      city,
-      opponent,
-      coffee_shop_address,
-      coffee_shop_place_id,
-      coffee_shop_lat,
-      coffee_shop_lng,
-      coffee_order,
+      city || null,
+      opponent || null,
+      coffee_shop_address || null,
+      coffee_shop_place_id || null,
+      coffee_shop_lat || null,
+      coffee_shop_lng || null,
+      coffee_order || null,
       vibe_rating,
       coffee_rating,
-      notes,
+      notes || null,
       params.id
     ).run();
 
