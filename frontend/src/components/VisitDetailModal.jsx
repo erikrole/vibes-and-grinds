@@ -55,23 +55,28 @@ export default function VisitDetailModal({ visit, visits, onClose }) {
 
           <div className="p-6 sm:p-8">
             {/* Header - Big Title */}
-            <h2 className="coffee-shop-name text-4xl md:text-5xl mb-6 pr-8 text-center">
+            <h2 className="coffee-shop-name text-4xl md:text-5xl mb-6 pr-8">
               {visit.coffee_shop_name}
             </h2>
 
-            {/* Photo */}
+            {/* Photo with Notes Overlay */}
             {visit.photo_url && (
-              <div className="mb-6 rounded-lg overflow-hidden">
+              <div className="mb-6 rounded-lg overflow-hidden relative">
                 <img
                   src={visit.photo_url}
                   alt={visit.coffee_shop_name}
                   className="w-full h-auto object-cover"
                 />
+                {visit.notes && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-6 pt-12">
+                    <p className="text-white text-lg leading-relaxed">{visit.notes}</p>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Visit Details */}
-            <div className="space-y-2 mb-6 text-center">
+            <div className="space-y-2 mb-6">
               <p className="text-stone-700">
                 <span className="font-semibold">Date:</span> {formattedDate}
               </p>
@@ -90,12 +95,17 @@ export default function VisitDetailModal({ visit, visits, onClose }) {
                   <span className="font-semibold">Opponent:</span> {visit.opponent}
                 </p>
               )}
+              {visit.sport && (
+                <p className="text-stone-700">
+                  <span className="font-semibold">Sport:</span> {visit.sport}
+                </p>
+              )}
               {visit.coffee_shop_address && (
                 <p className="text-stone-700">
                   <span className="font-semibold">Address:</span> {visit.coffee_shop_address}
                 </p>
               )}
-              {visit.notes && (
+              {visit.notes && !visit.photo_url && (
                 <p className="text-stone-700 pt-2">
                   <span className="font-semibold">Notes:</span> {visit.notes}
                 </p>
@@ -151,35 +161,6 @@ export default function VisitDetailModal({ visit, visits, onClose }) {
               </div>
             </div>
 
-            {/* Divider */}
-            <hr className="border-stone-300 my-6" />
-
-            {/* Visit Statistics */}
-            <div className="text-center">
-              <h3 className="text-sm font-semibold text-stone-600 uppercase tracking-wider mb-4">
-                Visit Statistics
-              </h3>
-              <div className="flex gap-6 justify-center text-stone-700">
-                <div className="flex flex-col items-center">
-                  <span className="text-2xl font-bold tabular-nums">{visitCount}</span>
-                  <span className="text-xs text-stone-500 uppercase tracking-wide mt-1">
-                    {visitCount === 1 ? 'Visit' : 'Visits'}
-                  </span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-2xl font-bold tabular-nums">{avgVibe.toFixed(1)}</span>
-                  <span className="text-xs text-stone-500 uppercase tracking-wide mt-1">Avg Vibe</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-2xl font-bold tabular-nums">{avgCoffee.toFixed(1)}</span>
-                  <span className="text-xs text-stone-500 uppercase tracking-wide mt-1">Avg Coffee</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-2xl font-bold tabular-nums">{avgTotal.toFixed(1)}</span>
-                  <span className="text-xs text-stone-500 uppercase tracking-wide mt-1">Avg Total</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

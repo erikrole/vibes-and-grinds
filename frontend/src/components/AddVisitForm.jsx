@@ -37,12 +37,22 @@ const BIG_TEN_TEAMS = {
 export default function AddVisitForm({ onSubmit, onCancel, initialData = null }) {
   const isEditing = Boolean(initialData);
 
+  // Get today's date in local timezone
+  const getLocalDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const [formData, setFormData] = useState(
     initialData || {
-      date: new Date().toISOString().split('T')[0],
+      date: getLocalDate(),
       coffee_shop_name: '',
       city: '',
       opponent: '',
+      sport: '',
       coffee_shop_address: '',
       coffee_order: '',
       vibe_rating: '',
@@ -230,6 +240,25 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
             onChange={handleInputChange}
             className="input-field"
           />
+        </div>
+
+        {/* Sport */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Sport
+          </label>
+          <select
+            name="sport"
+            value={formData.sport}
+            onChange={handleInputChange}
+            className="input-field"
+          >
+            <option value="">Select a sport</option>
+            <option value="Men's Basketball">Men's Basketball</option>
+            <option value="Football">Football</option>
+            <option value="Track & Field">Track & Field</option>
+            <option value="Cross Country">Cross Country</option>
+          </select>
         </div>
 
         {/* Address */}
