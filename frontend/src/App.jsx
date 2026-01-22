@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import AddVisitForm from './components/AddVisitForm';
 import VisitList from './components/VisitList';
-import { fetchVisits, createVisit, updateVisit } from './utils/api';
+import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
 
 export default function App() {
   const [visits, setVisits] = useState([]);
@@ -10,6 +10,7 @@ export default function App() {
   const [editingVisit, setEditingVisit] = useState(null);
   const [error, setError] = useState(null);
   const [sortBy, setSortBy] = useState('date');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadVisits();
@@ -58,12 +59,35 @@ export default function App() {
     }
   };
 
+  const handleDeleteVisit = async (id) => {
+    try {
+      setError(null);
+      await deleteVisit(id);
+      setVisits(visits.filter((v) => v.id !== id));
+    } catch (err) {
+      setError('Failed to delete visit. Please try again.');
+      console.error(err);
+    }
+  };
+
   const handleCancelForm = () => {
     setShowForm(false);
     setEditingVisit(null);
   };
 
-  const sortedVisits = [...visits].sort((a, b) => {
+  // Filter by search query
+  const filteredVisits = visits.filter((visit) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      visit.coffee_shop_name.toLowerCase().includes(query) ||
+      visit.city?.toLowerCase().includes(query) ||
+      visit.coffee_order?.toLowerCase().includes(query)
+    );
+  });
+
+  // Sort filtered visits
+  const sortedVisits = [...filteredVisits].sort((a, b) => {
     switch (sortBy) {
       case 'date':
         return new Date(b.date) - new Date(a.date);
@@ -122,60 +146,103 @@ export default function App() {
         )}
 
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Coffee Shop Visits</h2>
-              <p className="text-gray-600">
-                {visits.length} {visits.length === 1 ? 'visit' : 'visits'} logged
-              </p>
+          <div className="flex flex-col gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Coffee Shop Visits</h2>
+                <p className="text-gray-600">
+                  {sortedVisits.length} of {visits.length} {visits.length === 1 ? 'visit' : 'visits'}
+                  {searchQuery && ' (filtered)'}
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                <span className="text-sm text-gray-500 hidden sm:block">Sort by:</span>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => setSortBy('date')}
+                    className={`px-3 py-1 text-sm rounded ${
+                      sortBy === 'date'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Date
+                  </button>
+                  <button
+                    onClick={() => setSortBy('vibe')}
+                    className={`px-3 py-1 text-sm rounded ${
+                      sortBy === 'vibe'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Vibe
+                  </button>
+                  <button
+                    onClick={() => setSortBy('coffee')}
+                    className={`px-3 py-1 text-sm rounded ${
+                      sortBy === 'coffee'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Coffee
+                  </button>
+                  <button
+                    onClick={() => setSortBy('composite')}
+                    className={`px-3 py-1 text-sm rounded ${
+                      sortBy === 'composite'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Total
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <span className="text-sm text-gray-500 self-center mr-2">Sort by:</span>
-              <button
-                onClick={() => setSortBy('date')}
-                className={`px-3 py-1 text-sm rounded ${
-                  sortBy === 'date'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+
+            {/* Search bar */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search by shop name, city, or order..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <svg
+                className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                Date
-              </button>
-              <button
-                onClick={() => setSortBy('vibe')}
-                className={`px-3 py-1 text-sm rounded ${
-                  sortBy === 'vibe'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Vibe
-              </button>
-              <button
-                onClick={() => setSortBy('coffee')}
-                className={`px-3 py-1 text-sm rounded ${
-                  sortBy === 'coffee'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Coffee
-              </button>
-              <button
-                onClick={() => setSortBy('composite')}
-                className={`px-3 py-1 text-sm rounded ${
-                  sortBy === 'composite'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Total
-              </button>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        <VisitList visits={sortedVisits} loading={loading} onEdit={handleEditVisit} />
+        <VisitList visits={sortedVisits} loading={loading} onEdit={handleEditVisit} onDelete={handleDeleteVisit} />
       </main>
 
       {/* Footer */}
