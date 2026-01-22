@@ -5,7 +5,9 @@ import CompositeBadge from './CompositeBadge';
 export default function VisitCard({ visit, onEdit, onDelete, onViewDetails }) {
   const [showMenu, setShowMenu] = useState(false);
 
-  const formattedDate = new Date(visit.date).toLocaleDateString('en-US', {
+  // Format date - parse manually to avoid timezone issues
+  const [year, month, day] = visit.date.split('-');
+  const formattedDate = new Date(year, month - 1, day).toLocaleDateString('en-US', {
     weekday: 'short',
     year: 'numeric',
     month: 'short',
@@ -89,18 +91,11 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails }) {
                 <span className="text-stone-900">{visit.coffee_order}</span>
               </div>
             )}
-
-            {visit.notes && (
-              <div className="flex text-sm mt-3 pt-2 border-t border-stone-100">
-                <span className="text-stone-500 font-medium w-24 tracking-wide">Notes</span>
-                <span className="text-stone-700 italic">{visit.notes}</span>
-              </div>
-            )}
           </div>
         </div>
 
         {/* Right side: Ratings */}
-        <div className="flex items-center gap-6 md:gap-8 justify-center md:justify-end border-t md:border-t-0 md:border-l border-stone-100 pt-6 md:pt-0 md:pl-8">
+        <div className="flex items-center gap-4 justify-center md:justify-end border-t md:border-t-0 md:border-l border-stone-100 pt-6 md:pt-0 md:pl-8">
           <RatingBadge rating={visit.vibe_rating} label="Vibe" />
           <RatingBadge rating={visit.coffee_rating} label="Coffee" />
           <div className="hidden md:block w-px h-24 bg-stone-200" />

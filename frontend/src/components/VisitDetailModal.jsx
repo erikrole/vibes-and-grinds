@@ -83,8 +83,9 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate }) {
     }
   };
 
-  // Format date
-  const formattedDate = new Date(visit.date).toLocaleDateString('en-US', {
+  // Format date - parse manually to avoid timezone issues
+  const [year, month, day] = visit.date.split('-');
+  const formattedDate = new Date(year, month - 1, day).toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
