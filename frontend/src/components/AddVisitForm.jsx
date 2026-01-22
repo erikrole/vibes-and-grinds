@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import PhotoCropper from './PhotoCropper';
+import AutocompleteInput from './AutocompleteInput';
 
 // Big Ten city to team mapping
 const BIG_TEN_TEAMS = {
@@ -35,8 +36,18 @@ const BIG_TEN_TEAMS = {
   'milwaukee, wi': 'Villanova',
 };
 
-export default function AddVisitForm({ onSubmit, onCancel, initialData = null }) {
+export default function AddVisitForm({ onSubmit, onCancel, initialData = null, visits = [] }) {
   const isEditing = Boolean(initialData);
+
+  // Extract unique values for autocomplete suggestions
+  const suggestions = useMemo(() => {
+    return {
+      coffeeShops: [...new Set(visits.map(v => v.coffee_shop_name).filter(Boolean))].sort(),
+      cities: [...new Set(visits.map(v => v.city).filter(Boolean))].sort(),
+      opponents: [...new Set(visits.map(v => v.opponent).filter(Boolean))].sort(),
+      orders: [...new Set(visits.map(v => v.coffee_order).filter(Boolean))].sort(),
+    };
+  }, [visits]);
 
   // Get today's date in local timezone
   const getLocalDate = () => {
@@ -229,12 +240,13 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Coffee Shop Name <span className="text-red-500">*</span>
           </label>
-          <input
-            type="text"
+          <AutocompleteInput
             name="coffee_shop_name"
             value={formData.coffee_shop_name}
             onChange={handleInputChange}
+            suggestions={suggestions.coffeeShops}
             className="input-field"
+            required
           />
           {errors.coffee_shop_name && (
             <p className="text-red-500 text-sm mt-1">{errors.coffee_shop_name}</p>
@@ -246,11 +258,11 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
           <label className="block text-sm font-medium text-gray-700 mb-1">
             City
           </label>
-          <input
-            type="text"
+          <AutocompleteInput
             name="city"
             value={formData.city}
             onChange={handleInputChange}
+            suggestions={suggestions.cities}
             className="input-field"
           />
         </div>
@@ -260,11 +272,11 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Opponent
           </label>
-          <input
-            type="text"
+          <AutocompleteInput
             name="opponent"
             value={formData.opponent}
             onChange={handleInputChange}
+            suggestions={suggestions.opponents}
             className="input-field"
           />
         </div>
@@ -307,12 +319,13 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null })
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Coffee Order
           </label>
-          <input
-            type="text"
+          <AutocompleteInput
             name="coffee_order"
             value={formData.coffee_order}
             onChange={handleInputChange}
+            suggestions={suggestions.orders}
             className="input-field"
+            placeholder="e.g. Iced Salted Caramel Latte"
           />
         </div>
 

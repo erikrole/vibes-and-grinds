@@ -5,39 +5,62 @@ import 'react-image-crop/dist/ReactCrop.css';
 export default function PhotoCropper({ imageUrl, onComplete, onCancel }) {
   const [crop, setCrop] = useState({
     unit: '%',
-    width: 90,
-    aspect: 16 / 9,
+    width: 80,
+    aspect: 4 / 5,
   });
   const [completedCrop, setCompletedCrop] = useState(null);
   const imgRef = useRef(null);
   const canvasRef = useRef(null);
 
   const handleCropComplete = async () => {
-    if (!completedCrop || !imgRef.current || !canvasRef.current) {
+    const image = imgRef.current;
+    const canvas = canvasRef.current;
+
+    if (!image || !canvas) {
       return;
     }
 
-    const image = imgRef.current;
-    const canvas = canvasRef.current;
-    const crop = completedCrop;
+    // Use completedCrop if available, otherwise fall back to current crop
+    const cropToUse = completedCrop || crop;
+
+    if (!cropToUse || !cropToUse.width || !cropToUse.height) {
+      console.error('Invalid crop dimensions');
+      return;
+    }
 
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
     const ctx = canvas.getContext('2d');
 
-    canvas.width = crop.width * scaleX;
-    canvas.height = crop.height * scaleY;
+    // Calculate pixel crop dimensions
+    const pixelCrop = {
+      x: cropToUse.x || 0,
+      y: cropToUse.y || 0,
+      width: cropToUse.width,
+      height: cropToUse.height,
+    };
+
+    // If crop is in percentage, convert to pixels
+    if (cropToUse.unit === '%') {
+      pixelCrop.x = (cropToUse.x || 0) * image.width / 100;
+      pixelCrop.y = (cropToUse.y || 0) * image.height / 100;
+      pixelCrop.width = cropToUse.width * image.width / 100;
+      pixelCrop.height = cropToUse.height * image.height / 100;
+    }
+
+    canvas.width = pixelCrop.width * scaleX;
+    canvas.height = pixelCrop.height * scaleY;
 
     ctx.drawImage(
       image,
-      crop.x * scaleX,
-      crop.y * scaleY,
-      crop.width * scaleX,
-      crop.height * scaleY,
+      pixelCrop.x * scaleX,
+      pixelCrop.y * scaleY,
+      pixelCrop.width * scaleX,
+      pixelCrop.height * scaleY,
       0,
       0,
-      crop.width * scaleX,
-      crop.height * scaleY
+      pixelCrop.width * scaleX,
+      pixelCrop.height * scaleY
     );
 
     // Convert canvas to blob
@@ -67,7 +90,7 @@ export default function PhotoCropper({ imageUrl, onComplete, onCancel }) {
                 crop={crop}
                 onChange={(c) => setCrop(c)}
                 onComplete={(c) => setCompletedCrop(c)}
-                aspect={16 / 9}
+                aspect={4 / 5}
               >
                 <img
                   ref={imgRef}

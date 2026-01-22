@@ -13,6 +13,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [sortBy, setSortBy] = useState('date');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sportFilter, setSportFilter] = useState('');
 
   useEffect(() => {
     loadVisits();
@@ -77,8 +78,14 @@ export default function App() {
     setEditingVisit(null);
   };
 
-  // Filter by search query
+  // Filter by search query and sport
   const filteredVisits = visits.filter((visit) => {
+    // Sport filter
+    if (sportFilter && visit.sport !== sportFilter) {
+      return false;
+    }
+
+    // Search query filter
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -140,55 +147,115 @@ export default function App() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h2 className="text-3xl font-bold text-stone-900 mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>Visits</h2>
-                {searchQuery && (
+                {(searchQuery || sportFilter) && (
                   <p className="text-stone-600 text-sm tracking-wide">
                     {sortedVisits.length} of {visits.length} {visits.length === 1 ? 'visit' : 'visits'}
                   </p>
                 )}
               </div>
-              <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                <span className="text-sm text-stone-500 hidden sm:block tracking-wide">Sort by:</span>
-                <div className="flex gap-2 flex-wrap">
-                  <button
-                    onClick={() => setSortBy('date')}
-                    className={`px-4 py-1.5 text-sm rounded transition-all ${
-                      sortBy === 'date'
-                        ? 'bg-stone-800 text-stone-50'
-                        : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                    }`}
-                  >
-                    Date
-                  </button>
-                  <button
-                    onClick={() => setSortBy('vibe')}
-                    className={`px-4 py-1.5 text-sm rounded transition-all ${
-                      sortBy === 'vibe'
-                        ? 'bg-stone-800 text-stone-50'
-                        : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                    }`}
-                  >
-                    Vibe
-                  </button>
-                  <button
-                    onClick={() => setSortBy('coffee')}
-                    className={`px-4 py-1.5 text-sm rounded transition-all ${
-                      sortBy === 'coffee'
-                        ? 'bg-stone-800 text-stone-50'
-                        : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                    }`}
-                  >
-                    Coffee
-                  </button>
-                  <button
-                    onClick={() => setSortBy('composite')}
-                    className={`px-4 py-1.5 text-sm rounded transition-all ${
-                      sortBy === 'composite'
-                        ? 'bg-stone-800 text-stone-50'
-                        : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                    }`}
-                  >
-                    Total
-                  </button>
+              <div className="flex flex-col gap-3">
+                {/* Sort Options */}
+                <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                  <span className="text-sm text-stone-500 hidden sm:block tracking-wide">Sort by:</span>
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      onClick={() => setSortBy('date')}
+                      className={`px-4 py-1.5 text-sm rounded transition-all ${
+                        sortBy === 'date'
+                          ? 'bg-stone-800 text-stone-50'
+                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                      }`}
+                    >
+                      Date
+                    </button>
+                    <button
+                      onClick={() => setSortBy('vibe')}
+                      className={`px-4 py-1.5 text-sm rounded transition-all ${
+                        sortBy === 'vibe'
+                          ? 'bg-stone-800 text-stone-50'
+                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                      }`}
+                    >
+                      Vibe
+                    </button>
+                    <button
+                      onClick={() => setSortBy('coffee')}
+                      className={`px-4 py-1.5 text-sm rounded transition-all ${
+                        sortBy === 'coffee'
+                          ? 'bg-stone-800 text-stone-50'
+                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                      }`}
+                    >
+                      Coffee
+                    </button>
+                    <button
+                      onClick={() => setSortBy('composite')}
+                      className={`px-4 py-1.5 text-sm rounded transition-all ${
+                        sortBy === 'composite'
+                          ? 'bg-stone-800 text-stone-50'
+                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                      }`}
+                    >
+                      Total
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sport Filter */}
+                <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                  <span className="text-sm text-stone-500 hidden sm:block tracking-wide">Filter by:</span>
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      onClick={() => setSportFilter('')}
+                      className={`px-4 py-1.5 text-sm rounded transition-all ${
+                        sportFilter === ''
+                          ? 'bg-stone-800 text-stone-50'
+                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                      }`}
+                    >
+                      All Sports
+                    </button>
+                    <button
+                      onClick={() => setSportFilter("Men's Basketball")}
+                      className={`px-4 py-1.5 text-sm rounded transition-all ${
+                        sportFilter === "Men's Basketball"
+                          ? 'bg-stone-800 text-stone-50'
+                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                      }`}
+                    >
+                      Basketball
+                    </button>
+                    <button
+                      onClick={() => setSportFilter('Football')}
+                      className={`px-4 py-1.5 text-sm rounded transition-all ${
+                        sportFilter === 'Football'
+                          ? 'bg-stone-800 text-stone-50'
+                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                      }`}
+                    >
+                      Football
+                    </button>
+                    <button
+                      onClick={() => setSportFilter('Track & Field')}
+                      className={`px-4 py-1.5 text-sm rounded transition-all ${
+                        sportFilter === 'Track & Field'
+                          ? 'bg-stone-800 text-stone-50'
+                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                      }`}
+                    >
+                      Track & Field
+                    </button>
+                    <button
+                      onClick={() => setSportFilter('Cross Country')}
+                      className={`px-4 py-1.5 text-sm rounded transition-all ${
+                        sportFilter === 'Cross Country'
+                          ? 'bg-stone-800 text-stone-50'
+                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                      }`}
+                    >
+                      Cross Country
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -291,7 +358,7 @@ export default function App() {
                 </svg>
               </button>
               <div className="p-6 sm:p-8">
-                <AddVisitForm onSubmit={handleAddVisit} onCancel={handleCancelForm} />
+                <AddVisitForm onSubmit={handleAddVisit} onCancel={handleCancelForm} visits={visits} />
               </div>
             </div>
           </div>
@@ -318,6 +385,7 @@ export default function App() {
                   initialData={editingVisit}
                   onSubmit={handleUpdateVisit}
                   onCancel={handleCancelForm}
+                  visits={visits}
                 />
               </div>
             </div>

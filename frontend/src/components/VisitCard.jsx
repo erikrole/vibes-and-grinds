@@ -91,6 +91,13 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails }) {
                 <span className="text-stone-900">{visit.coffee_order}</span>
               </div>
             )}
+
+            {visit.sport && (
+              <div className="flex items-center text-sm">
+                <span className="text-stone-500 font-medium w-24 tracking-wide">Sport</span>
+                <span className="text-stone-900">{visit.sport}</span>
+              </div>
+            )}
           </div>
         </div>
 
