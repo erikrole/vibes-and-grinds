@@ -4,6 +4,7 @@ export default function AddVisitForm({ onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     coffee_shop_name: '',
+    city: '',
     coffee_shop_address: '',
     coffee_order: '',
     vibe_rating: '',
@@ -99,6 +100,21 @@ export default function AddVisitForm({ onSubmit, onCancel }) {
           )}
         </div>
 
+        {/* City */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            City
+          </label>
+          <input
+            type="text"
+            name="city"
+            value={formData.city}
+            onChange={handleInputChange}
+            placeholder="e.g., Minneapolis, MN"
+            className="input-field"
+          />
+        </div>
+
         {/* Address */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -109,7 +125,7 @@ export default function AddVisitForm({ onSubmit, onCancel }) {
             name="coffee_shop_address"
             value={formData.coffee_shop_address}
             onChange={handleInputChange}
-            placeholder="e.g., 123 Main St, City, State"
+            placeholder="e.g., 123 Main St"
             className="input-field"
           />
         </div>

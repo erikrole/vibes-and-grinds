@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS coffee_visits (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   date TEXT NOT NULL,
   coffee_shop_name TEXT NOT NULL,
+  city TEXT,
   coffee_shop_address TEXT,
   coffee_shop_place_id TEXT,
   coffee_shop_lat REAL,

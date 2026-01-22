@@ -17,6 +17,9 @@ export default function VisitCard({ visit }) {
           <div className="flex items-start justify-between mb-2">
             <div>
               <h3 className="text-xl font-bold text-gray-900">{visit.coffee_shop_name}</h3>
+              {visit.city && (
+                <p className="text-sm text-gray-600 mt-1 font-medium">{visit.city}</p>
+              )}
               {visit.coffee_shop_address && (
                 <p className="text-sm text-gray-500 mt-1">{visit.coffee_shop_address}</p>
               )}

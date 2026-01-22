@@ -25,6 +25,7 @@ export async function onRequestPost({ request, env }) {
     const {
       date,
       coffee_shop_name,
+      city,
       coffee_shop_address,
       coffee_shop_place_id,
       coffee_shop_lat,
@@ -53,12 +54,13 @@ export async function onRequestPost({ request, env }) {
     // Insert the visit
     const result = await env.DB.prepare(
       `INSERT INTO coffee_visits (
-        date, coffee_shop_name, coffee_shop_address, coffee_shop_place_id,
+        date, coffee_shop_name, city, coffee_shop_address, coffee_shop_place_id,
         coffee_shop_lat, coffee_shop_lng, coffee_order, vibe_rating, coffee_rating, notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       date,
       coffee_shop_name,
+      city,
       coffee_shop_address,
       coffee_shop_place_id,
       coffee_shop_lat,
