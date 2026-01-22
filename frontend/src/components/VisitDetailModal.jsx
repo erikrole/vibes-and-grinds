@@ -225,10 +225,10 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate }) {
 
             {/* Ratings - All same size */}
             <div className="flex gap-4 justify-center mb-6">
-              <div className="flex flex-col items-center">
+              <div className="flex flex-col items-center flex-1 max-w-[120px]">
                 <span className="text-xs text-stone-500 mb-2 font-medium tracking-widest uppercase">Vibe</span>
                 <div
-                  className="px-5 py-3 rounded-md font-black text-2xl w-[75px] text-center border border-stone-200 tabular-nums"
+                  className="w-full px-4 py-3 rounded-md font-black text-2xl flex items-center justify-center border border-stone-200 tabular-nums min-w-[75px]"
                   style={{
                     backgroundColor: getRatingColor(visit.vibe_rating),
                     color: getTextColor(visit.vibe_rating),
@@ -239,10 +239,10 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate }) {
                 </div>
               </div>
 
-              <div className="flex flex-col items-center">
+              <div className="flex flex-col items-center flex-1 max-w-[120px]">
                 <span className="text-xs text-stone-500 mb-2 font-medium tracking-widest uppercase">Coffee</span>
                 <div
-                  className="px-5 py-3 rounded-md font-black text-2xl w-[75px] text-center border border-stone-200 tabular-nums"
+                  className="w-full px-4 py-3 rounded-md font-black text-2xl flex items-center justify-center border border-stone-200 tabular-nums min-w-[75px]"
                   style={{
                     backgroundColor: getRatingColor(visit.coffee_rating),
                     color: getTextColor(visit.coffee_rating),
@@ -253,10 +253,10 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate }) {
                 </div>
               </div>
 
-              <div className="flex flex-col items-center">
+              <div className="flex flex-col items-center flex-1 max-w-[120px]">
                 <span className="text-xs text-stone-500 mb-2 font-medium tracking-widest uppercase">Total</span>
                 <div
-                  className="px-4 py-3 rounded-md font-black text-2xl w-[85px] text-center border-2 tabular-nums"
+                  className="w-full px-4 py-3 rounded-md font-black text-2xl flex items-center justify-center border-2 tabular-nums min-w-[75px]"
                   style={{
                     backgroundColor: getRatingColor(visit.composite_score / 2),
                     color: getTextColor(visit.composite_score / 2),
