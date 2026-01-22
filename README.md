@@ -1,0 +1,202 @@
+# ☕ Vibes & Grinds
+
+A beautiful web app for tracking coffee shop visits during basketball road trips. Rate the vibe, rate the coffee, and keep track of all your caffeinated adventures!
+
+## Features
+
+- **Clean, Modern Interface** - Beautiful card-based design with intuitive layout
+- **Color-Coded Ratings** - Visual gradient system (red → yellow → green) for 0-10 ratings
+- **Composite Scoring** - Automatically calculates total score (vibe + coffee)
+- **Google Places Integration** - Autocomplete for coffee shop names and addresses
+- **Date Tracking** - Keep track of when you visited each shop
+- **Order History** - Remember what you ordered at each spot
+- **Notes** - Add any additional thoughts or memories
+
+## Tech Stack
+
+### Frontend
+- **React 18** - Modern UI framework
+- **Vite** - Lightning-fast build tool
+- **Tailwind CSS** - Utility-first styling
+- **Google Maps/Places API** - Autocomplete and location data
+
+### Backend
+- **Node.js & Express** - RESTful API
+- **SQLite** - Lightweight database (easy to upgrade to PostgreSQL)
+- **CORS enabled** - Frontend/backend communication
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+ and npm
+- Google Maps API key (for autocomplete feature)
+
+### 1. Clone the Repository
+
+```bash
+git clone <your-repo-url>
+cd vibes-and-grinds
+```
+
+### 2. Backend Setup
+
+```bash
+cd backend
+npm install
+cp .env.example .env
+# Edit .env if needed (default port is 3001)
+npm start
+```
+
+The backend will:
+- Start on `http://localhost:3001`
+- Create a SQLite database file (`vibes-and-grinds.db`)
+- Initialize the database schema automatically
+
+### 3. Frontend Setup
+
+```bash
+cd frontend
+npm install
+cp .env.example .env
+```
+
+**Important:** Edit `frontend/.env` and add your Google Maps API key:
+
+```env
+VITE_GOOGLE_MAPS_API_KEY=your_actual_api_key_here
+VITE_API_URL=http://localhost:3001
+```
+
+Then start the development server:
+
+```bash
+npm run dev
+```
+
+The frontend will open at `http://localhost:3000`
+
+### 4. Getting a Google Maps API Key
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable the **Maps JavaScript API** and **Places API**
+4. Create credentials (API key)
+5. (Optional) Restrict the API key to your domain for security
+
+## Usage
+
+### Adding a Visit
+
+1. Click the "Add Visit" button
+2. Select a date (defaults to today)
+3. Start typing a coffee shop name - autocomplete will suggest places
+4. Enter what you ordered (optional)
+5. Rate the vibe (0-10, decimals allowed)
+6. Rate the coffee (0-10, decimals allowed)
+7. Add any notes (optional)
+8. Click "Add Visit"
+
+### Understanding the Ratings
+
+- **Vibe Rating** - Atmosphere, ambiance, seating, music, etc. (0-10)
+- **Coffee Rating** - Taste, quality, temperature, presentation (0-10)
+- **Composite Score** - Sum of both ratings (0-20)
+
+### Color Coding
+
+- **Red (0-3)** - Not great
+- **Orange/Yellow (4-6)** - Decent
+- **Yellow/Green (7-8)** - Good
+- **Green (9-10)** - Excellent
+
+## API Endpoints
+
+- `GET /api/visits` - Get all visits
+- `GET /api/visits/:id` - Get a single visit
+- `POST /api/visits` - Create a new visit
+- `PUT /api/visits/:id` - Update a visit
+- `DELETE /api/visits/:id` - Delete a visit
+- `GET /api/stats` - Get dashboard statistics
+
+## Project Structure
+
+```
+vibes-and-grinds/
+├── backend/
+│   ├── server.js           # Express server
+│   ├── database.js         # Database initialization
+│   ├── package.json
+│   └── .env.example
+├── frontend/
+│   ├── src/
+│   │   ├── components/     # React components
+│   │   ├── utils/          # Helper functions
+│   │   ├── App.jsx         # Main app component
+│   │   ├── main.jsx        # Entry point
+│   │   └── index.css       # Tailwind styles
+│   ├── index.html
+│   ├── package.json
+│   └── .env.example
+└── README.md
+```
+
+## Future Features (v2)
+
+- **Interactive Map** - View all coffee shop locations on a map
+- **Dashboard Stats** - Average ratings, favorite shops, total visits
+- **Year-End Recap** - Fun visualizations and statistics
+- **Filtering & Sorting** - Find visits by date, rating, or shop
+- **Import from Google Sheets** - Migrate existing data
+- **Export Reports** - Generate PDFs or spreadsheets
+
+## Development Commands
+
+### Backend
+```bash
+npm run dev    # Start with nodemon (auto-reload)
+npm start      # Start production server
+```
+
+### Frontend
+```bash
+npm run dev    # Start development server
+npm run build  # Build for production
+npm run preview # Preview production build
+```
+
+## Deployment
+
+### Frontend (Vercel)
+1. Connect your GitHub repo to Vercel
+2. Set environment variable: `VITE_GOOGLE_MAPS_API_KEY`
+3. Build command: `cd frontend && npm install && npm run build`
+4. Output directory: `frontend/dist`
+
+### Backend (Railway/Heroku)
+1. Deploy the `backend` folder
+2. Set environment variable: `PORT` (provided by platform)
+3. For production, consider upgrading to PostgreSQL
+
+## Troubleshooting
+
+**Autocomplete not working?**
+- Check that your Google Maps API key is set in `frontend/.env`
+- Make sure Places API is enabled in Google Cloud Console
+- Check browser console for API errors
+
+**Backend not connecting?**
+- Ensure backend is running on port 3001
+- Check that `VITE_API_URL` in frontend `.env` matches backend URL
+
+**Database issues?**
+- Delete `backend/vibes-and-grinds.db` and restart the server to reset
+
+## Contributing
+
+Feel free to open issues or submit pull requests!
+
+## License
+
+MIT
