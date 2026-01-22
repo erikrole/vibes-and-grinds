@@ -1,16 +1,45 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 
 export default function PhotoCropper({ imageUrl, onComplete, onCancel }) {
-  const [crop, setCrop] = useState({
-    unit: '%',
-    width: 80,
-    aspect: 4 / 5,
-  });
+  const [crop, setCrop] = useState();
   const [completedCrop, setCompletedCrop] = useState(null);
   const imgRef = useRef(null);
   const canvasRef = useRef(null);
+
+  // Initialize crop when image loads
+  const onImageLoad = (e) => {
+    const { width, height } = e.currentTarget;
+    const aspect = 4 / 5;
+
+    // Calculate the largest 4:5 crop that fits
+    let cropWidth, cropHeight;
+    if (width / height > aspect) {
+      // Image is wider than 4:5, constrain by height
+      cropHeight = height;
+      cropWidth = height * aspect;
+    } else {
+      // Image is taller than 4:5, constrain by width
+      cropWidth = width;
+      cropHeight = width / aspect;
+    }
+
+    // Center the crop
+    const x = (width - cropWidth) / 2;
+    const y = (height - cropHeight) / 2;
+
+    const initialCrop = {
+      unit: 'px',
+      x,
+      y,
+      width: cropWidth,
+      height: cropHeight,
+    };
+
+    setCrop(initialCrop);
+    setCompletedCrop(initialCrop);
+  };
 
   const handleCropComplete = async () => {
     const image = imgRef.current;
@@ -96,6 +125,7 @@ export default function PhotoCropper({ imageUrl, onComplete, onCancel }) {
                   ref={imgRef}
                   src={imageUrl}
                   alt="Crop preview"
+                  onLoad={onImageLoad}
                   style={{ maxHeight: '60vh' }}
                 />
               </ReactCrop>

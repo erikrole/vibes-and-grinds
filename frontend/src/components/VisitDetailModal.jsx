@@ -200,7 +200,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
             </h2>
 
             {/* Photo with Notes Overlay */}
-            <div className="mb-6 rounded-lg overflow-hidden relative min-h-[300px] bg-stone-100 flex items-end">
+            <div className="mb-6 rounded-lg overflow-hidden relative bg-stone-100 flex items-end" style={{ aspectRatio: '4 / 5' }}>
               {visit.photo_url ? (
                 <>
                   <img
@@ -261,12 +261,12 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
 
               {/* Notes Overlay - Fancy Blockquote */}
               {visit.notes && (
-                <div className="relative w-full bg-gradient-to-t from-black/80 via-black/50 to-transparent p-8 pt-16">
+                <div className={`relative w-full p-8 pt-16 ${visit.photo_url ? 'bg-gradient-to-t from-black/80 via-black/50 to-transparent' : ''}`}>
                   <blockquote className="relative">
-                    <svg className="absolute -top-4 -left-2 w-12 h-12 text-white/30" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className={`absolute -top-4 -left-2 w-12 h-12 ${visit.photo_url ? 'text-white/30' : 'text-stone-300'}`} fill="currentColor" viewBox="0 0 24 24">
                       <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
                     </svg>
-                    <p className="text-white text-lg leading-relaxed italic pl-8">
+                    <p className={`${visit.photo_url ? 'text-white' : 'text-stone-900'} text-lg leading-relaxed italic pl-8`}>
                       {visit.notes}
                     </p>
                   </blockquote>
@@ -317,7 +317,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
                   className="w-full px-4 py-3 rounded-md font-black text-2xl flex items-center justify-center border border-stone-200 tabular-nums min-w-[75px]"
                   style={{
                     backgroundColor: getRatingColor(visit.vibe_rating),
-                    color: getTextColor(visit.vibe_rating),
+                    color: getTextColor(getRatingColor(visit.vibe_rating)),
                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
                   }}
                 >
@@ -331,7 +331,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
                   className="w-full px-4 py-3 rounded-md font-black text-2xl flex items-center justify-center border border-stone-200 tabular-nums min-w-[75px]"
                   style={{
                     backgroundColor: getRatingColor(visit.coffee_rating),
-                    color: getTextColor(visit.coffee_rating),
+                    color: getTextColor(getRatingColor(visit.coffee_rating)),
                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
                   }}
                 >
@@ -345,7 +345,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
                   className="w-full px-4 py-3 rounded-md font-black text-2xl flex items-center justify-center border-2 tabular-nums min-w-[75px]"
                   style={{
                     backgroundColor: getRatingColor(visit.composite_score / 2),
-                    color: getTextColor(visit.composite_score / 2),
+                    color: getTextColor(getRatingColor(visit.composite_score / 2)),
                     borderColor: `${getRatingColor(visit.composite_score / 2)}dd`,
                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
                   }}

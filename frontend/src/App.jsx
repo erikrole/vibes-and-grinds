@@ -204,58 +204,17 @@ export default function App() {
                 {/* Sport Filter */}
                 <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
                   <span className="text-sm text-stone-500 hidden sm:block tracking-wide">Filter by:</span>
-                  <div className="flex gap-2 flex-wrap">
-                    <button
-                      onClick={() => setSportFilter('')}
-                      className={`px-4 py-1.5 text-sm rounded transition-all ${
-                        sportFilter === ''
-                          ? 'bg-stone-800 text-stone-50'
-                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                      }`}
-                    >
-                      All Sports
-                    </button>
-                    <button
-                      onClick={() => setSportFilter("Men's Basketball")}
-                      className={`px-4 py-1.5 text-sm rounded transition-all ${
-                        sportFilter === "Men's Basketball"
-                          ? 'bg-stone-800 text-stone-50'
-                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                      }`}
-                    >
-                      Basketball
-                    </button>
-                    <button
-                      onClick={() => setSportFilter('Football')}
-                      className={`px-4 py-1.5 text-sm rounded transition-all ${
-                        sportFilter === 'Football'
-                          ? 'bg-stone-800 text-stone-50'
-                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                      }`}
-                    >
-                      Football
-                    </button>
-                    <button
-                      onClick={() => setSportFilter('Track & Field')}
-                      className={`px-4 py-1.5 text-sm rounded transition-all ${
-                        sportFilter === 'Track & Field'
-                          ? 'bg-stone-800 text-stone-50'
-                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                      }`}
-                    >
-                      Track & Field
-                    </button>
-                    <button
-                      onClick={() => setSportFilter('Cross Country')}
-                      className={`px-4 py-1.5 text-sm rounded transition-all ${
-                        sportFilter === 'Cross Country'
-                          ? 'bg-stone-800 text-stone-50'
-                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                      }`}
-                    >
-                      Cross Country
-                    </button>
-                  </div>
+                  <select
+                    value={sportFilter}
+                    onChange={(e) => setSportFilter(e.target.value)}
+                    className="px-4 py-1.5 text-sm rounded border border-stone-300 bg-white text-stone-700 focus:outline-none focus:ring-1 focus:ring-stone-400 cursor-pointer"
+                  >
+                    <option value="">None</option>
+                    <option value="Men's Basketball">Men's Basketball</option>
+                    <option value="Football">Football</option>
+                    <option value="Track & Field">Track & Field</option>
+                    <option value="Cross Country">Cross Country</option>
+                  </select>
                 </div>
               </div>
             </div>
