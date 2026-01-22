@@ -12,6 +12,7 @@ export default function VisitDetailModal({ visit, visits, onClose }) {
   // Calculate average ratings for this shop
   const avgVibe = shopVisits.reduce((sum, v) => sum + v.vibe_rating, 0) / visitCount;
   const avgCoffee = shopVisits.reduce((sum, v) => sum + v.coffee_rating, 0) / visitCount;
+  const avgTotal = shopVisits.reduce((sum, v) => sum + v.composite_score, 0) / visitCount;
 
   // Close on Escape key
   useEffect(() => {
@@ -44,7 +45,7 @@ export default function VisitDetailModal({ visit, visits, onClose }) {
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-stone-400 hover:text-stone-600 transition-colors"
+            className="absolute top-4 right-4 text-stone-400 hover:text-stone-600 transition-colors z-10"
             aria-label="Close"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,19 +54,10 @@ export default function VisitDetailModal({ visit, visits, onClose }) {
           </button>
 
           <div className="p-6 sm:p-8">
-            {/* Header */}
-            <div className="mb-6">
-              <h2 className="coffee-shop-name text-4xl mb-3 pr-8">
-                {visit.coffee_shop_name}
-              </h2>
-              {(visit.city || visit.opponent) && (
-                <p className="text-lg text-stone-500 tracking-wide font-light">
-                  {visit.city}
-                  {visit.city && visit.opponent && ' – '}
-                  {visit.opponent}
-                </p>
-              )}
-            </div>
+            {/* Header - Big Title */}
+            <h2 className="coffee-shop-name text-4xl md:text-5xl mb-6 pr-8 text-center">
+              {visit.coffee_shop_name}
+            </h2>
 
             {/* Photo */}
             {visit.photo_url && (
@@ -78,76 +70,141 @@ export default function VisitDetailModal({ visit, visits, onClose }) {
               </div>
             )}
 
-            {/* Visit Stats */}
-            <div className="mb-6 p-4 bg-stone-50 rounded-lg border border-stone-200">
-              <h3 className="text-sm font-semibold text-stone-600 uppercase tracking-wider mb-2">
-                Visit Statistics
-              </h3>
+            {/* Visit Details */}
+            <div className="space-y-2 mb-6 text-center">
               <p className="text-stone-700">
-                {visitCount === 1 ? (
-                  "You've visited here once"
-                ) : (
-                  <>You've visited here <span className="font-bold">{visitCount} times</span></>
-                )}
+                <span className="font-semibold">Date:</span> {formattedDate}
               </p>
-              {visitCount > 1 && (
-                <p className="text-sm text-stone-600 mt-1">
-                  Average ratings: Vibe {avgVibe.toFixed(1)} • Coffee {avgCoffee.toFixed(1)}
+              {visit.coffee_order && (
+                <p className="text-stone-700">
+                  <span className="font-semibold">Order:</span> {visit.coffee_order}
+                </p>
+              )}
+              {visit.city && (
+                <p className="text-stone-700">
+                  <span className="font-semibold">City:</span> {visit.city}
+                </p>
+              )}
+              {visit.opponent && (
+                <p className="text-stone-700">
+                  <span className="font-semibold">Opponent:</span> {visit.opponent}
+                </p>
+              )}
+              {visit.coffee_shop_address && (
+                <p className="text-stone-700">
+                  <span className="font-semibold">Address:</span> {visit.coffee_shop_address}
+                </p>
+              )}
+              {visit.notes && (
+                <p className="text-stone-700 pt-2">
+                  <span className="font-semibold">Notes:</span> {visit.notes}
                 </p>
               )}
             </div>
 
-            {/* Visit Details */}
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm font-semibold text-stone-600 uppercase tracking-wider mb-1">
-                  Date
-                </label>
-                <p className="text-stone-900">{formattedDate}</p>
+            {/* Divider */}
+            <hr className="border-stone-300 my-6" />
+
+            {/* Ratings - All same size */}
+            <div className="flex gap-4 justify-center mb-6">
+              <div className="flex flex-col items-center">
+                <span className="text-xs text-stone-500 mb-2 font-medium tracking-widest uppercase">Vibe</span>
+                <div
+                  className="px-5 py-3 rounded-md font-black text-2xl w-[75px] text-center border border-stone-200 tabular-nums"
+                  style={{
+                    backgroundColor: getRatingColor(visit.vibe_rating),
+                    color: getTextColor(visit.vibe_rating),
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+                  }}
+                >
+                  {visit.vibe_rating.toFixed(1)}
+                </div>
               </div>
 
-              {visit.coffee_shop_address && (
-                <div>
-                  <label className="block text-sm font-semibold text-stone-600 uppercase tracking-wider mb-1">
-                    Address
-                  </label>
-                  <p className="text-stone-900">{visit.coffee_shop_address}</p>
+              <div className="flex flex-col items-center">
+                <span className="text-xs text-stone-500 mb-2 font-medium tracking-widest uppercase">Coffee</span>
+                <div
+                  className="px-5 py-3 rounded-md font-black text-2xl w-[75px] text-center border border-stone-200 tabular-nums"
+                  style={{
+                    backgroundColor: getRatingColor(visit.coffee_rating),
+                    color: getTextColor(visit.coffee_rating),
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+                  }}
+                >
+                  {visit.coffee_rating.toFixed(1)}
                 </div>
-              )}
+              </div>
 
-              {visit.coffee_order && (
-                <div>
-                  <label className="block text-sm font-semibold text-stone-600 uppercase tracking-wider mb-1">
-                    Order
-                  </label>
-                  <p className="text-stone-900">{visit.coffee_order}</p>
+              <div className="flex flex-col items-center">
+                <span className="text-xs text-stone-500 mb-2 font-medium tracking-widest uppercase">Total</span>
+                <div
+                  className="px-5 py-3 rounded-md font-black text-2xl w-[75px] text-center border-2 tabular-nums"
+                  style={{
+                    backgroundColor: getRatingColor(visit.composite_score / 2),
+                    color: getTextColor(visit.composite_score / 2),
+                    borderColor: `${getRatingColor(visit.composite_score / 2)}dd`,
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+                  }}
+                >
+                  {visit.composite_score.toFixed(1)}
                 </div>
-              )}
-
-              {visit.notes && (
-                <div>
-                  <label className="block text-sm font-semibold text-stone-600 uppercase tracking-wider mb-1">
-                    Notes
-                  </label>
-                  <p className="text-stone-900 whitespace-pre-wrap">{visit.notes}</p>
-                </div>
-              )}
+              </div>
             </div>
 
-            {/* Ratings */}
-            <div className="flex gap-4 justify-center pt-4 border-t border-stone-200">
-              <RatingBadge rating={visit.vibe_rating} label="Vibe" />
-              <RatingBadge rating={visit.coffee_rating} label="Coffee" />
-              <CompositeBadge composite={visit.composite_score} />
-            </div>
+            {/* Divider */}
+            <hr className="border-stone-300 my-6" />
 
-            {/* Map Placeholder */}
-            <div className="mt-6 p-8 bg-stone-100 rounded-lg border-2 border-dashed border-stone-300 text-center">
-              <p className="text-stone-500 text-sm">📍 Map coming soon</p>
+            {/* Visit Statistics */}
+            <div className="text-center">
+              <h3 className="text-sm font-semibold text-stone-600 uppercase tracking-wider mb-4">
+                Visit Statistics
+              </h3>
+              <div className="flex gap-6 justify-center text-stone-700">
+                <div className="flex flex-col items-center">
+                  <span className="text-2xl font-bold tabular-nums">{visitCount}</span>
+                  <span className="text-xs text-stone-500 uppercase tracking-wide mt-1">
+                    {visitCount === 1 ? 'Visit' : 'Visits'}
+                  </span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-2xl font-bold tabular-nums">{avgVibe.toFixed(1)}</span>
+                  <span className="text-xs text-stone-500 uppercase tracking-wide mt-1">Avg Vibe</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-2xl font-bold tabular-nums">{avgCoffee.toFixed(1)}</span>
+                  <span className="text-xs text-stone-500 uppercase tracking-wide mt-1">Avg Coffee</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-2xl font-bold tabular-nums">{avgTotal.toFixed(1)}</span>
+                  <span className="text-xs text-stone-500 uppercase tracking-wide mt-1">Avg Total</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
   );
+}
+
+// Helper functions for colors
+function getRatingColor(rating) {
+  const clampedRating = Math.max(0, Math.min(10, rating));
+  if (clampedRating <= 5) {
+    const percentage = clampedRating / 5;
+    const r = 220;
+    const g = Math.round(38 + (184 - 38) * percentage);
+    const b = 38;
+    return `rgb(${r}, ${g}, ${b})`;
+  } else {
+    const percentage = (clampedRating - 5) / 5;
+    const r = Math.round(220 - (220 - 34) * percentage);
+    const g = Math.round(184 + (197 - 184) * percentage);
+    const b = Math.round(38 + (94 - 38) * percentage);
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+}
+
+function getTextColor(rating) {
+  return rating >= 7 ? '#1c1917' : '#ffffff';
 }
