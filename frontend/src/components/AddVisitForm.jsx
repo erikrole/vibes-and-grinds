@@ -222,8 +222,8 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Date */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Date <span className="text-red-500">*</span>
+          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+            Date <span className="text-red-500 dark:text-red-400">*</span>
           </label>
           <input
             type="date"
@@ -232,13 +232,13 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
             onChange={handleInputChange}
             className="input-field"
           />
-          {errors.date && <p className="text-red-500 text-sm mt-1">{errors.date}</p>}
+          {errors.date && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.date}</p>}
         </div>
 
         {/* Coffee Shop */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Coffee Shop Name <span className="text-red-500">*</span>
+          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+            Coffee Shop Name <span className="text-red-500 dark:text-red-400">*</span>
           </label>
           <AutocompleteInput
             name="coffee_shop_name"
@@ -249,13 +249,13 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
             required
           />
           {errors.coffee_shop_name && (
-            <p className="text-red-500 text-sm mt-1">{errors.coffee_shop_name}</p>
+            <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.coffee_shop_name}</p>
           )}
         </div>
 
         {/* City */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
             City
           </label>
           <AutocompleteInput
@@ -269,7 +269,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
 
         {/* Opponent */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
             Opponent
           </label>
           <AutocompleteInput
@@ -283,7 +283,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
 
         {/* Sport */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
             Sport
           </label>
           <select
@@ -302,7 +302,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
 
         {/* Address */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
             Address
           </label>
           <input
@@ -316,7 +316,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
 
         {/* Coffee Order */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
             Coffee Order
           </label>
           <AutocompleteInput
@@ -332,8 +332,8 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
         {/* Ratings */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Vibe Rating (0-10) <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+              Vibe Rating (0-10) <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <input
               type="number"
@@ -346,13 +346,13 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
               className="input-field"
             />
             {errors.vibe_rating && (
-              <p className="text-red-500 text-sm mt-1">{errors.vibe_rating}</p>
+              <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.vibe_rating}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Coffee Rating (0-10) <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+              Coffee Rating (0-10) <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <input
               type="number"
@@ -365,14 +365,14 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
               className="input-field"
             />
             {errors.coffee_rating && (
-              <p className="text-red-500 text-sm mt-1">{errors.coffee_rating}</p>
+              <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.coffee_rating}</p>
             )}
           </div>
         </div>
 
         {/* Photo */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
             Photo
           </label>
           {photoPreview ? (
@@ -380,7 +380,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
               <img
                 src={photoPreview}
                 alt="Preview"
-                className="w-full h-48 object-cover rounded-lg border border-stone-300"
+                className="w-full h-48 object-cover rounded-lg border border-stone-300 dark:border-stone-600"
               />
               <div className="absolute top-2 right-2 flex gap-2">
                 <button
@@ -406,15 +406,15 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
               </div>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-stone-300 border-dashed rounded-lg cursor-pointer hover:bg-stone-50 transition-colors">
+            <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-stone-300 dark:border-stone-600 border-dashed rounded-lg cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <svg className="w-10 h-10 mb-3 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-10 h-10 mb-3 text-stone-400 dark:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
-                <p className="mb-2 text-sm text-stone-500">
+                <p className="mb-2 text-sm text-stone-500 dark:text-stone-400">
                   <span className="font-semibold">Click to upload</span> or drag and drop
                 </p>
-                <p className="text-xs text-stone-400">PNG, JPG, HEIC (MAX. 10MB)</p>
+                <p className="text-xs text-stone-400 dark:text-stone-500">PNG, JPG, HEIC (MAX. 10MB)</p>
               </div>
               <input
                 type="file"
@@ -425,13 +425,13 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
             </label>
           )}
           {errors.photo && (
-            <p className="text-red-500 text-sm mt-1">{errors.photo}</p>
+            <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.photo}</p>
           )}
         </div>
 
         {/* Notes */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
             Notes
           </label>
           <textarea

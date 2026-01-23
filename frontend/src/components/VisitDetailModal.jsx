@@ -146,14 +146,14 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
 
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="relative bg-white dark:bg-stone-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transition-colors">
           {/* Menu and Close buttons */}
           <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
             {/* 3-dot menu */}
             <div className="relative">
               <button
                 onClick={() => setShowMenu(!showMenu)}
-                className="text-stone-400 hover:text-stone-600 p-1 transition-colors"
+                className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 p-1 transition-colors"
                 aria-label="Menu"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -163,16 +163,16 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
               {showMenu && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-                  <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-20 border border-stone-200">
+                  <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-stone-800 rounded-md shadow-lg z-20 border border-stone-200 dark:border-stone-700">
                     <button
                       onClick={handleEdit}
-                      className="w-full text-left px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50 rounded-t-md transition-colors"
+                      className="w-full text-left px-4 py-2.5 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 rounded-t-md transition-colors"
                     >
                       Edit
                     </button>
                     <button
                       onClick={handleDelete}
-                      className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-b-md transition-colors"
+                      className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-stone-700 rounded-b-md transition-colors"
                     >
                       Delete
                     </button>
@@ -184,7 +184,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
             {/* Close button */}
             <button
               onClick={onClose}
-              className="text-stone-400 hover:text-stone-600 transition-colors"
+              className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
               aria-label="Close"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -200,7 +200,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
             </h2>
 
             {/* Photo with Notes Overlay */}
-            <div className="mb-6 rounded-lg overflow-hidden relative bg-stone-100 flex items-end" style={{ aspectRatio: '4 / 5' }}>
+            <div className="mb-6 rounded-lg overflow-hidden relative bg-stone-100 dark:bg-stone-700 flex items-end transition-colors" style={{ aspectRatio: '4 / 5' }}>
               {visit.photo_url ? (
                 <>
                   <img
@@ -222,22 +222,22 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
                     {showPhotoMenu && (
                       <>
                         <div className="fixed inset-0" onClick={() => setShowPhotoMenu(false)} />
-                        <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-20 border border-stone-200">
+                        <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-stone-800 rounded-md shadow-lg z-20 border border-stone-200 dark:border-stone-700">
                           <button
                             onClick={handleRecropPhoto}
-                            className="w-full text-left px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50 rounded-t-md transition-colors"
+                            className="w-full text-left px-4 py-2.5 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 rounded-t-md transition-colors"
                           >
                             Recrop
                           </button>
                           <button
                             onClick={handleReplacePhoto}
-                            className="w-full text-left px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50 transition-colors"
+                            className="w-full text-left px-4 py-2.5 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
                           >
                             Replace
                           </button>
                           <button
                             onClick={handleDeletePhoto}
-                            className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-b-md transition-colors"
+                            className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-stone-700 rounded-b-md transition-colors"
                           >
                             Delete
                           </button>
@@ -276,45 +276,45 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
 
             {/* Visit Details */}
             <div className="space-y-2 mb-6">
-              <p className="text-stone-700">
+              <p className="text-stone-700 dark:text-stone-200">
                 <span className="font-semibold">Date:</span> {formattedDate}
               </p>
               {visit.coffee_order && (
-                <p className="text-stone-700">
+                <p className="text-stone-700 dark:text-stone-200">
                   <span className="font-semibold">Order:</span> {visit.coffee_order}
                 </p>
               )}
               {visit.city && (
-                <p className="text-stone-700">
+                <p className="text-stone-700 dark:text-stone-200">
                   <span className="font-semibold">City:</span> {visit.city}
                 </p>
               )}
               {visit.opponent && (
-                <p className="text-stone-700">
+                <p className="text-stone-700 dark:text-stone-200">
                   <span className="font-semibold">Opponent:</span> {visit.opponent}
                 </p>
               )}
               {visit.sport && (
-                <p className="text-stone-700">
+                <p className="text-stone-700 dark:text-stone-200">
                   <span className="font-semibold">Sport:</span> {visit.sport}
                 </p>
               )}
               {visit.coffee_shop_address && (
-                <p className="text-stone-700">
+                <p className="text-stone-700 dark:text-stone-200">
                   <span className="font-semibold">Address:</span> {visit.coffee_shop_address}
                 </p>
               )}
             </div>
 
             {/* Divider */}
-            <hr className="border-stone-300 my-6" />
+            <hr className="border-stone-300 dark:border-stone-600 my-6" />
 
             {/* Ratings - All same size */}
             <div className="flex gap-4 justify-center mb-6">
               <div className="flex flex-col items-center flex-1 max-w-[120px]">
-                <span className="text-xs text-stone-500 mb-2 font-medium tracking-widest uppercase">Vibe</span>
+                <span className="text-xs text-stone-500 dark:text-stone-400 mb-2 font-medium tracking-widest uppercase">Vibe</span>
                 <div
-                  className="w-full px-4 py-3 rounded-md font-black text-2xl flex items-center justify-center border border-stone-200 tabular-nums min-w-[75px]"
+                  className="w-full px-4 py-3 rounded-md font-black text-2xl flex items-center justify-center border border-stone-200 dark:border-stone-700 tabular-nums min-w-[75px]"
                   style={{
                     backgroundColor: getRatingColor(visit.vibe_rating),
                     color: getTextColor(getRatingColor(visit.vibe_rating)),
@@ -326,9 +326,9 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
               </div>
 
               <div className="flex flex-col items-center flex-1 max-w-[120px]">
-                <span className="text-xs text-stone-500 mb-2 font-medium tracking-widest uppercase">Coffee</span>
+                <span className="text-xs text-stone-500 dark:text-stone-400 mb-2 font-medium tracking-widest uppercase">Coffee</span>
                 <div
-                  className="w-full px-4 py-3 rounded-md font-black text-2xl flex items-center justify-center border border-stone-200 tabular-nums min-w-[75px]"
+                  className="w-full px-4 py-3 rounded-md font-black text-2xl flex items-center justify-center border border-stone-200 dark:border-stone-700 tabular-nums min-w-[75px]"
                   style={{
                     backgroundColor: getRatingColor(visit.coffee_rating),
                     color: getTextColor(getRatingColor(visit.coffee_rating)),
@@ -340,7 +340,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
               </div>
 
               <div className="flex flex-col items-center flex-1 max-w-[120px]">
-                <span className="text-xs text-stone-500 mb-2 font-medium tracking-widest uppercase">Total</span>
+                <span className="text-xs text-stone-500 dark:text-stone-400 mb-2 font-medium tracking-widest uppercase">Total</span>
                 <div
                   className="w-full px-4 py-3 rounded-md font-black text-2xl flex items-center justify-center border-2 tabular-nums min-w-[75px]"
                   style={{
