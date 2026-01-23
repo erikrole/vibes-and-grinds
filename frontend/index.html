@@ -7,6 +7,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Cormorant+Garamond:wght@300;400;600&display=swap" rel="stylesheet">
+    <script>
+      // Prevent dark mode flicker - runs before page render
+      (function() {
+        const darkMode = localStorage.getItem('darkMode');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        if (darkMode === 'dark' || (darkMode === 'auto' && prefersDark) || (!darkMode && prefersDark)) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
     <title>Vibes & Grinds - Coffee Shop Tracker</title>
   </head>
   <body>

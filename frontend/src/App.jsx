@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import AddVisitForm from './components/AddVisitForm';
 import VisitList from './components/VisitList';
 import VisitDetailModal from './components/VisitDetailModal';
+import DarkModeProvider from './contexts/DarkModeContext';
+import DarkModeToggle from './components/DarkModeToggle';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
 
 export default function App() {
@@ -113,14 +115,15 @@ export default function App() {
   });
 
   return (
-    <div className="min-h-screen bg-stone-50">
+    <DarkModeProvider>
+      <div className="min-h-screen bg-stone-50 dark:bg-stone-900 transition-colors duration-200">
       {/* Header */}
-      <header className="bg-white border-b border-stone-200">
+      <header className="bg-white dark:bg-stone-800 border-b border-stone-200 dark:border-stone-700 transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="text-3xl sm:text-4xl">☕</div>
-              <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-900" style={{ fontFamily: "'Playfair Display', serif" }}>
+              <h1 className="coffee-shop-name text-3xl sm:text-4xl font-black tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
                 Vibes & Grinds
               </h1>
             </div>
@@ -136,7 +139,7 @@ export default function App() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-800 px-5 py-4 rounded-md">
+          <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-5 py-4 rounded-md transition-colors">
             {error}
           </div>
         )}
@@ -146,9 +149,9 @@ export default function App() {
           <div className="flex flex-col gap-4 mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h2 className="text-3xl font-bold text-stone-900 mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>Visits</h2>
+                <h2 className="text-3xl font-bold text-stone-900 dark:text-stone-50 mb-2 transition-colors" style={{ fontFamily: "'Playfair Display', serif" }}>Visits</h2>
                 {(searchQuery || sportFilter) && (
-                  <p className="text-stone-600 text-sm tracking-wide">
+                  <p className="text-stone-600 dark:text-stone-400 text-sm tracking-wide transition-colors">
                     {sortedVisits.length} of {visits.length} {visits.length === 1 ? 'visit' : 'visits'}
                   </p>
                 )}
@@ -156,14 +159,14 @@ export default function App() {
               <div className="flex flex-col gap-3">
                 {/* Sort Options */}
                 <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                  <span className="text-sm text-stone-500 hidden sm:block tracking-wide">Sort by:</span>
+                  <span className="text-sm text-stone-500 dark:text-stone-400 hidden sm:block tracking-wide transition-colors">Sort by:</span>
                   <div className="flex gap-2 flex-wrap">
                     <button
                       onClick={() => setSortBy('date')}
                       className={`px-4 py-1.5 text-sm rounded transition-all ${
                         sortBy === 'date'
-                          ? 'bg-stone-800 text-stone-50'
-                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                          ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
+                          : 'bg-stone-100 dark:bg-stone-700/50 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-600'
                       }`}
                     >
                       Date
@@ -172,8 +175,8 @@ export default function App() {
                       onClick={() => setSortBy('vibe')}
                       className={`px-4 py-1.5 text-sm rounded transition-all ${
                         sortBy === 'vibe'
-                          ? 'bg-stone-800 text-stone-50'
-                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                          ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
+                          : 'bg-stone-100 dark:bg-stone-700/50 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-600'
                       }`}
                     >
                       Vibe
@@ -182,8 +185,8 @@ export default function App() {
                       onClick={() => setSortBy('coffee')}
                       className={`px-4 py-1.5 text-sm rounded transition-all ${
                         sortBy === 'coffee'
-                          ? 'bg-stone-800 text-stone-50'
-                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                          ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
+                          : 'bg-stone-100 dark:bg-stone-700/50 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-600'
                       }`}
                     >
                       Coffee
@@ -192,8 +195,8 @@ export default function App() {
                       onClick={() => setSortBy('composite')}
                       className={`px-4 py-1.5 text-sm rounded transition-all ${
                         sortBy === 'composite'
-                          ? 'bg-stone-800 text-stone-50'
-                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                          ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
+                          : 'bg-stone-100 dark:bg-stone-700/50 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-600'
                       }`}
                     >
                       Total
@@ -203,11 +206,11 @@ export default function App() {
 
                 {/* Sport Filter */}
                 <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                  <span className="text-sm text-stone-500 hidden sm:block tracking-wide">Filter by:</span>
+                  <span className="text-sm text-stone-500 dark:text-stone-400 hidden sm:block tracking-wide transition-colors">Filter by:</span>
                   <select
                     value={sportFilter}
                     onChange={(e) => setSportFilter(e.target.value)}
-                    className="px-4 py-1.5 text-sm rounded border border-stone-300 bg-white text-stone-700 focus:outline-none focus:ring-1 focus:ring-stone-400 cursor-pointer"
+                    className="px-4 py-1.5 text-sm rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 cursor-pointer transition-colors"
                   >
                     <option value="">None</option>
                     <option value="Men's Basketball">Men's Basketball</option>
@@ -226,10 +229,10 @@ export default function App() {
                 placeholder="Search by shop name, city, opponent, or order..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3 pl-11 border border-stone-300 rounded-md focus:outline-none focus:ring-1 focus:ring-stone-400 bg-white"
+                className="w-full px-4 py-3 pl-11 border border-stone-300 dark:border-stone-600 rounded-md focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-50 transition-colors"
               />
               <svg
-                className="absolute left-3.5 top-3.5 h-5 w-5 text-stone-400"
+                className="absolute left-3.5 top-3.5 h-5 w-5 text-stone-400 dark:text-stone-500 transition-colors"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -244,7 +247,7 @@ export default function App() {
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-3 text-stone-400 hover:text-stone-600"
+                  className="absolute right-3 top-3 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
                 >
                   <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                     <path
@@ -269,7 +272,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-20 py-8 text-center text-stone-400 text-sm tracking-wide border-t border-stone-200">
+      <footer className="mt-20 py-8 text-center text-stone-400 dark:text-stone-500 text-sm tracking-wide border-t border-stone-200 dark:border-stone-700 transition-colors">
         <p>Built for logging AJ Harrison's road coffee orders</p>
       </footer>
 
@@ -277,7 +280,7 @@ export default function App() {
       {!showForm && !editingVisit && (
         <button
           onClick={() => setShowForm(true)}
-          className="fixed bottom-5 right-5 md:bottom-6 md:right-6 w-16 h-16 md:w-14 md:h-14 bg-stone-800 text-stone-50 rounded-full shadow-lg hover:bg-stone-900 transition-all flex items-center justify-center z-50 hover:scale-110 active:scale-95"
+          className="fixed bottom-5 right-5 md:bottom-6 md:right-6 w-16 h-16 md:w-14 md:h-14 bg-stone-800 dark:bg-stone-700 text-stone-50 rounded-full shadow-lg hover:bg-stone-900 dark:hover:bg-stone-600 transition-all flex items-center justify-center z-50 hover:scale-110 active:scale-95"
           aria-label="Add Visit"
         >
           <svg className="w-7 h-7 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -304,12 +307,12 @@ export default function App() {
       {/* Add Visit Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={handleCancelForm} />
+          <div className="fixed inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-sm transition-opacity" onClick={handleCancelForm} />
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="relative bg-white dark:bg-stone-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transition-colors">
               <button
                 onClick={handleCancelForm}
-                className="absolute top-4 right-4 text-stone-400 hover:text-stone-600 transition-colors z-10"
+                className="absolute top-4 right-4 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors z-10"
                 aria-label="Close"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -327,12 +330,12 @@ export default function App() {
       {/* Edit Visit Modal */}
       {editingVisit && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={handleCancelForm} />
+          <div className="fixed inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-sm transition-opacity" onClick={handleCancelForm} />
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="relative bg-white dark:bg-stone-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transition-colors">
               <button
                 onClick={handleCancelForm}
-                className="absolute top-4 right-4 text-stone-400 hover:text-stone-600 transition-colors z-10"
+                className="absolute top-4 right-4 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors z-10"
                 aria-label="Close"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -351,6 +354,10 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Dark Mode Toggle */}
+      <DarkModeToggle />
     </div>
+    </DarkModeProvider>
   );
 }

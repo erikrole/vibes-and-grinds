@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply bg-stone-50 text-stone-900;
+    @apply bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-50 transition-colors duration-200;
     font-family: 'Cormorant Garamond', 'Georgia', serif;
   }
 
@@ -15,19 +15,19 @@
 
 @layer components {
   .btn-primary {
-    @apply px-5 py-2.5 bg-stone-800 text-stone-50 rounded-md hover:bg-stone-900 transition-all font-medium tracking-wide;
+    @apply px-5 py-2.5 bg-stone-800 dark:bg-stone-700 text-stone-50 rounded-md hover:bg-stone-900 dark:hover:bg-stone-600 transition-all font-medium tracking-wide;
   }
 
   .btn-secondary {
-    @apply px-5 py-2.5 bg-stone-100 text-stone-700 rounded-md hover:bg-stone-200 transition-all font-medium;
+    @apply px-5 py-2.5 bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-100 rounded-md hover:bg-stone-200 dark:hover:bg-stone-600 transition-all font-medium;
   }
 
   .input-field {
-    @apply w-full px-4 py-2.5 border border-stone-300 rounded-md focus:outline-none focus:ring-1 focus:ring-stone-400 focus:border-stone-400 bg-white;
+    @apply w-full px-4 py-2.5 border border-stone-300 dark:border-stone-600 rounded-md focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 focus:border-stone-400 dark:focus:border-stone-500 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-50;
   }
 
   .card {
-    @apply bg-white rounded-lg border border-stone-200 p-8 transition-all;
+    @apply bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700 p-8 transition-all;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   }
 
@@ -36,10 +36,10 @@
   }
 
   .coffee-shop-name {
+    @apply text-stone-900 dark:text-stone-50;
     font-family: 'Playfair Display', serif;
     font-weight: 900;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: #1c1917;
   }
 }
