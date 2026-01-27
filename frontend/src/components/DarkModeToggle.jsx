@@ -3,75 +3,67 @@ import { useDarkMode } from '../contexts/DarkModeContext';
 
 export default function DarkModeToggle() {
   const { mode, setMode } = useDarkMode();
-  const [isOpen, setIsOpen] = useState(false);
+  const [hoveredMode, setHoveredMode] = useState(null);
 
   const modes = [
-    { value: 'auto', label: 'Auto', icon: '○' },
-    { value: 'light', label: 'Light', icon: '☀' },
-    { value: 'dark', label: 'Dark', icon: '☾' },
+    {
+      value: 'light',
+      label: 'Switch to light theme',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      )
+    },
+    {
+      value: 'auto',
+      label: 'Switch to system theme',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      )
+    },
+    {
+      value: 'dark',
+      label: 'Switch to dark theme',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+        </svg>
+      )
+    },
   ];
-
-  const currentMode = modes.find(m => m.value === mode);
 
   return (
     <div className="fixed bottom-5 left-5 z-40">
-      <div className="relative">
-        {/* Toggle Button */}
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg shadow-lg hover:bg-stone-50 dark:hover:bg-stone-700 transition-all"
-          aria-label="Toggle dark mode"
-        >
-          <span className="text-lg">{currentMode.icon}</span>
-          <span className="text-sm font-medium text-stone-700 dark:text-stone-200">
-            {currentMode.label}
-          </span>
-          <svg
-            className={`w-4 h-4 text-stone-500 dark:text-stone-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        {/* Dropdown Menu */}
-        {isOpen && (
-          <>
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setIsOpen(false)}
-            />
-
-            {/* Menu */}
-            <div className="absolute bottom-full left-0 mb-2 w-40 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg shadow-xl z-20 overflow-hidden">
-              {modes.map((m) => (
-                <button
-                  key={m.value}
-                  onClick={() => {
-                    setMode(m.value);
-                    setIsOpen(false);
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
-                    mode === m.value
-                      ? 'bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-stone-50'
-                      : 'text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700/50'
-                  }`}
-                >
-                  <span className="text-lg">{m.icon}</span>
-                  <span className="font-medium">{m.label}</span>
-                  {mode === m.value && (
-                    <svg className="w-4 h-4 ml-auto text-stone-900 dark:text-stone-50" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                </button>
-              ))}
-            </div>
-          </>
+      <div className="relative group">
+        {/* Tooltip */}
+        {hoveredMode && (
+          <div className="absolute bottom-full left-0 mb-3 px-4 py-2 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-50 text-sm font-medium rounded-lg shadow-lg whitespace-nowrap border border-stone-200 dark:border-stone-700">
+            {modes.find(m => m.value === hoveredMode)?.label}
+          </div>
         )}
+
+        {/* Button Group */}
+        <div className="flex items-center bg-stone-800 dark:bg-stone-800 rounded-lg p-1 shadow-lg">
+          {modes.map((m) => (
+            <button
+              key={m.value}
+              onClick={() => setMode(m.value)}
+              onMouseEnter={() => setHoveredMode(m.value)}
+              onMouseLeave={() => setHoveredMode(null)}
+              className={`p-2.5 rounded-md transition-all ${
+                mode === m.value
+                  ? 'bg-stone-700 text-stone-50'
+                  : 'text-stone-400 hover:text-stone-300 hover:bg-stone-700/50'
+              }`}
+              aria-label={m.label}
+            >
+              {m.icon}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
