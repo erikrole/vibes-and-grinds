@@ -67,7 +67,7 @@ You should see: "Executed 3 commands in X.XXs"
 
 5. Add environment variable:
    - **Variable name**: `VITE_GOOGLE_MAPS_API_KEY`
-   - **Value**: `AIzaSyDPyA8g_KNAnANLi4CnjvAxUs9jPPoz2XY`
+   - **Value**: `your-google-maps-api-key-here` (get from Google Cloud Console)
 
 6. Click "Save and Deploy"
 
