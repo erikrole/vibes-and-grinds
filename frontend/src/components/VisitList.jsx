@@ -21,7 +21,7 @@ export default function VisitList({ visits, loading, onEdit, onDelete, onViewDet
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="space-y-4">
       {visits.map((visit) => (
         <VisitCard
           key={visit.id}
