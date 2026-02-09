@@ -4,6 +4,7 @@ import VisitList from './components/VisitList';
 import VisitDetailModal from './components/VisitDetailModal';
 import DarkModeProvider from './contexts/DarkModeContext';
 import DarkModeToggle from './components/DarkModeToggle';
+import FormModal from './components/FormModal';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
 
 export default function App() {
@@ -337,53 +338,21 @@ export default function App() {
 
       {/* Add Visit Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-sm transition-opacity" onClick={handleCancelForm} />
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white dark:bg-stone-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transition-colors">
-              <button
-                onClick={handleCancelForm}
-                className="absolute top-4 right-4 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors z-10"
-                aria-label="Close"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              <div className="p-6 sm:p-8">
-                <AddVisitForm onSubmit={handleAddVisit} onCancel={handleCancelForm} visits={visits} />
-              </div>
-            </div>
-          </div>
-        </div>
+        <FormModal title="Add Visit" onClose={handleCancelForm}>
+          <AddVisitForm onSubmit={handleAddVisit} onCancel={handleCancelForm} visits={visits} />
+        </FormModal>
       )}
 
       {/* Edit Visit Modal */}
       {editingVisit && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-sm transition-opacity" onClick={handleCancelForm} />
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white dark:bg-stone-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transition-colors">
-              <button
-                onClick={handleCancelForm}
-                className="absolute top-4 right-4 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors z-10"
-                aria-label="Close"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              <div className="p-6 sm:p-8">
-                <AddVisitForm
-                  initialData={editingVisit}
-                  onSubmit={handleUpdateVisit}
-                  onCancel={handleCancelForm}
-                  visits={visits}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        <FormModal title="Edit Visit" onClose={handleCancelForm}>
+          <AddVisitForm
+            initialData={editingVisit}
+            onSubmit={handleUpdateVisit}
+            onCancel={handleCancelForm}
+            visits={visits}
+          />
+        </FormModal>
       )}
 
       {/* Dark Mode Toggle */}
