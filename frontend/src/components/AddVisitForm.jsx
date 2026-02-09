@@ -343,7 +343,9 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
               step="0.1"
               min="0"
               max="10"
-              className="input-field"
+              className="input-field rating-number"
+              inputMode="decimal"
+              autoComplete="off"
             />
             {errors.vibe_rating && (
               <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.vibe_rating}</p>
@@ -362,7 +364,9 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
               step="0.1"
               min="0"
               max="10"
-              className="input-field"
+              className="input-field rating-number"
+              inputMode="decimal"
+              autoComplete="off"
             />
             {errors.coffee_rating && (
               <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.coffee_rating}</p>

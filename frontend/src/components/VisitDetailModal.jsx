@@ -22,11 +22,20 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
   // Close on Escape key
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Escape') return;
+      if (showPhotoMenu) {
+        setShowPhotoMenu(false);
+        return;
+      }
+      if (showMenu) {
+        setShowMenu(false);
+        return;
+      }
+      onClose();
     };
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
+  }, [onClose, showMenu, showPhotoMenu]);
 
   const handlePhotoUpload = async (file) => {
     if (!file) return;
@@ -127,9 +136,9 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
   });
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 dark:bg-black/80 backdrop-blur-sm transition-colors">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 dark:bg-black/80 backdrop-blur-sm transition-colors" onClick={onClose}>
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative w-full max-w-2xl bg-white dark:bg-stone-800 rounded-3xl shadow-2xl overflow-hidden transition-colors">
+        <div className="relative w-full max-w-2xl bg-white dark:bg-stone-800 rounded-3xl shadow-2xl overflow-hidden transition-colors" onClick={(e) => e.stopPropagation()}>
           {/* Photo Section */}
           <div className="relative">
             {visit.photo_url ? (
@@ -248,7 +257,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div
-                  className="px-5 py-2.5 rounded-lg font-black text-3xl tabular-nums shadow-sm"
+                  className="px-5 py-2.5 rounded-lg font-black text-3xl rating-number shadow-sm"
                   style={{
                     backgroundColor: getRatingColor(visit.vibe_rating),
                     color: getTextColor(getRatingColor(visit.vibe_rating)),
@@ -263,7 +272,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
                 </svg>
                 <div
-                  className="px-5 py-2.5 rounded-lg font-black text-3xl tabular-nums shadow-sm"
+                  className="px-5 py-2.5 rounded-lg font-black text-3xl rating-number shadow-sm"
                   style={{
                     backgroundColor: getRatingColor(visit.coffee_rating),
                     color: getTextColor(getRatingColor(visit.coffee_rating)),
@@ -278,7 +287,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                 </svg>
                 <div
-                  className="px-5 py-2.5 rounded-lg font-black text-3xl tabular-nums shadow-sm border-2"
+                  className="px-5 py-2.5 rounded-lg font-black text-3xl rating-number shadow-sm border-2"
                   style={{
                     backgroundColor: getRatingColor(visit.composite_score / 2),
                     color: getTextColor(getRatingColor(visit.composite_score / 2)),
