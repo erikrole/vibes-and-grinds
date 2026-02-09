@@ -114,6 +114,17 @@ export default function App() {
     }
   });
 
+  const hasActiveFilters = Boolean(searchQuery || sportFilter);
+  const avgVibe = visits.length
+    ? (visits.reduce((sum, visit) => sum + visit.vibe_rating, 0) / visits.length).toFixed(1)
+    : '0.0';
+  const avgCoffee = visits.length
+    ? (visits.reduce((sum, visit) => sum + visit.coffee_rating, 0) / visits.length).toFixed(1)
+    : '0.0';
+  const avgComposite = visits.length
+    ? (visits.reduce((sum, visit) => sum + visit.composite_score, 0) / visits.length).toFixed(1)
+    : '0.0';
+
   return (
     <DarkModeProvider>
       <div className="min-h-screen bg-stone-50 dark:bg-stone-900 transition-colors duration-200">
@@ -144,6 +155,25 @@ export default function App() {
           </div>
         )}
 
+
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg p-4 transition-colors">
+            <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">Total Visits</p>
+            <p className="text-2xl font-bold text-stone-900 dark:text-stone-50 mt-1">{visits.length}</p>
+          </div>
+          <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg p-4 transition-colors">
+            <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">Avg Vibe</p>
+            <p className="text-2xl font-bold text-stone-900 dark:text-stone-50 mt-1">{avgVibe}</p>
+          </div>
+          <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg p-4 transition-colors">
+            <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">Avg Coffee</p>
+            <p className="text-2xl font-bold text-stone-900 dark:text-stone-50 mt-1">{avgCoffee}</p>
+          </div>
+          <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg p-4 transition-colors">
+            <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">Avg Total</p>
+            <p className="text-2xl font-bold text-stone-900 dark:text-stone-50 mt-1">{avgComposite} / 20</p>
+          </div>
+        </section>
 
         <div className="mb-6">
           <div className="flex flex-col gap-4 mb-4">
@@ -268,6 +298,7 @@ export default function App() {
           onEdit={handleEditVisit}
           onDelete={handleDeleteVisit}
           onViewDetails={setViewingVisit}
+          hasActiveFilters={hasActiveFilters}
         />
       </main>
 
