@@ -1,128 +1,146 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-const GOOGLE_MAPS_SCRIPT_ID = 'google-maps-places-script';
+const MIN_QUERY_LENGTH = 2;
 
-function loadGooglePlacesScript(apiKey, onAuthFailure) {
-  return new Promise((resolve, reject) => {
-    if (window.google?.maps?.places) {
-      resolve();
-      return;
-    }
-
-    const existingScript = document.getElementById(GOOGLE_MAPS_SCRIPT_ID);
-    if (existingScript) {
-      existingScript.addEventListener('load', () => resolve());
-      existingScript.addEventListener('error', () => reject(new Error('Failed to load Google Maps script')));
-      return;
-    }
-
-    window.gm_authFailure = () => {
-      onAuthFailure?.();
-      reject(new Error('Google Maps authorization failed'));
-    };
-
-    const script = document.createElement('script');
-    script.id = GOOGLE_MAPS_SCRIPT_ID;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Failed to load Google Maps script'));
-
-    document.head.appendChild(script);
-  });
-}
-
-export default function PlacesAutocomplete({ onPlaceSelected, value, onChange }) {
-  const inputRef = useRef(null);
-  const autocompleteRef = useRef(null);
-  const [status, setStatus] = useState('idle'); // idle | loading | ready | unavailable
-  const [errorMessage, setErrorMessage] = useState('');
+export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, disabled = false }) {
+  const [suggestions, setSuggestions] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const containerRef = useRef(null);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) {
-      setStatus('unavailable');
-      setErrorMessage('Google Places is not configured. You can still type manually.');
-      return;
-    }
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
 
-    let isMounted = true;
-
-    setStatus('loading');
-    loadGooglePlacesScript(apiKey, () => {
-      if (!isMounted) return;
-      setStatus('unavailable');
-      setErrorMessage('Google Places authorization failed (check key restrictions/billing). You can still type manually.');
-    })
-      .then(() => {
-        if (!isMounted) return;
-        if (window.google?.maps?.places) {
-          setStatus('ready');
-        } else {
-          setStatus('unavailable');
-          setErrorMessage('Google Places is unavailable right now. You can still type manually.');
-        }
-      })
-      .catch(() => {
-        if (!isMounted) return;
-        setStatus('unavailable');
-        setErrorMessage('Google Places failed to load. You can still type manually.');
-      });
-
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      isMounted = false;
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
   useEffect(() => {
-    if (status !== 'ready' || !inputRef.current || !window.google?.maps?.places) return;
+    const query = (value || '').trim();
 
-    autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
-      types: ['cafe', 'restaurant', 'establishment'],
-      fields: ['name', 'formatted_address', 'place_id', 'geometry'],
-    });
+    if (query.length < MIN_QUERY_LENGTH) {
+      setSuggestions([]);
+      setIsLoading(false);
+      setStatusMessage('');
+      return;
+    }
 
-    const listener = autocompleteRef.current.addListener('place_changed', () => {
-      const place = autocompleteRef.current.getPlace();
+    const controller = new AbortController();
+    const currentRequestId = ++requestIdRef.current;
 
-      if (!place?.geometry) {
-        return;
+    const timer = setTimeout(async () => {
+      setIsLoading(true);
+      setStatusMessage('');
+
+      try {
+        const response = await fetch(`/api/places-autocomplete?input=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error('Autocomplete request failed');
+        }
+
+        const data = await response.json();
+        if (requestIdRef.current !== currentRequestId) return;
+
+        const nextSuggestions = data.suggestions || [];
+        setSuggestions(nextSuggestions);
+
+        if (!nextSuggestions.length) {
+          setStatusMessage('No Google Places matches yet. Keep typing or enter manually.');
+        }
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        if (requestIdRef.current !== currentRequestId) return;
+
+        setSuggestions([]);
+        setStatusMessage('Google Places unavailable right now. You can still type manually.');
+      } finally {
+        if (requestIdRef.current === currentRequestId) {
+          setIsLoading(false);
+        }
       }
-
-      onPlaceSelected({
-        name: place.name,
-        address: place.formatted_address,
-        place_id: place.place_id,
-        lat: place.geometry.location.lat(),
-        lng: place.geometry.location.lng(),
-      });
-    });
+    }, 250);
 
     return () => {
-      if (listener?.remove) {
-        listener.remove();
-      }
+      clearTimeout(timer);
+      controller.abort();
     };
-  }, [status, onPlaceSelected]);
+  }, [value]);
 
-  const showFallback = status === 'unavailable';
+  const hasSuggestions = suggestions.length > 0;
+
+  const helperText = useMemo(() => {
+    if (isLoading) {
+      return 'Searching Google Places…';
+    }
+
+    return statusMessage;
+  }, [isLoading, statusMessage]);
+
+  const handleSelectSuggestion = async (suggestion) => {
+    setShowSuggestions(false);
+    setStatusMessage('');
+
+    if (!suggestion?.placeId) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/places-details?placeId=${encodeURIComponent(suggestion.placeId)}`);
+      if (!response.ok) {
+        throw new Error('Place details request failed');
+      }
+
+      const data = await response.json();
+      onPlaceSelected?.(data.place);
+    } catch (error) {
+      setStatusMessage('Could not load full place details. You can still save manually.');
+    }
+  };
 
   return (
-    <div>
+    <div className="relative" ref={containerRef}>
       <input
-        ref={inputRef}
         type="text"
         value={value}
         onChange={onChange}
-        placeholder={showFallback ? 'Type coffee shop name manually...' : 'Search for a coffee shop...'}
+        onFocus={() => setShowSuggestions(true)}
+        placeholder="Search for a coffee shop..."
         className="input-field"
         autoComplete="off"
+        disabled={disabled}
       />
 
-      {showFallback && (
-        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">{errorMessage}</p>
+      {showSuggestions && hasSuggestions && (
+        <ul className="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-stone-200 bg-white py-1 shadow-xl dark:border-stone-700 dark:bg-stone-900">
+          {suggestions.map((suggestion) => (
+            <li key={suggestion.placeId}>
+              <button
+                type="button"
+                className="w-full px-3 py-2 text-left hover:bg-stone-100 dark:hover:bg-stone-800"
+                onClick={() => handleSelectSuggestion(suggestion)}
+              >
+                <p className="text-sm font-medium text-stone-800 dark:text-stone-100">{suggestion.mainText}</p>
+                {suggestion.secondaryText && (
+                  <p className="text-xs text-stone-500 dark:text-stone-400">{suggestion.secondaryText}</p>
+                )}
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
+
+      {helperText && <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{helperText}</p>}
     </div>
   );
 }

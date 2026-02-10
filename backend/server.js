@@ -224,6 +224,101 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.get('/api/places-autocomplete', async (req, res) => {
+  const input = `${req.query.input || ''}`.trim();
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
+
+  if (!apiKey) {
+    return res.status(503).json({ error: 'Google Places is not configured on the server.' });
+  }
+
+  if (input.length < 2) {
+    return res.json({ suggestions: [] });
+  }
+
+  try {
+    const response = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+      },
+      body: JSON.stringify({
+        input,
+        includedPrimaryTypes: ['cafe', 'coffee_shop', 'restaurant'],
+      }),
+    });
+
+    if (!response.ok) {
+      const details = await response.text();
+      console.error('Places autocomplete failed:', details);
+      return res.status(502).json({ error: 'Failed to fetch place suggestions.' });
+    }
+
+    const data = await response.json();
+    const suggestions = (data.suggestions || [])
+      .map((item) => {
+        const prediction = item.placePrediction;
+        if (!prediction?.placeId) return null;
+
+        return {
+          placeId: prediction.placeId,
+          mainText: prediction.structuredFormat?.mainText?.text || prediction.text?.text || '',
+          secondaryText: prediction.structuredFormat?.secondaryText?.text || '',
+        };
+      })
+      .filter(Boolean);
+
+    return res.json({ suggestions });
+  } catch (error) {
+    console.error('Error fetching places autocomplete:', error);
+    return res.status(500).json({ error: 'Failed to fetch place suggestions.' });
+  }
+});
+
+app.get('/api/places-details', async (req, res) => {
+  const placeId = `${req.query.placeId || ''}`.trim();
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
+
+  if (!apiKey) {
+    return res.status(503).json({ error: 'Google Places is not configured on the server.' });
+  }
+
+  if (!placeId) {
+    return res.status(400).json({ error: 'placeId is required.' });
+  }
+
+  try {
+    const response = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
+      headers: {
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'id,displayName,formattedAddress,location',
+      },
+    });
+
+    if (!response.ok) {
+      const details = await response.text();
+      console.error('Place details failed:', details);
+      return res.status(502).json({ error: 'Failed to fetch place details.' });
+    }
+
+    const data = await response.json();
+
+    return res.json({
+      place: {
+        name: data.displayName?.text || '',
+        address: data.formattedAddress || '',
+        place_id: data.id || placeId,
+        lat: data.location?.latitude ?? '',
+        lng: data.location?.longitude ?? '',
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching place details:', error);
+    return res.status(500).json({ error: 'Failed to fetch place details.' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

@@ -280,7 +280,21 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
           <Field label="Coffee shop name" required error={errors.coffee_shop_name}>
             <PlacesAutocomplete
               value={formData.coffee_shop_name}
-              onChange={(e) => handleInputChange({ target: { name: 'coffee_shop_name', value: e.target.value } })}
+              onChange={(e) => {
+                const nextValue = e.target.value;
+                setFormData((prev) => ({
+                  ...prev,
+                  coffee_shop_name: nextValue,
+                  coffee_shop_address: nextValue === prev.coffee_shop_name ? prev.coffee_shop_address : '',
+                  coffee_shop_place_id: nextValue === prev.coffee_shop_name ? prev.coffee_shop_place_id : '',
+                  coffee_shop_lat: nextValue === prev.coffee_shop_name ? prev.coffee_shop_lat : '',
+                  coffee_shop_lng: nextValue === prev.coffee_shop_name ? prev.coffee_shop_lng : '',
+                }));
+
+                if (errors.coffee_shop_name) {
+                  setErrors((prev) => ({ ...prev, coffee_shop_name: '' }));
+                }
+              }}
               onPlaceSelected={handlePlaceSelected}
             />
             <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">Address/place details autofill when Google Places is available.</p>

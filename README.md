@@ -70,9 +70,15 @@ cp .env.example .env
 **Important:** Edit `frontend/.env` and add your Google Maps API key:
 
 ```env
-VITE_GOOGLE_MAPS_API_KEY=your_actual_api_key_here
 VITE_API_URL=http://localhost:3001
 ```
+
+Then in the project root `.env` (for the backend), add:
+
+```env
+GOOGLE_MAPS_API_KEY=your_actual_api_key_here
+```
+
 
 Then start the development server:
 
@@ -82,13 +88,13 @@ npm run dev
 
 The frontend will open at `http://localhost:3000`
 
-### 4. Getting a Google Maps API Key
+### 4. Getting a Google Places API Key
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select an existing one
-3. Enable the **Maps JavaScript API** and **Places API**
+3. Enable the **Places API (New)**
 4. Create credentials (API key)
-5. (Optional) Restrict the API key to your domain for security
+5. Restrict the key to the Places API (New) and your deployment usage
 
 ## Usage
 
@@ -178,7 +184,7 @@ npm run preview # Preview production build
 
 ### Frontend (Vercel)
 1. Connect your GitHub repo to Vercel
-2. Set environment variable: `VITE_GOOGLE_MAPS_API_KEY`
+2. Set environment variable: `GOOGLE_MAPS_API_KEY` (and optionally `VITE_GOOGLE_MAPS_API_KEY` for legacy frontend usage)
 3. Build command: `cd frontend && npm install && npm run build`
 4. Output directory: `frontend/dist`
 
