@@ -57,6 +57,9 @@ app.post('/api/visits', async (req, res) => {
     const {
       date,
       coffee_shop_name,
+      city,
+      opponent,
+      sport,
       coffee_shop_address,
       coffee_shop_place_id,
       coffee_shop_lat,
@@ -64,7 +67,8 @@ app.post('/api/visits', async (req, res) => {
       coffee_order,
       vibe_rating,
       coffee_rating,
-      notes
+      notes,
+      photo_url
     } = req.body;
 
     // Validation
@@ -78,12 +82,15 @@ app.post('/api/visits', async (req, res) => {
 
     const result = await db.run(
       `INSERT INTO coffee_visits (
-        date, coffee_shop_name, coffee_shop_address, coffee_shop_place_id,
-        coffee_shop_lat, coffee_shop_lng, coffee_order, vibe_rating, coffee_rating, notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        date, coffee_shop_name, city, opponent, sport, coffee_shop_address, coffee_shop_place_id,
+        coffee_shop_lat, coffee_shop_lng, coffee_order, vibe_rating, coffee_rating, notes, photo_url
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         date,
         coffee_shop_name,
+        city,
+        opponent,
+        sport,
         coffee_shop_address,
         coffee_shop_place_id,
         coffee_shop_lat,
@@ -91,7 +98,8 @@ app.post('/api/visits', async (req, res) => {
         coffee_order,
         vibe_rating,
         coffee_rating,
-        notes
+        notes,
+        photo_url
       ]
     );
 
@@ -113,6 +121,9 @@ app.put('/api/visits/:id', async (req, res) => {
     const {
       date,
       coffee_shop_name,
+      city,
+      opponent,
+      sport,
       coffee_shop_address,
       coffee_shop_place_id,
       coffee_shop_lat,
@@ -120,7 +131,8 @@ app.put('/api/visits/:id', async (req, res) => {
       coffee_order,
       vibe_rating,
       coffee_rating,
-      notes
+      notes,
+      photo_url
     } = req.body;
 
     // Validation
@@ -130,13 +142,16 @@ app.put('/api/visits/:id', async (req, res) => {
 
     await db.run(
       `UPDATE coffee_visits SET
-        date = ?, coffee_shop_name = ?, coffee_shop_address = ?,
+        date = ?, coffee_shop_name = ?, city = ?, opponent = ?, sport = ?, coffee_shop_address = ?,
         coffee_shop_place_id = ?, coffee_shop_lat = ?, coffee_shop_lng = ?,
-        coffee_order = ?, vibe_rating = ?, coffee_rating = ?, notes = ?
+        coffee_order = ?, vibe_rating = ?, coffee_rating = ?, notes = ?, photo_url = ?
       WHERE id = ?`,
       [
         date,
         coffee_shop_name,
+        city,
+        opponent,
+        sport,
         coffee_shop_address,
         coffee_shop_place_id,
         coffee_shop_lat,
@@ -145,6 +160,7 @@ app.put('/api/visits/:id', async (req, res) => {
         vibe_rating,
         coffee_rating,
         notes,
+        photo_url,
         req.params.id
       ]
     );

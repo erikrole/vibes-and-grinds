@@ -4,12 +4,14 @@
 
 @layer base {
   body {
-    @apply bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-50 transition-colors duration-200;
-    font-family: 'Cormorant Garamond', 'Georgia', serif;
+    @apply bg-stone-50 dark:bg-stone-900 text-stone-700 dark:text-stone-200 transition-colors duration-200;
+    font-family: 'Fraunces', 'Georgia', serif;
+    font-weight: 400;
+    line-height: 1.5;
   }
 
   h1, h2, h3 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Fraunces', 'Georgia', serif;
   }
 }
 
@@ -35,9 +37,18 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
 
+
+
+  .rating-number {
+    font-weight: 700;
+    font-family: 'Fraunces', 'Georgia', serif;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+  }
+
   .coffee-shop-name {
     @apply text-stone-900 dark:text-stone-50;
-    font-family: 'Playfair Display', serif;
+    font-family: 'Fraunces', 'Georgia', serif;
     font-weight: 900;
     letter-spacing: 0.05em;
     text-transform: uppercase;
