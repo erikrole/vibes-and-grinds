@@ -2,6 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 const MIN_QUERY_LENGTH = 2;
 
+async function parseApiError(response, fallbackMessage) {
+  try {
+    const data = await response.json();
+    return data?.error || data?.details || fallbackMessage;
+  } catch {
+    return fallbackMessage;
+  }
+}
+
 export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, disabled = false }) {
   const [suggestions, setSuggestions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -21,7 +30,7 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, d
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [value]);
 
   useEffect(() => {
     const query = (value || '').trim();
@@ -46,7 +55,8 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, d
         });
 
         if (!response.ok) {
-          throw new Error('Autocomplete request failed');
+          const message = await parseApiError(response, 'Google Places is unavailable right now. You can still type manually.');
+          throw new Error(message);
         }
 
         const data = await response.json();
@@ -63,7 +73,7 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, d
         if (requestIdRef.current !== currentRequestId) return;
 
         setSuggestions([]);
-        setStatusMessage('Google Places unavailable right now. You can still type manually.');
+        setStatusMessage(error.message || 'Google Places unavailable right now. You can still type manually.');
       } finally {
         if (requestIdRef.current === currentRequestId) {
           setIsLoading(false);
@@ -98,13 +108,14 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, d
     try {
       const response = await fetch(`/api/places-details?placeId=${encodeURIComponent(suggestion.placeId)}`);
       if (!response.ok) {
-        throw new Error('Place details request failed');
+        const message = await parseApiError(response, 'Could not load full place details. You can still save manually.');
+        throw new Error(message);
       }
 
       const data = await response.json();
       onPlaceSelected?.(data.place);
     } catch (error) {
-      setStatusMessage('Could not load full place details. You can still save manually.');
+      setStatusMessage(error.message || 'Could not load full place details. You can still save manually.');
     }
   };
 
@@ -140,7 +151,7 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, d
         </ul>
       )}
 
-      {helperText && <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{helperText}</p>}
+      {helperText && <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">{helperText}</p>}
     </div>
   );
 }

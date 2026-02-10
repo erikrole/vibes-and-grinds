@@ -224,6 +224,45 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+
+function buildPlacesErrorResponse(prefix, upstreamStatus, payloadText) {
+  let parsed;
+
+  try {
+    parsed = JSON.parse(payloadText || '{}');
+  } catch {
+    parsed = null;
+  }
+
+  const googleStatus = parsed?.error?.status || '';
+  const googleMessage = parsed?.error?.message || '';
+
+  if (googleStatus === 'PERMISSION_DENIED' || googleStatus === 'REQUEST_DENIED') {
+    return {
+      error: `${prefix}: Google denied the request. Confirm billing is active and Places API (New) is enabled for this project.`,
+      details: googleMessage || 'Permission denied by Google Places.',
+      googleStatus,
+      upstreamStatus,
+    };
+  }
+
+  if (googleStatus === 'RESOURCE_EXHAUSTED') {
+    return {
+      error: `${prefix}: Google quota is exhausted.`,
+      details: googleMessage || 'Quota exceeded for Google Places.',
+      googleStatus,
+      upstreamStatus,
+    };
+  }
+
+  return {
+    error: `${prefix}: Google Places is unavailable right now.`,
+    details: googleMessage || payloadText || 'Unknown Google Places error.',
+    googleStatus,
+    upstreamStatus,
+  };
+}
+
 app.get('/api/places-autocomplete', async (req, res) => {
   const input = `${req.query.input || ''}`.trim();
   const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -251,8 +290,9 @@ app.get('/api/places-autocomplete', async (req, res) => {
 
     if (!response.ok) {
       const details = await response.text();
-      console.error('Places autocomplete failed:', details);
-      return res.status(502).json({ error: 'Failed to fetch place suggestions.' });
+      const errorPayload = buildPlacesErrorResponse('Autocomplete failed', response.status, details);
+      console.error('Places autocomplete failed:', errorPayload);
+      return res.status(502).json(errorPayload);
     }
 
     const data = await response.json();
@@ -272,7 +312,10 @@ app.get('/api/places-autocomplete', async (req, res) => {
     return res.json({ suggestions });
   } catch (error) {
     console.error('Error fetching places autocomplete:', error);
-    return res.status(500).json({ error: 'Failed to fetch place suggestions.' });
+    return res.status(500).json({
+      error: 'Autocomplete failed: Unable to reach Google Places.',
+      details: error.message,
+    });
   }
 });
 
@@ -298,8 +341,9 @@ app.get('/api/places-details', async (req, res) => {
 
     if (!response.ok) {
       const details = await response.text();
-      console.error('Place details failed:', details);
-      return res.status(502).json({ error: 'Failed to fetch place details.' });
+      const errorPayload = buildPlacesErrorResponse('Place details failed', response.status, details);
+      console.error('Place details failed:', errorPayload);
+      return res.status(502).json(errorPayload);
     }
 
     const data = await response.json();
@@ -315,7 +359,10 @@ app.get('/api/places-details', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching place details:', error);
-    return res.status(500).json({ error: 'Failed to fetch place details.' });
+    return res.status(500).json({
+      error: 'Place details failed: Unable to reach Google Places.',
+      details: error.message,
+    });
   }
 });
 

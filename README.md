@@ -196,9 +196,10 @@ npm run preview # Preview production build
 ## Troubleshooting
 
 **Autocomplete not working?**
-- Check that your Google Maps API key is set in `frontend/.env`
-- Make sure Places API is enabled in Google Cloud Console
-- Check browser console for API errors
+- Check that `GOOGLE_MAPS_API_KEY` is set in the backend/root `.env` (or in Cloudflare Pages env vars).
+- Make sure Places API (New) is enabled in Google Cloud Console.
+- Confirm billing is active for the Google Cloud project (click **Activate** in Billing if shown).
+- Check API key restrictions and allow Places API (New) for the project key.
 
 **Backend not connecting?**
 - Ensure backend is running on port 3001
