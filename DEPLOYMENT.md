@@ -66,7 +66,7 @@ You should see: "Executed 3 commands in X.XXs"
    - **Root directory**: `/` (leave empty)
 
 5. Add environment variable:
-   - **Variable name**: `VITE_GOOGLE_MAPS_API_KEY`
+   - **Variable name**: `GOOGLE_MAPS_API_KEY`
    - **Value**: `your-google-maps-api-key-here` (get from Google Cloud Console)
 
 6. Click "Save and Deploy"
@@ -168,6 +168,9 @@ wrangler d1 execute vibes-and-grinds-db --command="SELECT COUNT(*) as total FROM
 - Verify Google Maps API key is set in environment variables
 - Check that Places API is enabled in Google Cloud Console
 - Make sure API key restrictions allow your domain
+- Confirm billing is active in Google Cloud (required for Places API (New)); if Billing shows an **Activate** button, click it first.
+- If requests still fail, inspect `/api/places-autocomplete` response JSON for `googleStatus` and `details` to identify restriction/billing/quota issues.
+- If you see “This page can't load Google Maps correctly”, check API key + billing errors in Google's docs
 
 **Database not found?**
 - Verify database ID in `wrangler.toml` matches your D1 database
