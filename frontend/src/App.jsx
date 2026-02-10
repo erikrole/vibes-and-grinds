@@ -81,6 +81,10 @@ export default function App() {
     setEditingVisit(null);
   };
 
+  const handleHeaderHomeClick = () => {
+    window.location.assign('/');
+  };
+
   // Filter by search query and sport
   const filteredVisits = visits.filter((visit) => {
     // Sport filter
@@ -133,12 +137,17 @@ export default function App() {
       <header className="bg-white dark:bg-stone-800 border-b border-stone-200 dark:border-stone-700 transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 sm:gap-4">
+            <button
+              onClick={handleHeaderHomeClick}
+              className="flex items-center gap-3 sm:gap-4 text-left hover:opacity-80 transition-opacity"
+              aria-label="Go to homepage"
+              title="Go home"
+            >
               <div className="text-3xl sm:text-4xl">☕</div>
               <h1 className="coffee-shop-name text-3xl sm:text-4xl font-black tracking-tight">
                 Vibes & Grinds
               </h1>
-            </div>
+            </button>
             {!showForm && !editingVisit && (
               <button onClick={() => setShowForm(true)} className="btn-primary hidden md:block">
                 Add Visit

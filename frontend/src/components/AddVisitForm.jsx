@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import PhotoCropper from './PhotoCropper';
 import AutocompleteInput from './AutocompleteInput';
+import PlacesAutocomplete from './PlacesAutocomplete';
 
 const BIG_TEN_TEAMS = {
   'minneapolis': 'Minnesota Golden Gophers',
@@ -63,6 +64,9 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
       opponent: '',
       sport: '',
       coffee_shop_address: '',
+      coffee_shop_place_id: '',
+      coffee_shop_lat: '',
+      coffee_shop_lng: '',
       coffee_order: '',
       vibe_rating: '',
       coffee_rating: '',
@@ -95,6 +99,37 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
+  };
+
+  const extractCityFromAddress = (address = '') => {
+    const parts = address.split(',').map((part) => part.trim()).filter(Boolean);
+    if (parts.length >= 3) {
+      return `${parts[parts.length - 3]}, ${parts[parts.length - 2].split(' ')[0]}`;
+    }
+    return parts[0] || '';
+  };
+
+  const handlePlaceSelected = (place) => {
+    if (!place) return;
+
+    const cityFromAddress = extractCityFromAddress(place.address);
+    const updates = {
+      coffee_shop_name: place.name || formData.coffee_shop_name,
+      coffee_shop_address: place.address || formData.coffee_shop_address,
+      coffee_shop_place_id: place.place_id || '',
+      coffee_shop_lat: typeof place.lat === 'number' ? place.lat : '',
+      coffee_shop_lng: typeof place.lng === 'number' ? place.lng : '',
+    };
+
+    if (cityFromAddress && !formData.city) {
+      updates.city = cityFromAddress;
+      const matchedTeam = BIG_TEN_TEAMS[cityFromAddress.toLowerCase()];
+      if (matchedTeam && !formData.opponent) {
+        updates.opponent = matchedTeam;
+      }
+    }
+
+    setFormData((prev) => ({ ...prev, ...updates }));
   };
 
   const handlePhotoChange = (e) => {
@@ -243,14 +278,12 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
           </div>
 
           <Field label="Coffee shop name" required error={errors.coffee_shop_name}>
-            <AutocompleteInput
-              name="coffee_shop_name"
+            <PlacesAutocomplete
               value={formData.coffee_shop_name}
-              onChange={handleInputChange}
-              suggestions={suggestions.coffeeShops}
-              className="input-field"
-              required
+              onChange={(e) => handleInputChange({ target: { name: 'coffee_shop_name', value: e.target.value } })}
+              onPlaceSelected={handlePlaceSelected}
             />
+            <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">Use Google Places suggestions for best address/location autofill.</p>
           </Field>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -282,6 +315,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
               value={formData.coffee_shop_address}
               onChange={handleInputChange}
               className="input-field"
+              required
             />
           </Field>
         </FormSection>

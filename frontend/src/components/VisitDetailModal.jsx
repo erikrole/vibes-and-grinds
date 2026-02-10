@@ -296,20 +296,22 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
               <ScoreCard label="Total" score={visit.composite_score} isTotal />
             </div>
 
-            <section className="mt-6 p-4 rounded-xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200 dark:border-stone-700">
-              <h3 className="text-sm font-semibold text-stone-700 dark:text-stone-200 uppercase tracking-wide">Shop History Snapshot</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
-                <SnapshotStat label="Visits" value={visitCount} />
-                <SnapshotStat label="Avg vibe" value={avgVibe.toFixed(1)} />
-                <SnapshotStat label="Avg coffee" value={avgCoffee.toFixed(1)} />
-                <SnapshotStat label="Avg total" value={avgTotal.toFixed(1)} />
-              </div>
-              {latestShopVisit && (
-                <p className="mt-3 text-xs text-stone-500 dark:text-stone-400">
-                  Last stop here: {new Date(latestShopVisit.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                </p>
-              )}
-            </section>
+            {visitCount > 1 && (
+              <section className="mt-6 p-4 rounded-xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200 dark:border-stone-700">
+                <h3 className="text-sm font-semibold text-stone-700 dark:text-stone-200 uppercase tracking-wide">Shop History Snapshot</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+                  <SnapshotStat label="Visits" value={visitCount} />
+                  <SnapshotStat label="Avg vibe" value={avgVibe.toFixed(1)} />
+                  <SnapshotStat label="Avg coffee" value={avgCoffee.toFixed(1)} />
+                  <SnapshotStat label="Avg total" value={avgTotal.toFixed(1)} />
+                </div>
+                {latestShopVisit && (
+                  <p className="mt-3 text-xs text-stone-500 dark:text-stone-400">
+                    Last stop here: {new Date(latestShopVisit.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </p>
+                )}
+              </section>
+            )}
 
             <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               {visit.coffee_order && <DetailRow label="Order" value={visit.coffee_order} />}

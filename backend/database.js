@@ -1,4 +1,3 @@
-const { Pool } = require('pg');
 require('dotenv').config();
 
 // For simplicity in v1, using SQLite
