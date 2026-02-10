@@ -1,6 +1,6 @@
 import VisitCard from './VisitCard';
 
-export default function VisitList({ visits, loading, onEdit, onDelete, onViewDetails }) {
+export default function VisitList({ visits, loading, onEdit, onDelete, onViewDetails, hasActiveFilters = false }) {
   if (loading) {
     return (
       <div className="text-center py-12">
@@ -14,8 +14,12 @@ export default function VisitList({ visits, loading, onEdit, onDelete, onViewDet
     return (
       <div className="text-center py-12">
         <div className="text-6xl mb-4">☕</div>
-        <h3 className="text-xl font-semibold text-stone-700 dark:text-stone-300 mb-2">No visits yet</h3>
-        <p className="text-stone-500 dark:text-stone-400">Start tracking your coffee shop adventures!</p>
+        <h3 className="text-xl font-semibold text-stone-700 dark:text-stone-300 mb-2">
+          {hasActiveFilters ? 'No matching visits' : 'No visits yet'}
+        </h3>
+        <p className="text-stone-500 dark:text-stone-400">
+          {hasActiveFilters ? 'Try a different search or remove filters.' : 'Start tracking your coffee shop adventures!'}
+        </p>
       </div>
     );
   }

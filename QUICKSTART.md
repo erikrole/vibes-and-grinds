@@ -18,7 +18,7 @@ npm run dev
 
 Then open: http://localhost:3000
 
-Your Google Maps API key is already configured in `frontend/.env`
+Set your Google Maps API key in `frontend/.env` before running locally.
 
 ---
 
@@ -59,7 +59,7 @@ Your Google Maps API key is already configured in `frontend/.env`
      - Build command: `cd frontend && npm install && npm run build`
      - Build output: `frontend/dist`
    - Add environment variable:
-     - `VITE_GOOGLE_MAPS_API_KEY` = `AIzaSyDPyA8g_KNAnANLi4CnjvAxUs9jPPoz2XY`
+     - `VITE_GOOGLE_MAPS_API_KEY` = `your_new_google_maps_api_key`
    - Click "Save and Deploy"
 
 6. **Bind Database:**
@@ -74,6 +74,8 @@ Your Google Maps API key is already configured in `frontend/.env`
    - Cloudflare handles DNS automatically
 
 **Done!** Visit https://coffee.erikrole.com
+
+> Security tip: Rotate/restrict your key in Google Cloud (HTTP referrers + API restrictions) and do not commit real keys to git.
 
 ---
 
