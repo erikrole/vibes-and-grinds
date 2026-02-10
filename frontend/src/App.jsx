@@ -135,7 +135,7 @@ export default function App() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="text-3xl sm:text-4xl">☕</div>
-              <h1 className="coffee-shop-name text-3xl sm:text-4xl font-black tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+              <h1 className="coffee-shop-name text-3xl sm:text-4xl font-black tracking-tight">
                 Vibes & Grinds
               </h1>
             </div>
@@ -176,123 +176,96 @@ export default function App() {
           </div>
         </section>
 
-        <div className="mb-6">
-          <div className="flex flex-col gap-4 mb-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h2 className="text-3xl font-bold text-stone-900 dark:text-stone-50 mb-2 transition-colors" style={{ fontFamily: "'Playfair Display', serif" }}>Visits</h2>
-                {(searchQuery || sportFilter) && (
-                  <p className="text-stone-600 dark:text-stone-400 text-sm tracking-wide transition-colors">
-                    {sortedVisits.length} of {visits.length} {visits.length === 1 ? 'visit' : 'visits'}
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-col gap-3">
-                {/* Sort Options */}
-                <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                  <span className="text-sm text-stone-500 dark:text-stone-400 hidden sm:block tracking-wide transition-colors">Sort by:</span>
-                  <div className="flex gap-2 flex-wrap">
-                    <button
-                      onClick={() => setSortBy('date')}
-                      className={`px-4 py-1.5 text-sm rounded transition-all ${
-                        sortBy === 'date'
-                          ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
-                          : 'bg-stone-100 dark:bg-stone-700/50 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-600'
-                      }`}
-                    >
-                      Date
-                    </button>
-                    <button
-                      onClick={() => setSortBy('vibe')}
-                      className={`px-4 py-1.5 text-sm rounded transition-all ${
-                        sortBy === 'vibe'
-                          ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
-                          : 'bg-stone-100 dark:bg-stone-700/50 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-600'
-                      }`}
-                    >
-                      Vibe
-                    </button>
-                    <button
-                      onClick={() => setSortBy('coffee')}
-                      className={`px-4 py-1.5 text-sm rounded transition-all ${
-                        sortBy === 'coffee'
-                          ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
-                          : 'bg-stone-100 dark:bg-stone-700/50 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-600'
-                      }`}
-                    >
-                      Coffee
-                    </button>
-                    <button
-                      onClick={() => setSortBy('composite')}
-                      className={`px-4 py-1.5 text-sm rounded transition-all ${
-                        sortBy === 'composite'
-                          ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
-                          : 'bg-stone-100 dark:bg-stone-700/50 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-600'
-                      }`}
-                    >
-                      Total
-                    </button>
-                  </div>
-                </div>
-
-                {/* Sport Filter */}
-                <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                  <span className="text-sm text-stone-500 dark:text-stone-400 hidden sm:block tracking-wide transition-colors">Filter by:</span>
-                  <select
-                    value={sportFilter}
-                    onChange={(e) => setSportFilter(e.target.value)}
-                    className="px-4 py-1.5 text-sm rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 cursor-pointer transition-colors"
-                  >
-                    <option value="">None</option>
-                    <option value="Men's Basketball">Men's Basketball</option>
-                    <option value="Football">Football</option>
-                    <option value="Track & Field">Track & Field</option>
-                    <option value="Cross Country">Cross Country</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Search bar */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search by shop name, city, opponent, or order..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3 pl-11 border border-stone-300 dark:border-stone-600 rounded-md focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-50 transition-colors"
-              />
-              <svg
-                className="absolute left-3.5 top-3.5 h-5 w-5 text-stone-400 dark:text-stone-500 transition-colors"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-3 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
-                >
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
+        <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg p-4 sm:p-5 transition-colors">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+            <div>
+              <h2 className="text-3xl font-bold text-stone-900 dark:text-stone-50 mb-1 transition-colors">Visits</h2>
+              {hasActiveFilters ? (
+                <p className="text-stone-500 dark:text-stone-400 text-sm tracking-wide transition-colors">
+                  Showing {sortedVisits.length} of {visits.length} {visits.length === 1 ? 'visit' : 'visits'}
+                </p>
+              ) : (
+                <p className="text-stone-500 dark:text-stone-400 text-sm tracking-wide transition-colors">
+                  {visits.length} total {visits.length === 1 ? 'visit' : 'visits'}
+                </p>
               )}
             </div>
-          </div>
-        </div>
 
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center lg:justify-end">
+              <div className="inline-flex rounded-md border border-stone-300 dark:border-stone-600 overflow-hidden">
+                {[
+                  { value: 'date', label: 'Date' },
+                  { value: 'vibe', label: 'Vibe' },
+                  { value: 'coffee', label: 'Coffee' },
+                  { value: 'composite', label: 'Total' },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setSortBy(option.value)}
+                    className={`px-3 py-2 text-sm transition-colors border-r last:border-r-0 border-stone-300 dark:border-stone-600 ${
+                      sortBy === option.value
+                        ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
+                        : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
+                    }`}
+                    aria-pressed={sortBy === option.value}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+
+              <select
+                value={sportFilter}
+                onChange={(e) => setSportFilter(e.target.value)}
+                className="px-3 py-2 text-sm rounded-md border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 cursor-pointer transition-colors min-w-[180px]"
+              >
+                <option value="">All sports</option>
+                <option value="Men's Basketball">Men's Basketball</option>
+                <option value="Football">Football</option>
+                <option value="Track & Field">Track & Field</option>
+                <option value="Cross Country">Cross Country</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="relative mt-4">
+            <input
+              type="text"
+              placeholder="Search by shop name, city, opponent, or order..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-3 pl-11 border border-stone-300 dark:border-stone-600 rounded-md focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-100 transition-colors"
+            />
+            <svg
+              className="absolute left-3.5 top-3.5 h-5 w-5 text-stone-400 dark:text-stone-500 transition-colors"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-3 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
+                aria-label="Clear search"
+              >
+                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
+        </section>
         <VisitList
           visits={sortedVisits}
           loading={loading}
