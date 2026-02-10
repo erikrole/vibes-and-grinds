@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import PhotoCropper from './PhotoCropper';
 import AutocompleteInput from './AutocompleteInput';
+import PlacesAutocomplete from './PlacesAutocomplete';
 
-// Big Ten city to team mapping
 const BIG_TEN_TEAMS = {
   'minneapolis': 'Minnesota Golden Gophers',
   'minneapolis, mn': 'Minnesota Golden Gophers',
@@ -39,17 +39,15 @@ const BIG_TEN_TEAMS = {
 export default function AddVisitForm({ onSubmit, onCancel, initialData = null, visits = [] }) {
   const isEditing = Boolean(initialData);
 
-  // Extract unique values for autocomplete suggestions
   const suggestions = useMemo(() => {
     return {
-      coffeeShops: [...new Set(visits.map(v => v.coffee_shop_name).filter(Boolean))].sort(),
-      cities: [...new Set(visits.map(v => v.city).filter(Boolean))].sort(),
-      opponents: [...new Set(visits.map(v => v.opponent).filter(Boolean))].sort(),
-      orders: [...new Set(visits.map(v => v.coffee_order).filter(Boolean))].sort(),
+      coffeeShops: [...new Set(visits.map((v) => v.coffee_shop_name).filter(Boolean))].sort(),
+      cities: [...new Set(visits.map((v) => v.city).filter(Boolean))].sort(),
+      opponents: [...new Set(visits.map((v) => v.opponent).filter(Boolean))].sort(),
+      orders: [...new Set(visits.map((v) => v.coffee_order).filter(Boolean))].sort(),
     };
   }, [visits]);
 
-  // Get today's date in local timezone
   const getLocalDate = () => {
     const today = new Date();
     const year = today.getFullYear();
@@ -66,6 +64,9 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
       opponent: '',
       sport: '',
       coffee_shop_address: '',
+      coffee_shop_place_id: '',
+      coffee_shop_lat: '',
+      coffee_shop_lng: '',
       coffee_order: '',
       vibe_rating: '',
       coffee_rating: '',
@@ -85,7 +86,6 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
     const { name, value } = e.target;
     const updates = { [name]: value };
 
-    // Auto-fill opponent when city changes
     if (name === 'city' && value) {
       const cityLower = value.toLowerCase().trim();
       const matchedTeam = BIG_TEN_TEAMS[cityLower];
@@ -96,30 +96,59 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
 
     setFormData({ ...formData, ...updates });
 
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
   };
 
+  const extractCityFromAddress = (address = '') => {
+    const parts = address.split(',').map((part) => part.trim()).filter(Boolean);
+    if (parts.length >= 3) {
+      return `${parts[parts.length - 3]}, ${parts[parts.length - 2].split(' ')[0]}`;
+    }
+    return parts[0] || '';
+  };
+
+  const handlePlaceSelected = (place) => {
+    if (!place) return;
+
+    const cityFromAddress = extractCityFromAddress(place.address);
+    const updates = {
+      coffee_shop_name: place.name || formData.coffee_shop_name,
+      coffee_shop_address: place.address || formData.coffee_shop_address,
+      coffee_shop_place_id: place.place_id || '',
+      coffee_shop_lat: typeof place.lat === 'number' ? place.lat : '',
+      coffee_shop_lng: typeof place.lng === 'number' ? place.lng : '',
+    };
+
+    if (cityFromAddress && !formData.city) {
+      updates.city = cityFromAddress;
+      const matchedTeam = BIG_TEN_TEAMS[cityFromAddress.toLowerCase()];
+      if (matchedTeam && !formData.opponent) {
+        updates.opponent = matchedTeam;
+      }
+    }
+
+    setFormData((prev) => ({ ...prev, ...updates }));
+  };
+
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      // Show cropper
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImageToCrop(reader.result);
-        setCropping(true);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageToCrop(reader.result);
+      setCropping(true);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleCropComplete = (croppedFile) => {
     setCropping(false);
     setImageToCrop(null);
     setPhotoFile(croppedFile);
-    // Create preview from cropped file
+
     const reader = new FileReader();
     reader.onloadend = () => {
       setPhotoPreview(reader.result);
@@ -170,16 +199,13 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validate()) {
-      return;
-    }
+    if (!validate()) return;
 
     setUploading(true);
 
     try {
       let photoUrl = formData.photo_url;
 
-      // Upload photo if there's a new file
       if (photoFile) {
         const uploadFormData = new FormData();
         uploadFormData.append('file', photoFile);
@@ -215,253 +241,225 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
 
   return (
     <div>
-      <h2 className="coffee-shop-name text-4xl md:text-5xl mb-6 pr-8">
-        {isEditing ? 'Edit Visit' : 'Add Visit'}
-      </h2>
+      <div className="mb-6 pr-8">
+        <h2 className="coffee-shop-name text-4xl md:text-5xl">{isEditing ? 'Edit Visit' : 'Add Visit'}</h2>
+        <p className="text-sm text-stone-500 dark:text-stone-400 mt-2">
+          Capture the shop, the matchup, and how it scored. <span className="text-red-500">*</span> required
+        </p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Date */}
-        <div>
-          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-            Date <span className="text-red-500 dark:text-red-400">*</span>
-          </label>
-          <input
-            type="date"
-            name="date"
-            value={formData.date}
-            onChange={handleInputChange}
-            className="input-field"
-          />
-          {errors.date && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.date}</p>}
-        </div>
-
-        {/* Coffee Shop */}
-        <div>
-          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-            Coffee Shop Name <span className="text-red-500 dark:text-red-400">*</span>
-          </label>
-          <AutocompleteInput
-            name="coffee_shop_name"
-            value={formData.coffee_shop_name}
-            onChange={handleInputChange}
-            suggestions={suggestions.coffeeShops}
-            className="input-field"
-            required
-          />
-          {errors.coffee_shop_name && (
-            <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.coffee_shop_name}</p>
-          )}
-        </div>
-
-        {/* City */}
-        <div>
-          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-            City
-          </label>
-          <AutocompleteInput
-            name="city"
-            value={formData.city}
-            onChange={handleInputChange}
-            suggestions={suggestions.cities}
-            className="input-field"
-          />
-        </div>
-
-        {/* Opponent */}
-        <div>
-          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-            Opponent
-          </label>
-          <AutocompleteInput
-            name="opponent"
-            value={formData.opponent}
-            onChange={handleInputChange}
-            suggestions={suggestions.opponents}
-            className="input-field"
-          />
-        </div>
-
-        {/* Sport */}
-        <div>
-          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-            Sport
-          </label>
-          <select
-            name="sport"
-            value={formData.sport}
-            onChange={handleInputChange}
-            className="input-field"
-          >
-            <option value="">Select a sport</option>
-            <option value="Men's Basketball">Men's Basketball</option>
-            <option value="Football">Football</option>
-            <option value="Track & Field">Track & Field</option>
-            <option value="Cross Country">Cross Country</option>
-          </select>
-        </div>
-
-        {/* Address */}
-        <div>
-          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-            Address
-          </label>
-          <input
-            type="text"
-            name="coffee_shop_address"
-            value={formData.coffee_shop_address}
-            onChange={handleInputChange}
-            className="input-field"
-          />
-        </div>
-
-        {/* Coffee Order */}
-        <div>
-          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-            Coffee Order
-          </label>
-          <AutocompleteInput
-            name="coffee_order"
-            value={formData.coffee_order}
-            onChange={handleInputChange}
-            suggestions={suggestions.orders}
-            className="input-field"
-            placeholder="e.g. Iced Salted Caramel Latte"
-          />
-        </div>
-
-        {/* Ratings */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-              Vibe Rating (0-10) <span className="text-red-500 dark:text-red-400">*</span>
-            </label>
-            <input
-              type="number"
-              name="vibe_rating"
-              value={formData.vibe_rating}
-              onChange={handleInputChange}
-              step="0.1"
-              min="0"
-              max="10"
-              className="input-field"
-            />
-            {errors.vibe_rating && (
-              <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.vibe_rating}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-              Coffee Rating (0-10) <span className="text-red-500 dark:text-red-400">*</span>
-            </label>
-            <input
-              type="number"
-              name="coffee_rating"
-              value={formData.coffee_rating}
-              onChange={handleInputChange}
-              step="0.1"
-              min="0"
-              max="10"
-              className="input-field"
-            />
-            {errors.coffee_rating && (
-              <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.coffee_rating}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Photo */}
-        <div>
-          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-            Photo
-          </label>
-          {photoPreview ? (
-            <div className="relative">
-              <img
-                src={photoPreview}
-                alt="Preview"
-                className="w-full h-48 object-cover rounded-lg border border-stone-300 dark:border-stone-600"
-              />
-              <div className="absolute top-2 right-2 flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleRecropPhoto}
-                  className="bg-stone-600 text-white rounded-full p-2 hover:bg-stone-700 transition-colors shadow-lg"
-                  title="Recrop photo"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  onClick={removePhoto}
-                  className="bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
-                  title="Remove photo"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          ) : (
-            <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-stone-300 dark:border-stone-600 border-dashed rounded-lg cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <svg className="w-10 h-10 mb-3 text-stone-400 dark:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                <p className="mb-2 text-sm text-stone-500 dark:text-stone-400">
-                  <span className="font-semibold">Click to upload</span> or drag and drop
-                </p>
-                <p className="text-xs text-stone-400 dark:text-stone-500">PNG, JPG, HEIC (MAX. 10MB)</p>
-              </div>
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        <FormSection title="Visit basics">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Date" required error={errors.date}>
               <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoChange}
-                className="hidden"
+                type="date"
+                name="date"
+                value={formData.date}
+                onChange={handleInputChange}
+                className="input-field"
               />
-            </label>
-          )}
-          {errors.photo && (
-            <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.photo}</p>
-          )}
-        </div>
+            </Field>
 
-        {/* Notes */}
-        <div>
-          <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-            Notes
-          </label>
-          <textarea
-            name="notes"
-            value={formData.notes}
-            onChange={handleInputChange}
-            rows="3"
-            className="input-field resize-none"
-          />
-        </div>
+            <Field label="Sport">
+              <select
+                name="sport"
+                value={formData.sport}
+                onChange={handleInputChange}
+                className="input-field"
+              >
+                <option value="">Select a sport</option>
+                <option value="Men's Basketball">Men's Basketball</option>
+                <option value="Football">Football</option>
+                <option value="Track & Field">Track & Field</option>
+                <option value="Cross Country">Cross Country</option>
+              </select>
+            </Field>
+          </div>
 
-        {/* Buttons */}
-        <div className="flex gap-3 pt-4">
-          <button type="submit" className="btn-primary flex-1" disabled={uploading}>
-            {uploading ? 'Uploading...' : isEditing ? 'Save Changes' : 'Add Visit'}
-          </button>
-          <button type="button" onClick={onCancel} className="btn-secondary" disabled={uploading}>
-            Cancel
-          </button>
+          <Field label="Coffee shop name" required error={errors.coffee_shop_name}>
+            <PlacesAutocomplete
+              value={formData.coffee_shop_name}
+              onChange={(e) => handleInputChange({ target: { name: 'coffee_shop_name', value: e.target.value } })}
+              onPlaceSelected={handlePlaceSelected}
+            />
+            <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">Address/place details autofill when Google Places is available.</p>
+          </Field>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="City">
+              <AutocompleteInput
+                name="city"
+                value={formData.city}
+                onChange={handleInputChange}
+                suggestions={suggestions.cities}
+                className="input-field"
+              />
+            </Field>
+
+            <Field label="Opponent">
+              <AutocompleteInput
+                name="opponent"
+                value={formData.opponent}
+                onChange={handleInputChange}
+                suggestions={suggestions.opponents}
+                className="input-field"
+              />
+            </Field>
+          </div>
+
+          <Field label="Address">
+            <input
+              type="text"
+              name="coffee_shop_address"
+              value={formData.coffee_shop_address}
+              onChange={handleInputChange}
+              className="input-field"
+            />
+          </Field>
+        </FormSection>
+
+        <FormSection title="Order + ratings">
+          <Field label="Coffee order">
+            <AutocompleteInput
+              name="coffee_order"
+              value={formData.coffee_order}
+              onChange={handleInputChange}
+              suggestions={suggestions.orders}
+              className="input-field"
+              placeholder="e.g. Iced Salted Caramel Latte"
+            />
+          </Field>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Vibe rating (0-10)" required error={errors.vibe_rating}>
+              <input
+                type="number"
+                name="vibe_rating"
+                value={formData.vibe_rating}
+                onChange={handleInputChange}
+                step="0.1"
+                min="0"
+                max="10"
+                className="input-field rating-number"
+                inputMode="decimal"
+                autoComplete="off"
+              />
+            </Field>
+
+            <Field label="Coffee rating (0-10)" required error={errors.coffee_rating}>
+              <input
+                type="number"
+                name="coffee_rating"
+                value={formData.coffee_rating}
+                onChange={handleInputChange}
+                step="0.1"
+                min="0"
+                max="10"
+                className="input-field rating-number"
+                inputMode="decimal"
+                autoComplete="off"
+              />
+            </Field>
+          </div>
+        </FormSection>
+
+        <FormSection title="Photo + notes">
+          <Field label="Photo" error={errors.photo}>
+            {photoPreview ? (
+              <div className="relative">
+                <img
+                  src={photoPreview}
+                  alt="Preview"
+                  className="w-full h-52 object-cover rounded-lg border border-stone-300 dark:border-stone-600"
+                />
+                <div className="absolute top-2 right-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleRecropPhoto}
+                    className="bg-stone-600 text-white rounded-full p-2 hover:bg-stone-700 transition-colors shadow-lg"
+                    title="Recrop photo"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={removePhoto}
+                    className="bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
+                    title="Remove photo"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-full h-52 border-2 border-stone-300 dark:border-stone-600 border-dashed rounded-lg cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <svg className="w-10 h-10 mb-3 text-stone-400 dark:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <p className="mb-2 text-sm text-stone-500 dark:text-stone-400">
+                    <span className="font-semibold">Click to upload</span> or drag and drop
+                  </p>
+                  <p className="text-xs text-stone-400 dark:text-stone-500">PNG, JPG, HEIC (MAX. 10MB)</p>
+                </div>
+                <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+              </label>
+            )}
+          </Field>
+
+          <Field label="Notes">
+            <textarea
+              name="notes"
+              value={formData.notes}
+              onChange={handleInputChange}
+              rows="4"
+              className="input-field resize-none"
+              placeholder="What stood out about this stop?"
+            />
+          </Field>
+        </FormSection>
+
+        <div className="sticky bottom-0 z-10 bg-white/95 dark:bg-stone-800/95 backdrop-blur border-t border-stone-200 dark:border-stone-700 pt-4 mt-2">
+          <div className="flex gap-3">
+            <button type="submit" className="btn-primary flex-1" disabled={uploading}>
+              {uploading ? 'Uploading...' : isEditing ? 'Save Changes' : 'Add Visit'}
+            </button>
+            <button type="button" onClick={onCancel} className="btn-secondary" disabled={uploading}>
+              Cancel
+            </button>
+          </div>
         </div>
       </form>
 
-      {/* Photo Cropper Modal */}
       {cropping && imageToCrop && (
-        <PhotoCropper
-          imageUrl={imageToCrop}
-          onComplete={handleCropComplete}
-          onCancel={handleCropCancel}
-        />
+        <PhotoCropper imageUrl={imageToCrop} onComplete={handleCropComplete} onCancel={handleCropCancel} />
       )}
+    </div>
+  );
+}
+
+function FormSection({ title, children }) {
+  return (
+    <section className="rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50/70 dark:bg-stone-900/30 p-4 sm:p-5 space-y-4">
+      <h3 className="text-sm uppercase tracking-wide font-semibold text-stone-600 dark:text-stone-300">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+function Field({ label, required = false, error, children }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
+        {label} {required && <span className="text-red-500 dark:text-red-400">*</span>}
+      </label>
+      {children}
+      {error && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{error}</p>}
     </div>
   );
 }

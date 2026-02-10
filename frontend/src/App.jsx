@@ -4,6 +4,7 @@ import VisitList from './components/VisitList';
 import VisitDetailModal from './components/VisitDetailModal';
 import DarkModeProvider from './contexts/DarkModeContext';
 import DarkModeToggle from './components/DarkModeToggle';
+import FormModal from './components/FormModal';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
 
 export default function App() {
@@ -80,6 +81,10 @@ export default function App() {
     setEditingVisit(null);
   };
 
+  const handleHeaderHomeClick = () => {
+    window.location.assign('/');
+  };
+
   // Filter by search query and sport
   const filteredVisits = visits.filter((visit) => {
     // Sport filter
@@ -114,6 +119,17 @@ export default function App() {
     }
   });
 
+  const hasActiveFilters = Boolean(searchQuery || sportFilter);
+  const avgVibe = visits.length
+    ? (visits.reduce((sum, visit) => sum + visit.vibe_rating, 0) / visits.length).toFixed(1)
+    : '0.0';
+  const avgCoffee = visits.length
+    ? (visits.reduce((sum, visit) => sum + visit.coffee_rating, 0) / visits.length).toFixed(1)
+    : '0.0';
+  const avgComposite = visits.length
+    ? (visits.reduce((sum, visit) => sum + visit.composite_score, 0) / visits.length).toFixed(1)
+    : '0.0';
+
   return (
     <DarkModeProvider>
       <div className="min-h-screen bg-stone-50 dark:bg-stone-900 transition-colors duration-200">
@@ -121,12 +137,17 @@ export default function App() {
       <header className="bg-white dark:bg-stone-800 border-b border-stone-200 dark:border-stone-700 transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 sm:gap-4">
+            <button
+              onClick={handleHeaderHomeClick}
+              className="flex items-center gap-3 sm:gap-4 text-left hover:opacity-80 transition-opacity"
+              aria-label="Go to homepage"
+              title="Go home"
+            >
               <div className="text-3xl sm:text-4xl">☕</div>
-              <h1 className="coffee-shop-name text-3xl sm:text-4xl font-black tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+              <h1 className="coffee-shop-name text-3xl sm:text-4xl font-black tracking-tight">
                 Vibes & Grinds
               </h1>
-            </div>
+            </button>
             {!showForm && !editingVisit && (
               <button onClick={() => setShowForm(true)} className="btn-primary hidden md:block">
                 Add Visit
@@ -145,129 +166,122 @@ export default function App() {
         )}
 
 
-        <div className="mb-6">
-          <div className="flex flex-col gap-4 mb-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h2 className="text-3xl font-bold text-stone-900 dark:text-stone-50 mb-2 transition-colors" style={{ fontFamily: "'Playfair Display', serif" }}>Visits</h2>
-                {(searchQuery || sportFilter) && (
-                  <p className="text-stone-600 dark:text-stone-400 text-sm tracking-wide transition-colors">
-                    {sortedVisits.length} of {visits.length} {visits.length === 1 ? 'visit' : 'visits'}
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-col gap-3">
-                {/* Sort Options */}
-                <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                  <span className="text-sm text-stone-500 dark:text-stone-400 hidden sm:block tracking-wide transition-colors">Sort by:</span>
-                  <div className="flex gap-2 flex-wrap">
-                    <button
-                      onClick={() => setSortBy('date')}
-                      className={`px-4 py-1.5 text-sm rounded transition-all ${
-                        sortBy === 'date'
-                          ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
-                          : 'bg-stone-100 dark:bg-stone-700/50 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-600'
-                      }`}
-                    >
-                      Date
-                    </button>
-                    <button
-                      onClick={() => setSortBy('vibe')}
-                      className={`px-4 py-1.5 text-sm rounded transition-all ${
-                        sortBy === 'vibe'
-                          ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
-                          : 'bg-stone-100 dark:bg-stone-700/50 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-600'
-                      }`}
-                    >
-                      Vibe
-                    </button>
-                    <button
-                      onClick={() => setSortBy('coffee')}
-                      className={`px-4 py-1.5 text-sm rounded transition-all ${
-                        sortBy === 'coffee'
-                          ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
-                          : 'bg-stone-100 dark:bg-stone-700/50 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-600'
-                      }`}
-                    >
-                      Coffee
-                    </button>
-                    <button
-                      onClick={() => setSortBy('composite')}
-                      className={`px-4 py-1.5 text-sm rounded transition-all ${
-                        sortBy === 'composite'
-                          ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
-                          : 'bg-stone-100 dark:bg-stone-700/50 text-stone-700 dark:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-600'
-                      }`}
-                    >
-                      Total
-                    </button>
-                  </div>
-                </div>
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg p-4 transition-colors">
+            <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">Total Visits</p>
+            <p className="text-2xl font-bold text-stone-900 dark:text-stone-50 mt-1">{visits.length}</p>
+          </div>
+          <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg p-4 transition-colors">
+            <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">Avg Vibe</p>
+            <p className="text-2xl font-bold text-stone-900 dark:text-stone-50 mt-1">{avgVibe}</p>
+          </div>
+          <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg p-4 transition-colors">
+            <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">Avg Coffee</p>
+            <p className="text-2xl font-bold text-stone-900 dark:text-stone-50 mt-1">{avgCoffee}</p>
+          </div>
+          <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg p-4 transition-colors">
+            <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">Avg Total</p>
+            <p className="text-2xl font-bold text-stone-900 dark:text-stone-50 mt-1">{avgComposite} / 20</p>
+          </div>
+        </section>
 
-                {/* Sport Filter */}
-                <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                  <span className="text-sm text-stone-500 dark:text-stone-400 hidden sm:block tracking-wide transition-colors">Filter by:</span>
-                  <select
-                    value={sportFilter}
-                    onChange={(e) => setSportFilter(e.target.value)}
-                    className="px-4 py-1.5 text-sm rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 cursor-pointer transition-colors"
-                  >
-                    <option value="">None</option>
-                    <option value="Men's Basketball">Men's Basketball</option>
-                    <option value="Football">Football</option>
-                    <option value="Track & Field">Track & Field</option>
-                    <option value="Cross Country">Cross Country</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Search bar */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search by shop name, city, opponent, or order..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3 pl-11 border border-stone-300 dark:border-stone-600 rounded-md focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-50 transition-colors"
-              />
-              <svg
-                className="absolute left-3.5 top-3.5 h-5 w-5 text-stone-400 dark:text-stone-500 transition-colors"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-3 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
-                >
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
+        <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg p-4 sm:p-5 transition-colors">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+            <div>
+              <h2 className="text-3xl font-bold text-stone-900 dark:text-stone-50 mb-1 transition-colors">Visits</h2>
+              {hasActiveFilters ? (
+                <p className="text-stone-500 dark:text-stone-400 text-sm tracking-wide transition-colors">
+                  Showing {sortedVisits.length} of {visits.length} {visits.length === 1 ? 'visit' : 'visits'}
+                </p>
+              ) : (
+                <p className="text-stone-500 dark:text-stone-400 text-sm tracking-wide transition-colors">
+                  {visits.length} total {visits.length === 1 ? 'visit' : 'visits'}
+                </p>
               )}
             </div>
-          </div>
-        </div>
 
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center lg:justify-end">
+              <div className="inline-flex rounded-md border border-stone-300 dark:border-stone-600 overflow-hidden">
+                {[
+                  { value: 'date', label: 'Date' },
+                  { value: 'vibe', label: 'Vibe' },
+                  { value: 'coffee', label: 'Coffee' },
+                  { value: 'composite', label: 'Total' },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setSortBy(option.value)}
+                    className={`px-3 py-2 text-sm transition-colors border-r last:border-r-0 border-stone-300 dark:border-stone-600 ${
+                      sortBy === option.value
+                        ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
+                        : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
+                    }`}
+                    aria-pressed={sortBy === option.value}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+
+              <select
+                value={sportFilter}
+                onChange={(e) => setSportFilter(e.target.value)}
+                className="px-3 py-2 text-sm rounded-md border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 cursor-pointer transition-colors min-w-[180px]"
+              >
+                <option value="">All sports</option>
+                <option value="Men's Basketball">Men's Basketball</option>
+                <option value="Football">Football</option>
+                <option value="Track & Field">Track & Field</option>
+                <option value="Cross Country">Cross Country</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="relative mt-4">
+            <input
+              type="text"
+              placeholder="Search by shop name, city, opponent, or order..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-3 pl-11 border border-stone-300 dark:border-stone-600 rounded-md focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-100 transition-colors"
+            />
+            <svg
+              className="absolute left-3.5 top-3.5 h-5 w-5 text-stone-400 dark:text-stone-500 transition-colors"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-3 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
+                aria-label="Clear search"
+              >
+                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
+        </section>
         <VisitList
           visits={sortedVisits}
           loading={loading}
           onEdit={handleEditVisit}
           onDelete={handleDeleteVisit}
           onViewDetails={setViewingVisit}
+          hasActiveFilters={hasActiveFilters}
         />
       </main>
 
@@ -306,53 +320,21 @@ export default function App() {
 
       {/* Add Visit Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-sm transition-opacity" onClick={handleCancelForm} />
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white dark:bg-stone-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transition-colors">
-              <button
-                onClick={handleCancelForm}
-                className="absolute top-4 right-4 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors z-10"
-                aria-label="Close"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              <div className="p-6 sm:p-8">
-                <AddVisitForm onSubmit={handleAddVisit} onCancel={handleCancelForm} visits={visits} />
-              </div>
-            </div>
-          </div>
-        </div>
+        <FormModal title="Add Visit" onClose={handleCancelForm}>
+          <AddVisitForm onSubmit={handleAddVisit} onCancel={handleCancelForm} visits={visits} />
+        </FormModal>
       )}
 
       {/* Edit Visit Modal */}
       {editingVisit && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-sm transition-opacity" onClick={handleCancelForm} />
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white dark:bg-stone-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transition-colors">
-              <button
-                onClick={handleCancelForm}
-                className="absolute top-4 right-4 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors z-10"
-                aria-label="Close"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              <div className="p-6 sm:p-8">
-                <AddVisitForm
-                  initialData={editingVisit}
-                  onSubmit={handleUpdateVisit}
-                  onCancel={handleCancelForm}
-                  visits={visits}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        <FormModal title="Edit Visit" onClose={handleCancelForm}>
+          <AddVisitForm
+            initialData={editingVisit}
+            onSubmit={handleUpdateVisit}
+            onCancel={handleCancelForm}
+            visits={visits}
+          />
+        </FormModal>
       )}
 
       {/* Dark Mode Toggle */}

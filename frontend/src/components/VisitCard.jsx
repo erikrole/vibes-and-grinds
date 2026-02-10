@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import RatingBadge from './RatingBadge';
 import CompositeBadge from './CompositeBadge';
 
 export default function VisitCard({ visit, onEdit, onDelete, onViewDetails }) {
   const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
 
   // Format date - parse manually to avoid timezone issues
   const [year, month, day] = visit.date.split('-');
@@ -13,6 +14,30 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails }) {
     month: 'short',
     day: 'numeric',
   });
+
+  useEffect(() => {
+    if (!showMenu) return;
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setShowMenu(false);
+      }
+    };
+
+    const onPointerDown = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('mousedown', onPointerDown);
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('mousedown', onPointerDown);
+    };
+  }, [showMenu]);
 
   const handleDelete = () => {
     if (window.confirm(`Are you sure you want to delete the visit to ${visit.coffee_shop_name}?`)) {
@@ -42,39 +67,41 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails }) {
                 </p>
               )}
             </div>
-            <div className="relative ml-4 flex-shrink-0">
+            <div className="relative ml-4 flex-shrink-0" ref={menuRef}>
               <button
-                onClick={() => setShowMenu(!showMenu)}
+                onClick={() => setShowMenu((prev) => !prev)}
                 className="text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 p-1 transition-colors"
+                aria-label={`Open actions for ${visit.coffee_shop_name}`}
+                aria-expanded={showMenu}
+                aria-haspopup="menu"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                 </svg>
               </button>
               {showMenu && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setShowMenu(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-md shadow-lg z-20 border border-stone-200 dark:border-stone-700 transition-colors">
-                    <button
-                      onClick={() => {
-                        onEdit(visit);
-                        setShowMenu(false);
-                      }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 rounded-t-md transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={handleDelete}
-                      className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-b-md transition-colors"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </>
+                <div
+                  className="absolute right-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-md shadow-lg z-20 border border-stone-200 dark:border-stone-700 transition-colors"
+                  role="menu"
+                >
+                  <button
+                    onClick={() => {
+                      onEdit(visit);
+                      setShowMenu(false);
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 rounded-t-md transition-colors"
+                    role="menuitem"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-b-md transition-colors"
+                    role="menuitem"
+                  >
+                    Delete
+                  </button>
+                </div>
               )}
             </div>
           </div>

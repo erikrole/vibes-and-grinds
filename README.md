@@ -147,12 +147,15 @@ vibes-and-grinds/
 └── README.md
 ```
 
+See also **[PRODUCT_PLAN.md](./PRODUCT_PLAN.md)** for v1/v2 scope and roadmap.
+
 ## Future Features (v2)
 
 - **Interactive Map** - View all coffee shop locations on a map
 - **Dashboard Stats** - Average ratings, favorite shops, total visits
 - **Year-End Recap** - Fun visualizations and statistics
 - **Filtering & Sorting** - Find visits by date, rating, or shop
+- **Trip Snapshot** - See total visits and average ratings at a glance
 - **Import from Google Sheets** - Migrate existing data
 - **Export Reports** - Generate PDFs or spreadsheets
 
