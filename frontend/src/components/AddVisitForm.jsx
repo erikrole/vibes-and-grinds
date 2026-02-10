@@ -248,7 +248,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <FormSection title="Visit basics">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Date" required error={errors.date}>
@@ -283,7 +283,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
               onChange={(e) => handleInputChange({ target: { name: 'coffee_shop_name', value: e.target.value } })}
               onPlaceSelected={handlePlaceSelected}
             />
-            <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">Use Google Places suggestions for best address/location autofill.</p>
+            <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">Address/place details autofill when Google Places is available.</p>
           </Field>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
