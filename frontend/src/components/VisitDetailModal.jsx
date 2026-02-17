@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import PhotoCropper from './PhotoCropper';
 
-export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onEdit, onDelete }) {
+export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onEdit, onDelete, onDuplicate }) {
   const [showPhotoMenu, setShowPhotoMenu] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -144,6 +144,13 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
     month: 'short',
     day: 'numeric',
   });
+
+  const hasCoordinates = Number.isFinite(Number(visit.coffee_shop_lat)) && Number.isFinite(Number(visit.coffee_shop_lng));
+  const googleMapsUrl = hasCoordinates
+    ? `https://www.google.com/maps/search/?api=1&query=${visit.coffee_shop_lat},${visit.coffee_shop_lng}`
+    : visit.coffee_shop_address
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(visit.coffee_shop_address)}`
+      : '';
 
   return (
     <div
@@ -322,9 +329,15 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
             <div className="flex gap-3 mt-8">
               <button
                 onClick={handleEdit}
-                className="flex-1 px-6 py-3 bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-stone-50 rounded-lg hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors font-medium"
+                className="flex-1 min-w-[120px] px-6 py-3 bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-stone-50 rounded-lg hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors font-medium"
               >
                 Edit Visit
+              </button>
+              <button
+                onClick={() => onDuplicate?.(visit)}
+                className="px-6 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/35 transition-colors font-medium"
+              >
+                Duplicate
               </button>
               <button
                 onClick={handleDelete}

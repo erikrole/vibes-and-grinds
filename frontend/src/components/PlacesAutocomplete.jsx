@@ -5,9 +5,19 @@ const MIN_QUERY_LENGTH = 2;
 async function parseApiError(response, fallbackMessage) {
   try {
     const data = await response.json();
-    return data?.error || data?.details || fallbackMessage;
+    return {
+      message: data?.error || data?.details || fallbackMessage,
+      details: data?.details || '',
+      googleStatus: data?.googleStatus || '',
+      upstreamStatus: data?.upstreamStatus || '',
+    };
   } catch {
-    return fallbackMessage;
+    return {
+      message: fallbackMessage,
+      details: '',
+      googleStatus: '',
+      upstreamStatus: '',
+    };
   }
 }
 
@@ -16,6 +26,7 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, d
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [debugInfo, setDebugInfo] = useState(null);
   const containerRef = useRef(null);
   const requestIdRef = useRef(0);
 
@@ -39,6 +50,7 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, d
       setSuggestions([]);
       setIsLoading(false);
       setStatusMessage('');
+      setDebugInfo(null);
       return;
     }
 
@@ -48,6 +60,7 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, d
     const timer = setTimeout(async () => {
       setIsLoading(true);
       setStatusMessage('');
+      setDebugInfo(null);
 
       try {
         const response = await fetch(`/api/places-autocomplete?input=${encodeURIComponent(query)}`, {
@@ -55,8 +68,11 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, d
         });
 
         if (!response.ok) {
-          const message = await parseApiError(response, 'Google Places is unavailable right now. You can still type manually.');
-          throw new Error(message);
+          const parsedError = await parseApiError(
+            response,
+            'Google Places is unavailable right now. You can still type manually.'
+          );
+          throw parsedError;
         }
 
         const data = await response.json();
@@ -74,6 +90,11 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, d
 
         setSuggestions([]);
         setStatusMessage(error.message || 'Google Places unavailable right now. You can still type manually.');
+        setDebugInfo({
+          details: error.details || '',
+          googleStatus: error.googleStatus || '',
+          upstreamStatus: error.upstreamStatus || '',
+        });
       } finally {
         if (requestIdRef.current === currentRequestId) {
           setIsLoading(false);
@@ -100,6 +121,7 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, d
   const handleSelectSuggestion = async (suggestion) => {
     setShowSuggestions(false);
     setStatusMessage('');
+    setDebugInfo(null);
 
     if (!suggestion?.placeId) {
       return;
@@ -108,14 +130,19 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, d
     try {
       const response = await fetch(`/api/places-details?placeId=${encodeURIComponent(suggestion.placeId)}`);
       if (!response.ok) {
-        const message = await parseApiError(response, 'Could not load full place details. You can still save manually.');
-        throw new Error(message);
+        const parsedError = await parseApiError(response, 'Could not load full place details. You can still save manually.');
+        throw parsedError;
       }
 
       const data = await response.json();
       onPlaceSelected?.(data.place);
     } catch (error) {
       setStatusMessage(error.message || 'Could not load full place details. You can still save manually.');
+      setDebugInfo({
+        details: error.details || '',
+        googleStatus: error.googleStatus || '',
+        upstreamStatus: error.upstreamStatus || '',
+      });
     }
   };
 
@@ -152,6 +179,17 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, d
       )}
 
       {helperText && <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">{helperText}</p>}
+
+      {import.meta.env.DEV && debugInfo && (debugInfo.googleStatus || debugInfo.details || debugInfo.upstreamStatus) && (
+        <details className="mt-2 rounded-md border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-900/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+          <summary className="cursor-pointer font-medium">Why autocomplete failed?</summary>
+          <div className="mt-2 space-y-1">
+            {debugInfo.googleStatus && <p><span className="font-semibold">googleStatus:</span> {debugInfo.googleStatus}</p>}
+            {debugInfo.upstreamStatus && <p><span className="font-semibold">upstreamStatus:</span> {debugInfo.upstreamStatus}</p>}
+            {debugInfo.details && <p><span className="font-semibold">details:</span> {debugInfo.details}</p>}
+          </div>
+        </details>
+      )}
     </div>
   );
 }
