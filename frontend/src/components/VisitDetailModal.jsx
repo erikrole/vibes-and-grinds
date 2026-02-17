@@ -323,16 +323,10 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
             <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               {visit.coffee_order && <DetailRow label="Order" value={visit.coffee_order} />}
               {visit.coffee_shop_address && <DetailRow label="Address" value={visit.coffee_shop_address} />}
-              {googleMapsUrl && (
-                <DetailRow
-                  label="Map"
-                  value={<a href={googleMapsUrl} target="_blank" rel="noreferrer" className="text-stone-700 dark:text-stone-300 underline underline-offset-2">Open in Google Maps ↗</a>}
-                />
-              )}
               {!visit.photo_url && visit.notes && <DetailRow label="Notes" value={visit.notes} />}
             </section>
 
-            <div className="flex flex-wrap gap-3 mt-8">
+            <div className="flex gap-3 mt-8">
               <button
                 onClick={handleEdit}
                 className="flex-1 min-w-[120px] px-6 py-3 bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-stone-50 rounded-lg hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors font-medium"

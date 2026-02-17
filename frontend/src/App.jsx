@@ -364,7 +364,6 @@ export default function App() {
                   <option value="Cross Country">Cross Country</option>
                 </select>
               </div>
-            </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
               {QUICK_FILTERS.map((filter) => {
