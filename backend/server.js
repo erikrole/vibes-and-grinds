@@ -57,6 +57,9 @@ app.post('/api/visits', async (req, res) => {
     const {
       date,
       coffee_shop_name,
+      city,
+      opponent,
+      sport,
       coffee_shop_address,
       coffee_shop_place_id,
       coffee_shop_lat,
@@ -64,7 +67,8 @@ app.post('/api/visits', async (req, res) => {
       coffee_order,
       vibe_rating,
       coffee_rating,
-      notes
+      notes,
+      photo_url
     } = req.body;
 
     // Validation
@@ -78,12 +82,15 @@ app.post('/api/visits', async (req, res) => {
 
     const result = await db.run(
       `INSERT INTO coffee_visits (
-        date, coffee_shop_name, coffee_shop_address, coffee_shop_place_id,
-        coffee_shop_lat, coffee_shop_lng, coffee_order, vibe_rating, coffee_rating, notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        date, coffee_shop_name, city, opponent, sport, coffee_shop_address, coffee_shop_place_id,
+        coffee_shop_lat, coffee_shop_lng, coffee_order, vibe_rating, coffee_rating, notes, photo_url
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         date,
         coffee_shop_name,
+        city,
+        opponent,
+        sport,
         coffee_shop_address,
         coffee_shop_place_id,
         coffee_shop_lat,
@@ -91,7 +98,8 @@ app.post('/api/visits', async (req, res) => {
         coffee_order,
         vibe_rating,
         coffee_rating,
-        notes
+        notes,
+        photo_url
       ]
     );
 
@@ -113,6 +121,9 @@ app.put('/api/visits/:id', async (req, res) => {
     const {
       date,
       coffee_shop_name,
+      city,
+      opponent,
+      sport,
       coffee_shop_address,
       coffee_shop_place_id,
       coffee_shop_lat,
@@ -120,7 +131,8 @@ app.put('/api/visits/:id', async (req, res) => {
       coffee_order,
       vibe_rating,
       coffee_rating,
-      notes
+      notes,
+      photo_url
     } = req.body;
 
     // Validation
@@ -130,13 +142,16 @@ app.put('/api/visits/:id', async (req, res) => {
 
     await db.run(
       `UPDATE coffee_visits SET
-        date = ?, coffee_shop_name = ?, coffee_shop_address = ?,
+        date = ?, coffee_shop_name = ?, city = ?, opponent = ?, sport = ?, coffee_shop_address = ?,
         coffee_shop_place_id = ?, coffee_shop_lat = ?, coffee_shop_lng = ?,
-        coffee_order = ?, vibe_rating = ?, coffee_rating = ?, notes = ?
+        coffee_order = ?, vibe_rating = ?, coffee_rating = ?, notes = ?, photo_url = ?
       WHERE id = ?`,
       [
         date,
         coffee_shop_name,
+        city,
+        opponent,
+        sport,
         coffee_shop_address,
         coffee_shop_place_id,
         coffee_shop_lat,
@@ -145,6 +160,7 @@ app.put('/api/visits/:id', async (req, res) => {
         vibe_rating,
         coffee_rating,
         notes,
+        photo_url,
         req.params.id
       ]
     );
@@ -206,6 +222,148 @@ app.get('/api/stats', async (req, res) => {
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+
+function buildPlacesErrorResponse(prefix, upstreamStatus, payloadText) {
+  let parsed;
+
+  try {
+    parsed = JSON.parse(payloadText || '{}');
+  } catch {
+    parsed = null;
+  }
+
+  const googleStatus = parsed?.error?.status || '';
+  const googleMessage = parsed?.error?.message || '';
+
+  if (googleStatus === 'PERMISSION_DENIED' || googleStatus === 'REQUEST_DENIED') {
+    return {
+      error: `${prefix}: Google denied the request. Confirm billing is active and Places API (New) is enabled for this project.`,
+      details: googleMessage || 'Permission denied by Google Places.',
+      googleStatus,
+      upstreamStatus,
+    };
+  }
+
+  if (googleStatus === 'RESOURCE_EXHAUSTED') {
+    return {
+      error: `${prefix}: Google quota is exhausted.`,
+      details: googleMessage || 'Quota exceeded for Google Places.',
+      googleStatus,
+      upstreamStatus,
+    };
+  }
+
+  return {
+    error: `${prefix}: Google Places is unavailable right now.`,
+    details: googleMessage || payloadText || 'Unknown Google Places error.',
+    googleStatus,
+    upstreamStatus,
+  };
+}
+
+app.get('/api/places-autocomplete', async (req, res) => {
+  const input = `${req.query.input || ''}`.trim();
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
+
+  if (!apiKey) {
+    return res.status(503).json({ error: 'Google Places is not configured on the server.' });
+  }
+
+  if (input.length < 2) {
+    return res.json({ suggestions: [] });
+  }
+
+  try {
+    const response = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+      },
+      body: JSON.stringify({
+        input,
+        includedPrimaryTypes: ['cafe', 'coffee_shop', 'restaurant'],
+      }),
+    });
+
+    if (!response.ok) {
+      const details = await response.text();
+      const errorPayload = buildPlacesErrorResponse('Autocomplete failed', response.status, details);
+      console.error('Places autocomplete failed:', errorPayload);
+      return res.status(502).json(errorPayload);
+    }
+
+    const data = await response.json();
+    const suggestions = (data.suggestions || [])
+      .map((item) => {
+        const prediction = item.placePrediction;
+        if (!prediction?.placeId) return null;
+
+        return {
+          placeId: prediction.placeId,
+          mainText: prediction.structuredFormat?.mainText?.text || prediction.text?.text || '',
+          secondaryText: prediction.structuredFormat?.secondaryText?.text || '',
+        };
+      })
+      .filter(Boolean);
+
+    return res.json({ suggestions });
+  } catch (error) {
+    console.error('Error fetching places autocomplete:', error);
+    return res.status(500).json({
+      error: 'Autocomplete failed: Unable to reach Google Places.',
+      details: error.message,
+    });
+  }
+});
+
+app.get('/api/places-details', async (req, res) => {
+  const placeId = `${req.query.placeId || ''}`.trim();
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
+
+  if (!apiKey) {
+    return res.status(503).json({ error: 'Google Places is not configured on the server.' });
+  }
+
+  if (!placeId) {
+    return res.status(400).json({ error: 'placeId is required.' });
+  }
+
+  try {
+    const response = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
+      headers: {
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'id,displayName,formattedAddress,location',
+      },
+    });
+
+    if (!response.ok) {
+      const details = await response.text();
+      const errorPayload = buildPlacesErrorResponse('Place details failed', response.status, details);
+      console.error('Place details failed:', errorPayload);
+      return res.status(502).json(errorPayload);
+    }
+
+    const data = await response.json();
+
+    return res.json({
+      place: {
+        name: data.displayName?.text || '',
+        address: data.formattedAddress || '',
+        place_id: data.id || placeId,
+        lat: data.location?.latitude ?? '',
+        lng: data.location?.longitude ?? '',
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching place details:', error);
+    return res.status(500).json({
+      error: 'Place details failed: Unable to reach Google Places.',
+      details: error.message,
+    });
+  }
 });
 
 app.listen(PORT, () => {
