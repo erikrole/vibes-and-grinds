@@ -396,6 +396,37 @@ export default function App() {
               )}
             </div>
 
+            <div className="mt-4 flex flex-wrap gap-2">
+              {QUICK_FILTERS.map((filter) => {
+                const isActive = quickFilters[filter.key];
+
+                return (
+                  <button
+                    key={filter.key}
+                    type="button"
+                    onClick={() => toggleQuickFilter(filter.key)}
+                    className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                      isActive
+                        ? 'bg-stone-800 text-stone-50 border-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:border-stone-100'
+                        : 'bg-white text-stone-600 border-stone-300 dark:bg-stone-900 dark:text-stone-300 dark:border-stone-600 hover:bg-stone-100 dark:hover:bg-stone-700'
+                    }`}
+                    aria-pressed={isActive}
+                  >
+                    {filter.label}
+                  </button>
+                );
+              })}
+              {activeQuickFilterCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setQuickFilters({ ...DEFAULT_QUICK_FILTERS })}
+                  className="px-3 py-1.5 rounded-full text-sm border border-red-200 text-red-600 dark:border-red-400/40 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
+                >
+                  Clear quick filters
+                </button>
+              )}
+            </div>
+
             <div className="relative mt-4">
               <input
                 type="text"
