@@ -41,7 +41,7 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, d
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [value]);
 
   useEffect(() => {
     const query = (value || '').trim();

@@ -329,6 +329,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
               value={formData.coffee_shop_address}
               onChange={handleInputChange}
               className="input-field"
+              required
             />
           </Field>
         </FormSection>
