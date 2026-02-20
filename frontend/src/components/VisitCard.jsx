@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import RatingBadge from './RatingBadge';
 import CompositeBadge from './CompositeBadge';
 
-export default function VisitCard({ visit, onEdit, onDelete, onViewDetails }) {
+export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visitCount = 1 }) {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
 
@@ -65,6 +65,11 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails }) {
                   {visit.city && visit.opponent && ' – '}
                   {visit.opponent}
                 </p>
+              )}
+              {visitCount > 1 && (
+                <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400 border border-stone-200 dark:border-stone-600">
+                  {visitCount} visits
+                </span>
               )}
             </div>
             <div className="relative ml-4 flex-shrink-0" ref={menuRef}>

@@ -1,6 +1,6 @@
 import VisitCard from './VisitCard';
 
-export default function VisitList({ visits, loading, onEdit, onDelete, onViewDetails, hasActiveFilters = false }) {
+export default function VisitList({ visits, loading, onEdit, onDelete, onViewDetails, hasActiveFilters = false, shopVisitCounts = {} }) {
   if (loading) {
     return (
       <div className="space-y-4">
@@ -52,6 +52,7 @@ export default function VisitList({ visits, loading, onEdit, onDelete, onViewDet
           onEdit={onEdit}
           onDelete={onDelete}
           onViewDetails={onViewDetails}
+          visitCount={shopVisitCounts[visit.coffee_shop_name.toLowerCase()] || 1}
         />
       ))}
     </div>
