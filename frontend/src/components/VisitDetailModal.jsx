@@ -316,7 +316,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
               <div className="mt-6 rounded-xl overflow-hidden border border-stone-200 dark:border-stone-700 h-48">
                 <iframe
                   title="Shop location"
-                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${Number(visit.coffee_shop_lng) - 0.006},${Number(visit.coffee_shop_lat) - 0.006},${Number(visit.coffee_shop_lng) + 0.006},${Number(visit.coffee_shop_lat) + 0.006}&layer=mapnik&marker=${visit.coffee_shop_lat},${visit.coffee_shop_lng}`}
+                  src={`https://maps.google.com/maps?q=${visit.coffee_shop_lat},${visit.coffee_shop_lng}&z=15&output=embed`}
                   className="w-full h-full"
                   loading="lazy"
                 />
