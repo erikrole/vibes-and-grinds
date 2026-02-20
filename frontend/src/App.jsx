@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import AddVisitForm from './components/AddVisitForm';
 import VisitList from './components/VisitList';
 import VisitDetailModal from './components/VisitDetailModal';
+import VisitsMap from './components/VisitsMap';
 import DarkModeProvider from './contexts/DarkModeContext';
 import DarkModeToggle from './components/DarkModeToggle';
 import FormModal from './components/FormModal';
@@ -303,6 +304,13 @@ export default function App() {
               </div>
             </section>
           )}
+
+          <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg p-4 sm:p-5 transition-colors">
+            <h3 className="text-sm font-semibold text-stone-700 dark:text-stone-200 uppercase tracking-wide mb-3">All Visits Map</h3>
+            <div className="h-96 rounded-xl overflow-hidden">
+              <VisitsMap visits={visits} onVisitClick={setViewingVisit} />
+            </div>
+          </section>
 
           <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg p-4 sm:p-5 transition-colors">
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
