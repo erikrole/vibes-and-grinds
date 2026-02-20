@@ -307,7 +307,7 @@ export default function App() {
 
           <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg p-4 sm:p-5 transition-colors">
             <h3 className="text-sm font-semibold text-stone-700 dark:text-stone-200 uppercase tracking-wide mb-3">All Visits Map</h3>
-            <div className="h-96 rounded-xl overflow-hidden">
+            <div className="h-96 rounded-xl overflow-hidden" style={{ isolation: 'isolate' }}>
               <VisitsMap visits={visits} onVisitClick={setViewingVisit} />
             </div>
           </section>

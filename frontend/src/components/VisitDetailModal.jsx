@@ -201,7 +201,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/70 dark:bg-black/80 backdrop-blur-sm transition-colors"
+      className="fixed inset-0 z-[1001] overflow-y-auto bg-black/70 dark:bg-black/80 backdrop-blur-sm transition-colors"
       onClick={onClose}
     >
       <div className="flex min-h-full items-center justify-center p-4">
