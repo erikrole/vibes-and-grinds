@@ -148,6 +148,20 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
   });
 
   const hasCoordinates = Number.isFinite(Number(visit.coffee_shop_lat)) && Number.isFinite(Number(visit.coffee_shop_lng));
+
+  const mapEmbedUrl = useMemo(() => {
+    if (visit.coffee_shop_place_id) {
+      return `https://maps.google.com/maps?q=place_id:${visit.coffee_shop_place_id}&output=embed`;
+    }
+    if (hasCoordinates && visit.coffee_shop_name) {
+      return `https://maps.google.com/maps?q=${encodeURIComponent(visit.coffee_shop_name)}&ll=${visit.coffee_shop_lat},${visit.coffee_shop_lng}&z=15&output=embed`;
+    }
+    if (hasCoordinates) {
+      return `https://maps.google.com/maps?q=${visit.coffee_shop_lat},${visit.coffee_shop_lng}&z=15&output=embed`;
+    }
+    return null;
+  }, [visit.coffee_shop_place_id, hasCoordinates, visit.coffee_shop_lat, visit.coffee_shop_lng, visit.coffee_shop_name]);
+
   const googleMapsUrl = hasCoordinates
     ? `https://www.google.com/maps/search/?api=1&query=${visit.coffee_shop_lat},${visit.coffee_shop_lng}`
     : visit.coffee_shop_address
@@ -312,11 +326,11 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
               <ScoreCard label="Total" score={visit.composite_score} isTotal />
             </div>
 
-            {hasCoordinates && (
+            {mapEmbedUrl && (
               <div className="mt-6 rounded-xl overflow-hidden border border-stone-200 dark:border-stone-700 h-48">
                 <iframe
                   title="Shop location"
-                  src={`https://maps.google.com/maps?q=${visit.coffee_shop_lat},${visit.coffee_shop_lng}&z=15&output=embed`}
+                  src={mapEmbedUrl}
                   className="w-full h-full"
                   loading="lazy"
                 />
