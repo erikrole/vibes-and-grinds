@@ -9,6 +9,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
   const [photoError, setPhotoError] = useState(null);
   const [cropping, setCropping] = useState(false);
   const [imageToCrop, setImageToCrop] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
 
   const shopVisits = useMemo(
     () => visits.filter((v) => v.coffee_shop_name.toLowerCase() === visit.coffee_shop_name.toLowerCase()),
@@ -129,14 +130,44 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
 
   const handleEdit = () => {
     setShowMenu(false);
-    onEdit(visit);
+    setConfirmAction({
+      type: 'edit',
+      title: 'Edit this visit?',
+      message: 'You can make changes and save them.',
+      confirmText: 'Edit Visit',
+      onConfirm: () => {
+        setConfirmAction(null);
+        onEdit(visit);
+      },
+    });
+  };
+
+  const handleDuplicate = () => {
+    setShowMenu(false);
+    setConfirmAction({
+      type: 'duplicate',
+      title: 'Duplicate this visit?',
+      message: 'This will create a copy with today\'s date that you can edit.',
+      confirmText: 'Duplicate Visit',
+      onConfirm: () => {
+        setConfirmAction(null);
+        onDuplicate?.(visit);
+      },
+    });
   };
 
   const handleDelete = () => {
     setShowMenu(false);
-    if (window.confirm(`Are you sure you want to delete this visit to ${visit.coffee_shop_name}?`)) {
-      onDelete(visit.id);
-    }
+    setConfirmAction({
+      type: 'delete',
+      title: 'Delete this visit?',
+      message: `This will permanently delete your visit to ${visit.coffee_shop_name}. This action cannot be undone.`,
+      confirmText: 'Delete Visit',
+      onConfirm: () => {
+        setConfirmAction(null);
+        onDelete(visit.id);
+      },
+    });
   };
 
   const [year, month, day] = visit.date.split('-');
@@ -248,17 +279,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
           </div>
 
           <div className="p-6 sm:p-8">
-            <button
-              onClick={onClose}
-              className="absolute top-4 left-4 z-10 bg-white/90 dark:bg-stone-800/90 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-50 p-2 rounded-full backdrop-blur-sm transition-all shadow-lg"
-              aria-label="Close"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            <div className="absolute top-4 right-4">
+            <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
               <button
                 onClick={() => setShowMenu((prev) => !prev)}
                 className="bg-white/90 dark:bg-stone-800/90 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-50 p-2 rounded-full backdrop-blur-sm transition-all shadow-lg"
@@ -268,15 +289,30 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
                   <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                 </svg>
               </button>
+              <button
+                onClick={onClose}
+                className="bg-white/90 dark:bg-stone-800/90 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-50 p-2 rounded-full backdrop-blur-sm transition-all shadow-lg"
+                aria-label="Close"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
               {showMenu && (
                 <>
                   <div className="fixed inset-0" onClick={() => setShowMenu(false)} />
-                  <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-stone-800 rounded-xl shadow-xl z-20 border border-stone-200 dark:border-stone-700 overflow-hidden">
+                  <div className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-stone-800 rounded-xl shadow-xl z-20 border border-stone-200 dark:border-stone-700 overflow-hidden">
                     <button
                       onClick={handleEdit}
                       className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
                     >
                       Edit Visit
+                    </button>
+                    <button
+                      onClick={handleDuplicate}
+                      className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
+                    >
+                      Duplicate Visit
                     </button>
                     <button
                       onClick={handleDelete}
@@ -374,7 +410,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
                 Edit Visit
               </button>
               <button
-                onClick={() => onDuplicate?.(visit)}
+                onClick={handleDuplicate}
                 className="px-6 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/35 transition-colors font-medium"
               >
                 Duplicate
@@ -389,6 +425,35 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
           </div>
         </div>
       </div>
+
+      {confirmAction && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 dark:bg-black/80 backdrop-blur-sm" onClick={() => setConfirmAction(null)}>
+          <div className="bg-white dark:bg-stone-800 rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-stone-900 dark:text-stone-50 mb-2">{confirmAction.title}</h3>
+            <p className="text-stone-600 dark:text-stone-400 mb-6">{confirmAction.message}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmAction(null)}
+                className="flex-1 px-4 py-2.5 bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-stone-50 rounded-lg hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmAction.onConfirm}
+                className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-colors ${
+                  confirmAction.type === 'delete'
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : confirmAction.type === 'duplicate'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    : 'bg-stone-800 hover:bg-stone-900 dark:bg-stone-100 dark:hover:bg-stone-200 text-white dark:text-stone-900'
+                }`}
+              >
+                {confirmAction.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {cropping && imageToCrop && (
         <PhotoCropper imageUrl={imageToCrop} onComplete={handleCropComplete} onCancel={handleCropCancel} />

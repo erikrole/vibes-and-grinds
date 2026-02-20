@@ -9,20 +9,6 @@ import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api'
 
 const VIEW_PREFERENCES_KEY = 'vibes-and-grinds:view-preferences';
 
-const QUICK_FILTERS = [
-  { key: 'coffee8', label: '☕ 8+ Coffee' },
-  { key: 'vibe8', label: '✨ 8+ Vibe' },
-  { key: 'basketball', label: '🏀 Men\'s Basketball' },
-  { key: 'hasPhoto', label: '📍 Has photo' },
-];
-
-const DEFAULT_QUICK_FILTERS = {
-  coffee8: false,
-  vibe8: false,
-  basketball: false,
-  hasPhoto: false,
-};
-
 const getTodayDateString = () => {
   const today = new Date();
   const year = today.getFullYear();
@@ -43,7 +29,6 @@ export default function App() {
   const [sortBy, setSortBy] = useState('date');
   const [searchQuery, setSearchQuery] = useState('');
   const [sportFilter, setSportFilter] = useState('');
-  const [quickFilters, setQuickFilters] = useState(DEFAULT_QUICK_FILTERS);
 
   useEffect(() => {
     try {
@@ -54,9 +39,6 @@ export default function App() {
       if (parsed.sortBy) setSortBy(parsed.sortBy);
       if (typeof parsed.searchQuery === 'string') setSearchQuery(parsed.searchQuery);
       if (typeof parsed.sportFilter === 'string') setSportFilter(parsed.sportFilter);
-      if (parsed.quickFilters && typeof parsed.quickFilters === 'object') {
-        setQuickFilters((prev) => ({ ...prev, ...parsed.quickFilters }));
-      }
     } catch (storageError) {
       console.warn('Failed to restore view preferences', storageError);
     }
@@ -69,10 +51,9 @@ export default function App() {
         sortBy,
         searchQuery,
         sportFilter,
-        quickFilters,
       })
     );
-  }, [sortBy, searchQuery, sportFilter, quickFilters]);
+  }, [sortBy, searchQuery, sportFilter]);
 
   useEffect(() => {
     loadVisits();
@@ -198,33 +179,8 @@ export default function App() {
     window.location.assign('/');
   };
 
-  const toggleQuickFilter = (key) => {
-    setQuickFilters((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
-
-  const activeQuickFilterCount = Object.values(quickFilters).filter(Boolean).length;
-
   const filteredVisits = visits.filter((visit) => {
     if (sportFilter && visit.sport !== sportFilter) {
-      return false;
-    }
-
-    if (quickFilters.basketball && visit.sport !== "Men's Basketball") {
-      return false;
-    }
-
-    if (quickFilters.coffee8 && Number(visit.coffee_rating) < 8) {
-      return false;
-    }
-
-    if (quickFilters.vibe8 && Number(visit.vibe_rating) < 8) {
-      return false;
-    }
-
-    if (quickFilters.hasPhoto && !visit.photo_url) {
       return false;
     }
 
@@ -254,7 +210,7 @@ export default function App() {
     }
   });
 
-  const hasActiveFilters = Boolean(searchQuery || sportFilter || activeQuickFilterCount > 0);
+  const hasActiveFilters = Boolean(searchQuery || sportFilter);
 
   const avgVibe = useMemo(
     () =>
@@ -275,6 +231,21 @@ export default function App() {
         : '0.0',
     [visits]
   );
+
+  const topCoffeeOrders = useMemo(() => {
+    const orderCounts = {};
+    visits.forEach((visit) => {
+      const order = visit.coffee_order?.trim();
+      if (order) {
+        orderCounts[order] = (orderCounts[order] || 0) + 1;
+      }
+    });
+
+    return Object.entries(orderCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([order, count]) => ({ order, count }));
+  }, [visits]);
 
   return (
     <DarkModeProvider>
@@ -313,6 +284,25 @@ export default function App() {
             <SnapshotCard label="Avg Coffee" value={avgCoffee} />
             <SnapshotCard label="Avg Total" value={`${avgComposite} / 20`} />
           </section>
+
+          {topCoffeeOrders.length > 0 && (
+            <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg p-4 sm:p-5 transition-colors">
+              <h3 className="text-sm font-semibold text-stone-700 dark:text-stone-200 uppercase tracking-wide mb-3">Top Coffee Orders</h3>
+              <div className="flex flex-wrap gap-2">
+                {topCoffeeOrders.map(({ order, count }) => (
+                  <div
+                    key={order}
+                    className="px-3 py-2 rounded-lg bg-stone-100 dark:bg-stone-700 border border-stone-200 dark:border-stone-600 flex items-center gap-2"
+                  >
+                    <span className="text-sm font-medium text-stone-900 dark:text-stone-100">{order}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-stone-200 dark:bg-stone-600 text-xs font-semibold text-stone-700 dark:text-stone-200">
+                      {count}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg p-4 sm:p-5 transition-colors">
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
@@ -364,37 +354,6 @@ export default function App() {
                   <option value="Cross Country">Cross Country</option>
                 </select>
               </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              {QUICK_FILTERS.map((filter) => {
-                const isActive = quickFilters[filter.key];
-
-                return (
-                  <button
-                    key={filter.key}
-                    type="button"
-                    onClick={() => toggleQuickFilter(filter.key)}
-                    className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                      isActive
-                        ? 'bg-stone-800 text-stone-50 border-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:border-stone-100'
-                        : 'bg-white text-stone-600 border-stone-300 dark:bg-stone-900 dark:text-stone-300 dark:border-stone-600 hover:bg-stone-100 dark:hover:bg-stone-700'
-                    }`}
-                    aria-pressed={isActive}
-                  >
-                    {filter.label}
-                  </button>
-                );
-              })}
-              {activeQuickFilterCount > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setQuickFilters({ ...DEFAULT_QUICK_FILTERS })}
-                  className="px-3 py-1.5 rounded-full text-sm border border-red-200 text-red-600 dark:border-red-400/40 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
-                >
-                  Clear quick filters
-                </button>
-              )}
             </div>
 
             <div className="relative mt-4">
