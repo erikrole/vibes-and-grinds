@@ -3,7 +3,6 @@ import PhotoCropper from './PhotoCropper';
 import { getRatingColor, getCompositeColor, getTextColor } from '../utils/colors';
 
 export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onEdit, onDelete, onDuplicate }) {
-  const [showPhotoMenu, setShowPhotoMenu] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [photoError, setPhotoError] = useState(null);
@@ -36,11 +35,6 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
     const handleEscape = (e) => {
       if (e.key !== 'Escape') return;
 
-      if (showPhotoMenu) {
-        setShowPhotoMenu(false);
-        return;
-      }
-
       if (showMenu) {
         setShowMenu(false);
         return;
@@ -51,7 +45,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
 
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, [onClose, showMenu, showPhotoMenu]);
+  }, [onClose, showMenu]);
 
   const handlePhotoUpload = async (file) => {
     if (!file) return;
@@ -77,7 +71,6 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
       setPhotoError('Failed to upload photo. Please try again.');
     } finally {
       setUploading(false);
-      setShowPhotoMenu(false);
     }
   };
 
@@ -111,21 +104,28 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
   };
 
   const handleReplacePhoto = () => {
-    setShowPhotoMenu(false);
+    setShowMenu(false);
     handleAddPhoto();
   };
 
   const handleRecropPhoto = () => {
-    setShowPhotoMenu(false);
+    setShowMenu(false);
     setImageToCrop(visit.photo_url);
     setCropping(true);
   };
 
-  const handleDeletePhoto = async () => {
-    if (window.confirm('Are you sure you want to delete this photo?')) {
-      await onUpdate(visit.id, { ...visit, photo_url: null });
-      setShowPhotoMenu(false);
-    }
+  const handleDeletePhoto = () => {
+    setShowMenu(false);
+    setConfirmAction({
+      type: 'delete',
+      title: 'Remove this photo?',
+      message: 'This will permanently remove the photo from this visit.',
+      confirmText: 'Remove Photo',
+      onConfirm: async () => {
+        setConfirmAction(null);
+        await onUpdate(visit.id, { ...visit, photo_url: null });
+      },
+    });
   };
 
   const handleEdit = () => {
@@ -181,14 +181,18 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
   const hasCoordinates = Number.isFinite(Number(visit.coffee_shop_lat)) && Number.isFinite(Number(visit.coffee_shop_lng));
 
   const mapEmbedUrl = useMemo(() => {
-    if (visit.coffee_shop_place_id) {
-      return `https://maps.google.com/maps?q=place_id:${visit.coffee_shop_place_id}&zoom=15&output=embed`;
+    // place_id + coords: shows info overlay and respects zoom via ll+z
+    if (visit.coffee_shop_place_id && hasCoordinates) {
+      return `https://maps.google.com/maps?q=place_id:${visit.coffee_shop_place_id}&ll=${visit.coffee_shop_lat},${visit.coffee_shop_lng}&z=15&output=embed`;
     }
     if (hasCoordinates && visit.coffee_shop_name) {
       return `https://maps.google.com/maps?q=${encodeURIComponent(visit.coffee_shop_name)}&ll=${visit.coffee_shop_lat},${visit.coffee_shop_lng}&z=15&output=embed`;
     }
     if (hasCoordinates) {
       return `https://maps.google.com/maps?q=${visit.coffee_shop_lat},${visit.coffee_shop_lng}&z=15&output=embed`;
+    }
+    if (visit.coffee_shop_place_id) {
+      return `https://maps.google.com/maps?q=place_id:${visit.coffee_shop_place_id}&output=embed`;
     }
     return null;
   }, [visit.coffee_shop_place_id, hasCoordinates, visit.coffee_shop_lat, visit.coffee_shop_lng, visit.coffee_shop_name]);
@@ -213,43 +217,6 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
             {visit.photo_url ? (
               <div className="relative aspect-[16/9] bg-stone-100 dark:bg-stone-700 overflow-hidden">
                 <img src={visit.photo_url} alt={visit.coffee_shop_name} className="w-full h-full object-cover" />
-
-                <div className="absolute top-4 right-4">
-                  <button
-                    onClick={() => setShowPhotoMenu(!showPhotoMenu)}
-                    className="bg-black/60 hover:bg-black/80 text-white p-2.5 rounded-full backdrop-blur-sm transition-all shadow-lg"
-                    disabled={uploading}
-                  >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                    </svg>
-                  </button>
-                  {showPhotoMenu && (
-                    <>
-                      <div className="fixed inset-0" onClick={() => setShowPhotoMenu(false)} />
-                      <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-stone-800 rounded-xl shadow-xl z-20 border border-stone-200 dark:border-stone-700 overflow-hidden">
-                        <button
-                          onClick={handleRecropPhoto}
-                          className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
-                        >
-                          Recrop
-                        </button>
-                        <button
-                          onClick={handleReplacePhoto}
-                          className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
-                        >
-                          Replace
-                        </button>
-                        <button
-                          onClick={handleDeletePhoto}
-                          className="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-stone-700 transition-colors"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
 
                 {visit.notes && (
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-6">
@@ -301,7 +268,39 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
               {showMenu && (
                 <>
                   <div className="fixed inset-0" onClick={() => setShowMenu(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-stone-800 rounded-xl shadow-xl z-20 border border-stone-200 dark:border-stone-700 overflow-hidden">
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-stone-800 rounded-xl shadow-xl z-20 border border-stone-200 dark:border-stone-700 overflow-hidden">
+                    {!visit.photo_url && (
+                      <button
+                        onClick={handleReplacePhoto}
+                        disabled={uploading}
+                        className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
+                      >
+                        Add Photo
+                      </button>
+                    )}
+                    {visit.photo_url && (
+                      <>
+                        <button
+                          onClick={handleRecropPhoto}
+                          className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
+                        >
+                          Crop Photo
+                        </button>
+                        <button
+                          onClick={handleReplacePhoto}
+                          className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
+                        >
+                          Edit Photo
+                        </button>
+                        <button
+                          onClick={handleDeletePhoto}
+                          className="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-stone-700 transition-colors"
+                        >
+                          Remove Photo
+                        </button>
+                      </>
+                    )}
+                    <div className="border-t border-stone-200 dark:border-stone-700" />
                     <button
                       onClick={handleEdit}
                       className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
@@ -314,6 +313,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
                     >
                       Duplicate Visit
                     </button>
+                    <div className="border-t border-stone-200 dark:border-stone-700" />
                     <button
                       onClick={handleDelete}
                       className="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-stone-700 transition-colors"
