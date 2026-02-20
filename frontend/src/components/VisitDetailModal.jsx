@@ -151,7 +151,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
 
   const mapEmbedUrl = useMemo(() => {
     if (visit.coffee_shop_place_id) {
-      return `https://maps.google.com/maps?q=place_id:${visit.coffee_shop_place_id}&output=embed`;
+      return `https://maps.google.com/maps?q=place_id:${visit.coffee_shop_place_id}&zoom=15&output=embed`;
     }
     if (hasCoordinates && visit.coffee_shop_name) {
       return `https://maps.google.com/maps?q=${encodeURIComponent(visit.coffee_shop_name)}&ll=${visit.coffee_shop_lat},${visit.coffee_shop_lng}&z=15&output=embed`;
