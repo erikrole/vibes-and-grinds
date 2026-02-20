@@ -312,6 +312,17 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
               <ScoreCard label="Total" score={visit.composite_score} isTotal />
             </div>
 
+            {hasCoordinates && (
+              <div className="mt-6 rounded-xl overflow-hidden border border-stone-200 dark:border-stone-700 h-48">
+                <iframe
+                  title="Shop location"
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${Number(visit.coffee_shop_lng) - 0.006},${Number(visit.coffee_shop_lat) - 0.006},${Number(visit.coffee_shop_lng) + 0.006},${Number(visit.coffee_shop_lat) + 0.006}&layer=mapnik&marker=${visit.coffee_shop_lat},${visit.coffee_shop_lng}`}
+                  className="w-full h-full"
+                  loading="lazy"
+                />
+              </div>
+            )}
+
             {visitCount > 1 && (
               <section className="mt-6 p-4 rounded-xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200 dark:border-stone-700">
                 <h3 className="text-sm font-semibold text-stone-700 dark:text-stone-200 uppercase tracking-wide">Shop History Snapshot</h3>

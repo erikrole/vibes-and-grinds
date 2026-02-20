@@ -285,10 +285,15 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
                 setFormData((prev) => ({
                   ...prev,
                   coffee_shop_name: nextValue,
-                  coffee_shop_address: nextValue === prev.coffee_shop_name ? prev.coffee_shop_address : '',
-                  coffee_shop_place_id: nextValue === prev.coffee_shop_name ? prev.coffee_shop_place_id : '',
-                  coffee_shop_lat: nextValue === prev.coffee_shop_name ? prev.coffee_shop_lat : '',
-                  coffee_shop_lng: nextValue === prev.coffee_shop_name ? prev.coffee_shop_lng : '',
+                  // In edit mode, keep existing address/coordinates so a small name
+                  // correction doesn't wipe imported metadata. A new place selection
+                  // via autocomplete (handlePlaceSelected) will still overwrite them.
+                  ...(!isEditing && {
+                    coffee_shop_address: '',
+                    coffee_shop_place_id: '',
+                    coffee_shop_lat: '',
+                    coffee_shop_lng: '',
+                  }),
                 }));
 
                 if (errors.coffee_shop_name) {
