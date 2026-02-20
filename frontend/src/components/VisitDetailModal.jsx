@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import PhotoCropper from './PhotoCropper';
+import { getRatingColor, getCompositeColor, getTextColor } from '../utils/colors';
 
 export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onEdit, onDelete, onDuplicate }) {
   const [showPhotoMenu, setShowPhotoMenu] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [photoError, setPhotoError] = useState(null);
   const [cropping, setCropping] = useState(false);
   const [imageToCrop, setImageToCrop] = useState(null);
 
@@ -71,7 +73,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
       await onUpdate(visit.id, { ...visit, photo_url: url });
     } catch (error) {
       console.error('Error uploading photo:', error);
-      alert('Failed to upload photo. Please try again.');
+      setPhotoError('Failed to upload photo. Please try again.');
     } finally {
       setUploading(false);
       setShowPhotoMenu(false);
@@ -273,6 +275,13 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
               )}
             </div>
 
+            {photoError && (
+              <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm rounded-lg flex items-center justify-between">
+                <span>{photoError}</span>
+                <button onClick={() => setPhotoError(null)} className="ml-2 text-red-500 hover:text-red-700">✕</button>
+              </div>
+            )}
+
             <h2 className="text-4xl font-black text-stone-900 dark:text-stone-50 tracking-wide uppercase">
               {visit.coffee_shop_name}
             </h2>
@@ -364,8 +373,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
 }
 
 function ScoreCard({ label, score, isTotal = false }) {
-  const ratingForColor = isTotal ? score / 2 : score;
-  const bgColor = getRatingColor(ratingForColor);
+  const bgColor = isTotal ? getCompositeColor(score) : getRatingColor(score);
 
   return (
     <div className="rounded-xl border border-stone-200 dark:border-stone-700 p-3 text-center bg-white/60 dark:bg-stone-800/60">
@@ -400,33 +408,4 @@ function DetailRow({ label, value }) {
       <p className="text-stone-700 dark:text-stone-300 mt-1">{value}</p>
     </div>
   );
-}
-
-function getRatingColor(rating) {
-  const clampedRating = Math.max(0, Math.min(10, rating));
-  if (clampedRating <= 5) {
-    const percentage = clampedRating / 5;
-    const r = 220;
-    const g = Math.round(38 + (184 - 38) * percentage);
-    const b = 38;
-    return `rgb(${r}, ${g}, ${b})`;
-  }
-
-  const percentage = (clampedRating - 5) / 5;
-  const r = Math.round(220 - (220 - 34) * percentage);
-  const g = Math.round(184 + (197 - 184) * percentage);
-  const b = Math.round(38 + (94 - 38) * percentage);
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-function getTextColor(bgColor) {
-  const match = bgColor.match(/rgb\((\d+), (\d+), (\d+)\)/);
-  if (!match) return '#ffffff';
-
-  const r = parseInt(match[1]);
-  const g = parseInt(match[2]);
-  const b = parseInt(match[3]);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-
-  return luminance > 0.5 ? '#1c1917' : '#ffffff';
 }
