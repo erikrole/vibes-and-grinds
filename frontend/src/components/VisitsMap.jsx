@@ -3,12 +3,12 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-// Fix default marker icons in Leaflet with Vite
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+const coffeeIcon = L.divIcon({
+  html: '☕',
+  className: '',
+  iconSize: [28, 28],
+  iconAnchor: [14, 28],
+  popupAnchor: [0, -30],
 });
 
 export default function VisitsMap({ visits, onVisitClick }) {
@@ -73,13 +73,14 @@ export default function VisitsMap({ visits, onVisitClick }) {
       key={`map-${visitsWithCoords.length}-${center.join(',')}`}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
       />
       {visitsWithCoords.map((visit) => (
         <Marker
           key={visit.id}
           position={[Number(visit.coffee_shop_lat), Number(visit.coffee_shop_lng)]}
+          icon={coffeeIcon}
           eventHandlers={{
             click: () => onVisitClick?.(visit),
           }}
