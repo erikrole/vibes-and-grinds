@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 import PhotoCropper from './PhotoCropper';
 import { getRatingColor, getCompositeColor, getTextColor } from '../utils/colors';
+
+const coffeeIcon = L.divIcon({
+  html: '<span style="font-size:28px;line-height:1;display:block;">☕</span>',
+  className: '',
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+});
 
 export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onEdit, onDelete, onDuplicate }) {
   const [showMenu, setShowMenu] = useState(false);
@@ -158,17 +168,10 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
 
   const hasCoordinates = Number.isFinite(Number(visit.coffee_shop_lat)) && Number.isFinite(Number(visit.coffee_shop_lng));
 
-  const mapEmbedUrl = useMemo(() => {
-    if (hasCoordinates) {
-      // Use place_id if available for better labeling, otherwise fall back to shop name
-      if (visit.coffee_shop_place_id) {
-        return `https://maps.google.com/maps?q=place_id:${visit.coffee_shop_place_id}&output=embed`;
-      }
-      const query = encodeURIComponent(visit.coffee_shop_name);
-      return `https://maps.google.com/maps?q=${query}&ll=${visit.coffee_shop_lat},${visit.coffee_shop_lng}&z=17&output=embed`;
-    }
-    return null;
-  }, [hasCoordinates, visit.coffee_shop_lat, visit.coffee_shop_lng, visit.coffee_shop_name, visit.coffee_shop_place_id]);
+  const mapCenter = useMemo(() => {
+    if (!hasCoordinates) return null;
+    return [Number(visit.coffee_shop_lat), Number(visit.coffee_shop_lng)];
+  }, [hasCoordinates, visit.coffee_shop_lat, visit.coffee_shop_lng]);
 
   return (
     <div
@@ -358,15 +361,31 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
               </div>
             )}
 
-            {/* Map embed */}
-            {mapEmbedUrl && (
+            {/* Map */}
+            {mapCenter && (
               <div className="mt-5 rounded-2xl overflow-hidden border border-stone-200 dark:border-stone-700 h-48 sm:h-56">
-                <iframe
-                  title="Shop location"
-                  src={mapEmbedUrl}
-                  className="w-full h-full"
-                  loading="lazy"
-                />
+                <MapContainer
+                  center={mapCenter}
+                  zoom={16}
+                  className="h-full w-full"
+                  scrollWheelZoom={false}
+                  zoomControl={false}
+                  key={mapCenter.join(',')}
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    url={
+                      isDark
+                        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+                    }
+                  />
+                  <Marker position={mapCenter} icon={coffeeIcon}>
+                    <Tooltip permanent direction="top" offset={[0, -30]} className="map-shop-label">
+                      {visit.coffee_shop_name}
+                    </Tooltip>
+                  </Marker>
+                </MapContainer>
               </div>
             )}
 

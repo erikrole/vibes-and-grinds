@@ -84,6 +84,21 @@ input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input[type="number"] { -moz-appearance: textfield; }
 
+/* Modal map shop name tooltip */
+.map-shop-label {
+  background: white;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  color: #1c1917;
+  font-family: 'Fraunces', 'Georgia', serif;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+.map-shop-label::before { display: none; }
+
 /* Date picker calendar icon in dark mode */
 @media (prefers-color-scheme: dark) {
   input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
