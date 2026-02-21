@@ -175,8 +175,11 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
               <div className="relative aspect-[16/9] bg-stone-100 dark:bg-stone-700 overflow-hidden">
                 <img src={visit.photo_url} alt={visit.coffee_shop_name} className="w-full h-full object-cover" />
                 {visit.notes && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white/90 via-white/50 to-transparent dark:from-black/70 dark:via-black/30 dark:to-transparent backdrop-blur-lg pt-24 pb-5 px-5 sm:pb-6 sm:px-7">
-                    <p className="text-stone-900 dark:text-white text-lg sm:text-xl font-medium leading-relaxed tracking-wide">
+                  <div
+                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white/25 via-white/10 to-transparent dark:from-black/40 dark:via-black/15 dark:to-transparent pt-24 pb-5 px-5 sm:pb-6 sm:px-7"
+                    style={{ backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}
+                  >
+                    <p className="text-white text-lg sm:text-xl font-semibold leading-relaxed tracking-wide" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}>
                       "{visit.notes}"
                     </p>
                   </div>
