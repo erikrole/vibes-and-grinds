@@ -343,7 +343,7 @@ export default function VestTrackerDashboard() {
       {/* Season timeline — newest first */}
       <section className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 shadow-sm mb-6">
         <div className="flex items-center justify-between gap-3 mb-3">
-          <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">Season timeline</h3>
+          <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">Season Timeline</h3>
           <span className="text-xs uppercase tracking-[0.08em] text-stone-500">Click a game to edit</span>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2">
@@ -367,7 +367,7 @@ export default function VestTrackerDashboard() {
                   {formatDate(game.date) || `Game ${index + 1}`}
                 </div>
                 <div className="font-semibold">
-                  {game.location === '@' ? 'at' : game.location || 'vs'}&nbsp;&nbsp;{game.ranking && toSuperscript(game.ranking)}&thinsp;{game.opponent}{game.overtime && ' (OT)'}
+                  {game.location === '@' ? 'at' : game.location || 'vs'}&nbsp;&nbsp;{game.ranking ? <>{toSuperscript(game.ranking)}&thinsp;</> : null}{game.opponent}{game.overtime && ' (OT)'}
                 </div>
                 <div className="text-xs mt-1 opacity-80">{game.outfit || 'Outfit TBD'}</div>
                 <div className="text-xs mt-1 font-semibold">
