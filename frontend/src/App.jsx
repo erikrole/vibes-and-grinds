@@ -14,6 +14,23 @@ const APP_MODES = {
   VEST: 'vest',
 };
 
+const isVestDomain = window.location.hostname.startsWith('vests.');
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+function navigateToMode(mode) {
+  if (isLocalhost) return false; // let caller handle state
+  const host = window.location.hostname;
+  if (mode === APP_MODES.VEST && !host.startsWith('vests.')) {
+    window.location.href = `https://vests.${host}`;
+    return true;
+  }
+  if (mode === APP_MODES.VIBES && host.startsWith('vests.')) {
+    window.location.href = `https://${host.replace(/^vests\./, '')}`;
+    return true;
+  }
+  return false;
+}
+
 const getTodayDateString = () => {
   const today = new Date();
   const year = today.getFullYear();
@@ -34,7 +51,7 @@ export default function App() {
   const [sortBy, setSortBy] = useState('date');
   const [searchQuery, setSearchQuery] = useState('');
   const [sportFilter, setSportFilter] = useState('');
-  const [appMode, setAppMode] = useState(APP_MODES.VIBES);
+  const [appMode, setAppMode] = useState(isVestDomain ? APP_MODES.VEST : APP_MODES.VIBES);
   const [showModeMenu, setShowModeMenu] = useState(false);
 
   useEffect(() => {
@@ -46,7 +63,10 @@ export default function App() {
       if (parsed.sortBy) setSortBy(parsed.sortBy);
       if (typeof parsed.searchQuery === 'string') setSearchQuery(parsed.searchQuery);
       if (typeof parsed.sportFilter === 'string') setSportFilter(parsed.sportFilter);
-      if (parsed.appMode === APP_MODES.VEST || parsed.appMode === APP_MODES.VIBES) setAppMode(parsed.appMode);
+      // Only restore saved mode on localhost; on production the subdomain determines the mode
+      if (isLocalhost && (parsed.appMode === APP_MODES.VEST || parsed.appMode === APP_MODES.VIBES)) {
+        setAppMode(parsed.appMode);
+      }
     } catch (storageError) {
       console.warn('Failed to restore view preferences', storageError);
     }
@@ -84,7 +104,11 @@ export default function App() {
       // Don't fire when the user is typing in a form field
       const tag = event.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || event.target.isContentEditable) return;
-      setAppMode((prevMode) => (prevMode === APP_MODES.VIBES ? APP_MODES.VEST : APP_MODES.VIBES));
+      setAppMode((prevMode) => {
+        const nextMode = prevMode === APP_MODES.VIBES ? APP_MODES.VEST : APP_MODES.VIBES;
+        if (!navigateToMode(nextMode)) return nextMode;
+        return prevMode; // navigation in progress, keep current state
+      });
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -300,8 +324,8 @@ export default function App() {
                   <div className="absolute left-0 mt-2 w-56 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 shadow-lg z-20 overflow-hidden">
                     <button
                       onMouseDown={() => {
-                        setAppMode(APP_MODES.VIBES);
                         setShowModeMenu(false);
+                        if (!navigateToMode(APP_MODES.VIBES)) setAppMode(APP_MODES.VIBES);
                       }}
                       className={`w-full text-left px-4 py-3 text-sm ${
                         appMode === APP_MODES.VIBES
@@ -313,8 +337,8 @@ export default function App() {
                     </button>
                     <button
                       onMouseDown={() => {
-                        setAppMode(APP_MODES.VEST);
                         setShowModeMenu(false);
+                        if (!navigateToMode(APP_MODES.VEST)) setAppMode(APP_MODES.VEST);
                       }}
                       className={`w-full text-left px-4 py-3 text-sm ${
                         appMode === APP_MODES.VEST
