@@ -4,9 +4,15 @@ import VisitList from './components/VisitList';
 import VisitDetailModal from './components/VisitDetailModal';
 import VisitsMap from './components/VisitsMap';
 import FormModal from './components/FormModal';
+import VestTrackerDashboard from './components/VestTrackerDashboard';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
 
 const VIEW_PREFERENCES_KEY = 'vibes-and-grinds:view-preferences';
+
+const APP_MODES = {
+  VIBES: 'vibes',
+  VEST: 'vest',
+};
 
 const getTodayDateString = () => {
   const today = new Date();
@@ -28,6 +34,8 @@ export default function App() {
   const [sortBy, setSortBy] = useState('date');
   const [searchQuery, setSearchQuery] = useState('');
   const [sportFilter, setSportFilter] = useState('');
+  const [appMode, setAppMode] = useState(APP_MODES.VIBES);
+  const [showModeMenu, setShowModeMenu] = useState(false);
 
   useEffect(() => {
     try {
@@ -38,6 +46,7 @@ export default function App() {
       if (parsed.sortBy) setSortBy(parsed.sortBy);
       if (typeof parsed.searchQuery === 'string') setSearchQuery(parsed.searchQuery);
       if (typeof parsed.sportFilter === 'string') setSportFilter(parsed.sportFilter);
+      if (parsed.appMode === APP_MODES.VEST || parsed.appMode === APP_MODES.VIBES) setAppMode(parsed.appMode);
     } catch (storageError) {
       console.warn('Failed to restore view preferences', storageError);
     }
@@ -50,9 +59,10 @@ export default function App() {
         sortBy,
         searchQuery,
         sportFilter,
+        appMode,
       })
     );
-  }, [sortBy, searchQuery, sportFilter]);
+  }, [sortBy, searchQuery, sportFilter, appMode]);
 
   useEffect(() => {
     loadVisits();
@@ -67,6 +77,16 @@ export default function App() {
 
     return () => window.clearTimeout(timeout);
   }, [toast]);
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.key.toLowerCase() !== 'v') return;
+      setAppMode((prevMode) => (prevMode === APP_MODES.VIBES ? APP_MODES.VEST : APP_MODES.VIBES));
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -174,9 +194,6 @@ export default function App() {
     setEditingVisit(null);
   };
 
-  const handleHeaderHomeClick = () => {
-    window.location.assign('/');
-  };
 
   const filteredVisits = visits.filter((visit) => {
     if (sportFilter && visit.sport !== sportFilter) {
@@ -211,6 +228,7 @@ export default function App() {
   });
 
   const hasActiveFilters = Boolean(searchQuery || sportFilter);
+  const modeLabel = appMode === APP_MODES.VEST ? 'VEST TRACKER' : 'VIBES & GRINDS';
 
   const avgVibe = useMemo(
     () =>
@@ -260,17 +278,54 @@ export default function App() {
     <div className="min-h-screen bg-stone-50 dark:bg-stone-900 transition-colors duration-200">
         <header className="bg-white dark:bg-stone-800 border-b border-stone-200 dark:border-stone-700 transition-colors duration-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={handleHeaderHomeClick}
-                className="flex items-center gap-3 sm:gap-4 text-left hover:opacity-80 transition-opacity"
-                aria-label="Go to homepage"
-                title="Go home"
-              >
-                <div className="text-3xl sm:text-4xl">☕</div>
-                <h1 className="coffee-shop-name text-3xl sm:text-4xl font-black tracking-tight">Vibes & Grinds</h1>
-              </button>
-              {!showForm && !editingVisit && (
+            <div className="flex items-center justify-between gap-4">
+              <div className="relative">
+                <button
+                  onClick={() => setShowModeMenu((prev) => !prev)}
+                  onBlur={() => window.setTimeout(() => setShowModeMenu(false), 120)}
+                  className="flex items-center gap-3 sm:gap-4 text-left hover:opacity-80 transition-opacity"
+                  aria-label="Toggle app mode"
+                >
+                  <div className="text-3xl sm:text-4xl">{appMode === APP_MODES.VEST ? '🧥' : '☕'}</div>
+                  <h1 className="coffee-shop-name text-3xl sm:text-4xl font-black tracking-tight">{modeLabel}</h1>
+                  <svg className="w-4 h-4 text-stone-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z" />
+                  </svg>
+                </button>
+
+                {showModeMenu && (
+                  <div className="absolute left-0 mt-2 w-56 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 shadow-lg z-20 overflow-hidden">
+                    <button
+                      onMouseDown={() => {
+                        setAppMode(APP_MODES.VIBES);
+                        setShowModeMenu(false);
+                      }}
+                      className={`w-full text-left px-4 py-3 text-sm ${
+                        appMode === APP_MODES.VIBES
+                          ? 'bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-stone-100'
+                          : 'text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700'
+                      }`}
+                    >
+                      ☕ VIBES & GRINDS
+                    </button>
+                    <button
+                      onMouseDown={() => {
+                        setAppMode(APP_MODES.VEST);
+                        setShowModeMenu(false);
+                      }}
+                      className={`w-full text-left px-4 py-3 text-sm ${
+                        appMode === APP_MODES.VEST
+                          ? 'bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-stone-100'
+                          : 'text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700'
+                      }`}
+                    >
+                      🧥 VEST TRACKER
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {appMode === APP_MODES.VIBES && !showForm && !editingVisit && (
                 <button onClick={() => setShowForm(true)} className="btn-primary hidden md:block">
                   Add Visit
                 </button>
@@ -279,6 +334,9 @@ export default function App() {
           </div>
         </header>
 
+        {appMode === APP_MODES.VEST ? (
+          <VestTrackerDashboard />
+        ) : (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {error && (
             <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-5 py-4 rounded-2xl transition-colors">
@@ -428,12 +486,13 @@ export default function App() {
             shopVisitCounts={shopVisitCounts}
           />
         </main>
+        )}
 
         <footer className="mt-20 py-8 text-center text-stone-400 dark:text-stone-500 text-sm tracking-wide border-t border-stone-200 dark:border-stone-700 transition-colors">
-          <p>Built for logging AJ Harrison's road coffee orders</p>
+          <p>{appMode === APP_MODES.VEST ? "Built for charting AJ's sideline fits and results" : "Built for logging AJ Harrison's road coffee orders"}</p>
         </footer>
 
-        {!showForm && !editingVisit && (
+        {appMode === APP_MODES.VIBES && !showForm && !editingVisit && (
           <button
             onClick={() => setShowForm(true)}
             className="fixed bottom-5 right-5 md:bottom-6 md:right-6 w-16 h-16 md:w-14 md:h-14 bg-stone-800 dark:bg-stone-700 text-stone-50 rounded-full shadow-lg hover:bg-stone-900 dark:hover:bg-stone-600 transition-all flex items-center justify-center z-50 hover:scale-110 active:scale-95"
@@ -457,13 +516,13 @@ export default function App() {
           />
         )}
 
-        {showForm && (
+        {appMode === APP_MODES.VIBES && showForm && (
           <FormModal title="Add Visit" onClose={handleCancelForm}>
             <AddVisitForm onSubmit={handleAddVisit} onCancel={handleCancelForm} visits={visits} />
           </FormModal>
         )}
 
-        {editingVisit && (
+        {appMode === APP_MODES.VIBES && editingVisit && (
           <FormModal title="Edit Visit" onClose={handleCancelForm}>
             <AddVisitForm initialData={editingVisit} onSubmit={handleUpdateVisit} onCancel={handleCancelForm} visits={visits} />
           </FormModal>
