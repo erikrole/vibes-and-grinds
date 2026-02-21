@@ -160,9 +160,8 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
 
   const mapEmbedUrl = useMemo(() => {
     if (hasCoordinates) {
-      // Use shop name + coordinates for better context and business details
-      const query = encodeURIComponent(`${visit.coffee_shop_name}`);
-      return `https://maps.google.com/maps?q=${query}&ll=${visit.coffee_shop_lat},${visit.coffee_shop_lng}&z=17&output=embed`;
+      const query = encodeURIComponent(visit.coffee_shop_name);
+      return `https://maps.apple.com/?ll=${visit.coffee_shop_lat},${visit.coffee_shop_lng}&q=${query}&z=17`;
     }
     return null;
   }, [hasCoordinates, visit.coffee_shop_lat, visit.coffee_shop_lng, visit.coffee_shop_name]);
