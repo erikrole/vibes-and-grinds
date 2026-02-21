@@ -10,27 +10,6 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
   const [imageToCrop, setImageToCrop] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
 
-  const shopVisits = useMemo(
-    () => visits.filter((v) => v.coffee_shop_name.toLowerCase() === visit.coffee_shop_name.toLowerCase()),
-    [visits, visit.coffee_shop_name]
-  );
-
-  const visitCount = shopVisits.length;
-  const avgVibe = visitCount
-    ? shopVisits.reduce((sum, v) => sum + v.vibe_rating, 0) / visitCount
-    : visit.vibe_rating;
-  const avgCoffee = visitCount
-    ? shopVisits.reduce((sum, v) => sum + v.coffee_rating, 0) / visitCount
-    : visit.coffee_rating;
-  const avgTotal = visitCount
-    ? shopVisits.reduce((sum, v) => sum + v.composite_score, 0) / visitCount
-    : visit.composite_score;
-
-  const latestShopVisit = useMemo(() => {
-    const sorted = [...shopVisits].sort((a, b) => new Date(b.date) - new Date(a.date));
-    return sorted[0];
-  }, [shopVisits]);
-
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key !== 'Escape') return;
@@ -172,40 +151,15 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
   const hasCoordinates = Number.isFinite(Number(visit.coffee_shop_lat)) && Number.isFinite(Number(visit.coffee_shop_lng));
 
   const mapEmbedUrl = useMemo(() => {
-    if (visit.coffee_shop_place_id && hasCoordinates) {
-      return `https://maps.google.com/maps?q=place_id:${visit.coffee_shop_place_id}&ll=${visit.coffee_shop_lat},${visit.coffee_shop_lng}&z=15&output=embed`;
-    }
-    if (hasCoordinates && visit.coffee_shop_name) {
-      return `https://maps.google.com/maps?q=${encodeURIComponent(visit.coffee_shop_name)}&ll=${visit.coffee_shop_lat},${visit.coffee_shop_lng}&z=15&output=embed`;
-    }
     if (hasCoordinates) {
+      // Embed with marker - using place_id if available, otherwise coordinates
+      if (visit.coffee_shop_place_id) {
+        return `https://maps.google.com/maps?q=place_id:${visit.coffee_shop_place_id}&output=embed`;
+      }
       return `https://maps.google.com/maps?q=${visit.coffee_shop_lat},${visit.coffee_shop_lng}&z=15&output=embed`;
     }
-    if (visit.coffee_shop_place_id) {
-      return `https://maps.google.com/maps?q=place_id:${visit.coffee_shop_place_id}&output=embed`;
-    }
     return null;
-  }, [visit.coffee_shop_place_id, hasCoordinates, visit.coffee_shop_lat, visit.coffee_shop_lng, visit.coffee_shop_name]);
-
-  const googleMapsUrl = hasCoordinates
-    ? `https://www.google.com/maps/search/?api=1&query=${visit.coffee_shop_lat},${visit.coffee_shop_lng}`
-    : visit.coffee_shop_address
-      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(visit.coffee_shop_address)}`
-      : '';
-
-  const detailRows = [
-    visit.coffee_order && { label: 'Order', value: visit.coffee_order },
-    visit.coffee_shop_address && { label: 'Address', value: visit.coffee_shop_address },
-    googleMapsUrl && {
-      label: 'Map',
-      value: (
-        <a href={googleMapsUrl} target="_blank" rel="noreferrer" className="text-stone-700 dark:text-stone-300 underline underline-offset-2">
-          Open in Google Maps ↗
-        </a>
-      ),
-    },
-    !visit.photo_url && visit.notes && { label: 'Notes', value: visit.notes },
-  ].filter(Boolean);
+  }, [visit.coffee_shop_place_id, hasCoordinates, visit.coffee_shop_lat, visit.coffee_shop_lng]);
 
   return (
     <div
@@ -223,8 +177,12 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
               <div className="relative aspect-[16/9] bg-stone-100 dark:bg-stone-700 overflow-hidden">
                 <img src={visit.photo_url} alt={visit.coffee_shop_name} className="w-full h-full object-cover" />
                 {visit.notes && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-6">
-                    <p className="text-white text-base leading-relaxed italic">"{visit.notes}"</p>
+                  <div className="absolute bottom-5 left-5 right-5 sm:bottom-6 sm:left-6 sm:right-6">
+                    <div className="bg-black/85 backdrop-blur-xl rounded-2xl px-5 py-4 sm:px-6 sm:py-5 border border-white/20 shadow-2xl">
+                      <p className="text-white text-lg sm:text-xl font-medium leading-relaxed tracking-wide">
+                        "{visit.notes}"
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
@@ -372,9 +330,21 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
               </div>
             </div>
 
+            {/* Order - prominent card */}
+            {visit.coffee_order && (
+              <div className="mt-5 p-5 rounded-2xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200/60 dark:border-stone-700/60">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 mb-2 select-none">
+                  Order
+                </p>
+                <p className="text-xl font-semibold text-stone-900 dark:text-stone-50 leading-relaxed">
+                  {visit.coffee_order}
+                </p>
+              </div>
+            )}
+
             {/* Map embed */}
             {mapEmbedUrl && (
-              <div className="mt-5 rounded-2xl overflow-hidden border border-stone-200 dark:border-stone-700 h-44">
+              <div className="mt-5 rounded-2xl overflow-hidden border border-stone-200 dark:border-stone-700 h-48 sm:h-56">
                 <iframe
                   title="Shop location"
                   src={mapEmbedUrl}
@@ -384,63 +354,14 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
               </div>
             )}
 
-            {/* Shop history */}
-            {visitCount > 1 && (
-              <div className="mt-5 rounded-2xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200/80 dark:border-stone-700/60 overflow-hidden">
-                <p className="px-4 pt-3.5 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 select-none">
-                  Shop History
+            {/* Notes - if no photo */}
+            {!visit.photo_url && visit.notes && (
+              <div className="mt-5 p-5 rounded-2xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200/60 dark:border-stone-700/60">
+                <p className="text-base text-stone-700 dark:text-stone-300 italic leading-relaxed">
+                  "{visit.notes}"
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-stone-200/60 dark:divide-stone-700/50 border-t border-stone-200/60 dark:border-stone-700/50">
-                  <SnapshotCell label="Visits" value={visitCount} />
-                  <SnapshotCell label="Avg Vibe" value={avgVibe.toFixed(1)} />
-                  <SnapshotCell label="Avg Coffee" value={avgCoffee.toFixed(1)} />
-                  <SnapshotCell label="Avg Total" value={avgTotal.toFixed(1)} />
-                </div>
-                {latestShopVisit && (
-                  <p className="px-4 py-2.5 border-t border-stone-200/60 dark:border-stone-700/50 text-xs text-stone-400 dark:text-stone-500">
-                    Last visit: {new Date(latestShopVisit.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </p>
-                )}
               </div>
             )}
-
-            {/* Detail rows — iOS grouped list */}
-            {detailRows.length > 0 && (
-              <div className="mt-5 rounded-2xl bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700/60 shadow-sm divide-y divide-stone-100 dark:divide-stone-700/50 overflow-hidden">
-                {detailRows.map((row) => (
-                  <div key={row.label} className="px-4 py-3.5">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 mb-1 select-none">
-                      {row.label}
-                    </p>
-                    <p className="text-[15px] text-stone-800 dark:text-stone-100 leading-snug">{row.value}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Action buttons */}
-            <div className="mt-6 space-y-2">
-              <button
-                onClick={handleEdit}
-                className="w-full py-3.5 bg-stone-900 dark:bg-stone-50 text-white dark:text-stone-900 rounded-2xl font-semibold text-[15px] tracking-wide hover:bg-stone-800 dark:hover:bg-white transition-all active:scale-[0.99]"
-              >
-                Edit Visit
-              </button>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={handleDuplicate}
-                  className="py-3 bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200 rounded-2xl font-medium text-sm hover:bg-stone-200 dark:hover:bg-stone-600 transition-all active:scale-[0.99]"
-                >
-                  Duplicate
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-2xl font-medium text-sm hover:bg-red-100 dark:hover:bg-red-900/30 transition-all active:scale-[0.99]"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -505,15 +426,6 @@ function ScoreCell({ label, score, isTotal = false }) {
       >
         {score.toFixed(1)}
       </div>
-    </div>
-  );
-}
-
-function SnapshotCell({ label, value }) {
-  return (
-    <div className="px-4 py-3.5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 select-none">{label}</p>
-      <p className="text-xl font-black rating-number text-stone-900 dark:text-stone-100 mt-1">{value}</p>
     </div>
   );
 }
