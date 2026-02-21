@@ -152,14 +152,12 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
 
   const mapEmbedUrl = useMemo(() => {
     if (hasCoordinates) {
-      // Embed with marker - using place_id if available, otherwise coordinates
-      if (visit.coffee_shop_place_id) {
-        return `https://maps.google.com/maps?q=place_id:${visit.coffee_shop_place_id}&z=15&output=embed`;
-      }
-      return `https://maps.google.com/maps?q=${visit.coffee_shop_lat},${visit.coffee_shop_lng}&z=15&output=embed`;
+      // Use shop name + coordinates for better context and business details
+      const query = encodeURIComponent(`${visit.coffee_shop_name}`);
+      return `https://maps.google.com/maps?q=${query}&ll=${visit.coffee_shop_lat},${visit.coffee_shop_lng}&z=17&output=embed`;
     }
     return null;
-  }, [visit.coffee_shop_place_id, hasCoordinates, visit.coffee_shop_lat, visit.coffee_shop_lng]);
+  }, [hasCoordinates, visit.coffee_shop_lat, visit.coffee_shop_lng, visit.coffee_shop_name]);
 
   return (
     <div
@@ -177,12 +175,10 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
               <div className="relative aspect-[16/9] bg-stone-100 dark:bg-stone-700 overflow-hidden">
                 <img src={visit.photo_url} alt={visit.coffee_shop_name} className="w-full h-full object-cover" />
                 {visit.notes && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent pt-32 pb-6 px-5 sm:px-7">
-                    <div className="bg-black/30 backdrop-blur-md rounded-2xl px-5 py-4 sm:px-6 sm:py-5 border border-white/15">
-                      <p className="text-white text-lg sm:text-xl font-medium leading-relaxed tracking-wide">
-                        "{visit.notes}"
-                      </p>
-                    </div>
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white/90 via-white/50 to-transparent dark:from-black/70 dark:via-black/30 dark:to-transparent backdrop-blur-lg pt-24 pb-5 px-5 sm:pb-6 sm:px-7">
+                    <p className="text-stone-900 dark:text-white text-lg sm:text-xl font-medium leading-relaxed tracking-wide">
+                      "{visit.notes}"
+                    </p>
                   </div>
                 )}
               </div>
