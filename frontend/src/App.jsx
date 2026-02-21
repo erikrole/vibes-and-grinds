@@ -18,16 +18,7 @@ const isVestDomain = window.location.hostname.startsWith('vests.');
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
 function navigateToMode(mode) {
-  if (isLocalhost) return false; // let caller handle state
-  const host = window.location.hostname;
-  if (mode === APP_MODES.VEST && !host.startsWith('vests.')) {
-    window.location.href = `https://vests.${host}`;
-    return true;
-  }
-  if (mode === APP_MODES.VIBES && host.startsWith('vests.')) {
-    window.location.href = `https://${host.replace(/^vests\./, '')}`;
-    return true;
-  }
+  // Subdomain navigation disabled - handle via state only
   return false;
 }
 
