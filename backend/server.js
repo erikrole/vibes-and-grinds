@@ -10,14 +10,19 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Initialize database
+// Initialize database then start listening — prevents requests arriving before db is ready
 let db;
-initDatabase().then(database => {
-  db = database;
-}).catch(err => {
-  console.error('Failed to initialize database:', err);
-  process.exit(1);
-});
+initDatabase()
+  .then((database) => {
+    db = database;
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('Failed to initialize database:', err);
+    process.exit(1);
+  });
 
 // Routes
 
@@ -427,6 +432,3 @@ app.get('/api/places-details', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});

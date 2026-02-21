@@ -81,6 +81,9 @@ export default function App() {
   useEffect(() => {
     const onKeyDown = (event) => {
       if (event.key.toLowerCase() !== 'v') return;
+      // Don't fire when the user is typing in a form field
+      const tag = event.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || event.target.isContentEditable) return;
       setAppMode((prevMode) => (prevMode === APP_MODES.VIBES ? APP_MODES.VEST : APP_MODES.VIBES));
     };
 

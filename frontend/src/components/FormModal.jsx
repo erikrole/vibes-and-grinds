@@ -1,6 +1,6 @@
 export default function FormModal({ title, onClose, children }) {
   return (
-    <div className="fixed inset-0 z-[1001] overflow-y-auto">
+    <div className="fixed inset-0 z-[1001] overflow-y-auto" role="dialog" aria-modal="true" aria-label={title}>
       <div
         className="fixed inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-sm transition-opacity"
         onClick={onClose}

@@ -125,6 +125,7 @@ export default function PhotoCropper({ imageUrl, onComplete, onCancel }) {
                   ref={imgRef}
                   src={imageUrl}
                   alt="Crop preview"
+                  crossOrigin="anonymous"
                   onLoad={onImageLoad}
                   style={{ maxHeight: '60vh' }}
                 />

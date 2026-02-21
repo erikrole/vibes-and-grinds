@@ -77,6 +77,13 @@ export default function VestTrackerDashboard() {
     [games]
   );
 
+  // Reset filter if the selected outfit is no longer present (e.g. after editing a game)
+  useEffect(() => {
+    if (selectedOutfit !== 'All outfits' && !outfits.includes(selectedOutfit)) {
+      setSelectedOutfit('All outfits');
+    }
+  }, [outfits, selectedOutfit]);
+
   // Timeline: newest first
   const visibleGames = useMemo(() => {
     const base =
