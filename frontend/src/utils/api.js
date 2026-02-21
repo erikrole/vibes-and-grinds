@@ -56,3 +56,11 @@ export async function fetchStats() {
   }
   return response.json();
 }
+
+export async function fetchVestSchedule(season = '2025') {
+  const response = await fetch(`${API_URL}/api/vest/schedule?season=${season}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch vest schedule');
+  }
+  return response.json();
+}
