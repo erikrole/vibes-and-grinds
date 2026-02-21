@@ -219,6 +219,67 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 
+
+app.get('/api/vest/schedule', async (req, res) => {
+  const season = String(req.query.season || '2025');
+  const teamId = '275'; // Wisconsin
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const response = await fetch(
+      `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/${teamId}/schedule?season=${season}`,
+      { signal: controller.signal }
+    );
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      return res.status(502).json({ error: 'Failed to fetch schedule from ESPN', status: response.status });
+    }
+
+    const data = await response.json();
+    const events = Array.isArray(data.events) ? data.events : [];
+
+    const games = events.map((event) => {
+      const competition = event.competitions?.[0] || {};
+      const competitors = competition.competitors || [];
+      const badgers = competitors.find((c) => String(c.team?.id) === teamId);
+      const opponent = competitors.find((c) => String(c.team?.id) !== teamId);
+
+      const location = badgers?.homeAway === 'away' ? '@' : 'vs';
+      const isCompleted = competition.status?.type?.completed;
+      const overtime = (competition.status?.type?.description || '').toUpperCase().includes('OT');
+
+      let result = '';
+      if (isCompleted && badgers && opponent) {
+        const badgersScore = Number(badgers.score);
+        const opponentScore = Number(opponent.score);
+        if (Number.isFinite(badgersScore) && Number.isFinite(opponentScore)) {
+          result = badgersScore > opponentScore ? 'W' : 'L';
+        }
+      }
+
+      return {
+        date: event.date,
+        opponent: opponent?.team?.displayName || event.shortName || 'TBD',
+        location,
+        result,
+        overtime,
+        completed: Boolean(isCompleted),
+      };
+    });
+
+    res.json({ season, source: 'ESPN', games });
+  } catch (error) {
+    const timedOut = error?.name === 'AbortError';
+    console.error('Error fetching vest schedule:', error);
+    res.status(502).json({
+      error: timedOut ? 'Schedule request timed out' : 'Failed to fetch vest schedule',
+      details: timedOut ? 'ESPN did not respond in time.' : error.message,
+    });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
