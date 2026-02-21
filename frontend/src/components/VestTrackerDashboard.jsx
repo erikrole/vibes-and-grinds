@@ -7,6 +7,7 @@ const EMPTY_FORM = {
   date: '',
   location: 'vs',
   opponent: '',
+  ranking: '',
   outfit: '',
   result: 'W',
   overtime: false,
@@ -201,6 +202,7 @@ export default function VestTrackerDashboard() {
       date: game.date || '',
       location: game.location || 'vs',
       opponent: game.opponent,
+      ranking: game.ranking || '',
       outfit: game.outfit || '',
       result: game.result || 'W',
       overtime: Boolean(game.overtime),
@@ -211,6 +213,7 @@ export default function VestTrackerDashboard() {
     event.preventDefault();
     const opponent = formState.opponent.trim();
     const outfit = formState.outfit.trim();
+    const ranking = formState.ranking.trim();
 
     if (!opponent) return;
 
@@ -218,6 +221,7 @@ export default function VestTrackerDashboard() {
       date: toIsoDate(formState.date),
       location: formState.location,
       opponent,
+      ranking: ranking ? parseInt(ranking, 10) : null,
       outfit,
       result: formState.result,
       overtime: Boolean(formState.overtime),
@@ -319,7 +323,7 @@ export default function VestTrackerDashboard() {
                 </div>
 
                 <div className="mt-2 text-sm text-stone-500 dark:text-stone-400">
-                  {stat.games} {stat.games === 1 ? 'game' : 'games'} • last seen {stat.lastSeenLocation} {stat.lastSeen}
+                  {stat.games} {stat.games === 1 ? 'game' : 'games'} • last worn {stat.lastSeenLocation} {stat.lastSeen}
                 </div>
               </button>
             );
@@ -353,11 +357,12 @@ export default function VestTrackerDashboard() {
                 <div className="flex items-center gap-1.5 text-xs opacity-75">
                   <span>{formatDate(game.date) || `Game ${index + 1}`}</span>
                   {game.ranking && <span className="font-bold">#{game.ranking}</span>}
+                  {game.overtime && <span className="font-bold">OT</span>}
                 </div>
                 <div className="font-semibold">{game.location || 'vs'} {game.opponent}</div>
                 <div className="text-xs mt-1 opacity-80">{game.outfit || 'Outfit TBD'}</div>
                 <div className="text-xs mt-1 font-semibold">
-                  {resultLabel}{game.overtime ? ' (OT)' : ''}
+                  {resultLabel}
                 </div>
               </button>
             );
@@ -371,7 +376,7 @@ export default function VestTrackerDashboard() {
           {editingId ? `Edit game #${editingId}` : 'Add game'}
         </h3>
 
-        <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-7 gap-3 items-end">
+        <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-8 gap-3 items-end">
           <label className="block">
             <span className="text-xs uppercase tracking-[0.08em] text-stone-500">Date</span>
             <input
@@ -401,6 +406,19 @@ export default function VestTrackerDashboard() {
               onChange={(event) => setFormState((prev) => ({ ...prev, opponent: event.target.value }))}
               className="mt-1 w-full rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-2 text-sm"
               placeholder="Indiana"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-xs uppercase tracking-[0.08em] text-stone-500">Rank #</span>
+            <input
+              type="number"
+              min="1"
+              max="25"
+              value={formState.ranking}
+              onChange={(event) => setFormState((prev) => ({ ...prev, ranking: event.target.value }))}
+              className="mt-1 w-full rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-2 text-sm"
+              placeholder="e.g. 5"
             />
           </label>
 

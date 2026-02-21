@@ -289,7 +289,7 @@ export default function App() {
                   className="flex items-center gap-3 sm:gap-4 text-left hover:opacity-80 transition-opacity"
                   aria-label="Toggle app mode"
                 >
-                  <div className="text-3xl sm:text-4xl">{appMode === APP_MODES.VEST ? '🧥' : '☕'}</div>
+                  <div className="text-3xl sm:text-4xl">{appMode === APP_MODES.VEST ? '👔' : '☕'}</div>
                   <h1 className="coffee-shop-name text-3xl sm:text-4xl font-black tracking-tight">{modeLabel}</h1>
                   <svg className="w-4 h-4 text-stone-500" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z" />
@@ -322,7 +322,7 @@ export default function App() {
                           : 'text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700'
                       }`}
                     >
-                      🧥 VEST TRACKER
+                      👔 VEST TRACKER
                     </button>
                   </div>
                 )}
