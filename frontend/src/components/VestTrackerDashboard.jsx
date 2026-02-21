@@ -367,9 +367,8 @@ export default function VestTrackerDashboard() {
                   {formatDate(game.date) || `Game ${index + 1}`}
                 </div>
                 <div className="font-semibold">
-                  {game.location === '@' ? 'at' : game.location || 'vs'}&nbsp;&nbsp;{game.ranking && toSuperscript(game.ranking)}&thinsp;{game.opponent}
+                  {game.location === '@' ? 'at' : game.location || 'vs'}&nbsp;&nbsp;{game.ranking && toSuperscript(game.ranking)}&thinsp;{game.opponent}{game.overtime && ' (OT)'}
                 </div>
-                {game.overtime && <div className="text-xs font-bold opacity-75">OT</div>}
                 <div className="text-xs mt-1 opacity-80">{game.outfit || 'Outfit TBD'}</div>
                 <div className="text-xs mt-1 font-semibold">
                   {resultLabel}
