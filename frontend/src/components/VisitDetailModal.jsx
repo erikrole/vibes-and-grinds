@@ -186,14 +186,14 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
                   <div
                     className="absolute bottom-0 left-0 right-0 pt-32 pb-5 px-5 sm:pb-6 sm:px-7"
                     style={{
-                      background: isDark
-                        ? 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.35) 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.1) 60%, rgba(0,0,0,0.05) 80%, transparent 100%)'
-                        : 'linear-gradient(to top, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.25) 20%, rgba(255,255,255,0.15) 40%, rgba(255,255,255,0.08) 60%, rgba(255,255,255,0.03) 80%, transparent 100%)',
-                      backdropFilter: 'blur(20px)',
-                      WebkitBackdropFilter: 'blur(20px)'
+                      backdropFilter: 'blur(16px)',
+                      WebkitBackdropFilter: 'blur(16px)',
+                      background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.12)',
+                      maskImage: 'linear-gradient(to top, black 0%, black 35%, transparent 100%)',
+                      WebkitMaskImage: 'linear-gradient(to top, black 0%, black 35%, transparent 100%)',
                     }}
                   >
-                    <p className="text-white text-lg sm:text-xl font-semibold leading-relaxed tracking-wide" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.7)' }}>
+                    <p className="text-white text-lg sm:text-xl font-semibold leading-relaxed tracking-wide" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}>
                       "{visit.notes}"
                     </p>
                   </div>
