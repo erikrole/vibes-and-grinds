@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { vestGames as seedGames } from '../utils/vestTrackerData';
-import { fetchVestSchedule } from '../utils/api';
 
 const EMPTY_FORM = {
   date: '',
@@ -19,13 +18,23 @@ const toIsoDate = (value) => {
   return parsed.toISOString().slice(0, 10);
 };
 
+const MONTHS = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'Jun.', 'Jul.', 'Aug.', 'Sep.', 'Oct.', 'Nov.', 'Dec.'];
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return null;
+  const parts = dateStr.split('-');
+  if (parts.length < 3) return dateStr;
+  const month = MONTHS[parseInt(parts[1], 10) - 1];
+  const day = parseInt(parts[2], 10);
+  return `${month} ${day}, ${parts[0]}`;
+};
+
 export default function VestTrackerDashboard() {
   const [games, setGames] = useState(seedGames);
   const [selectedOutfit, setSelectedOutfit] = useState('All outfits');
   const [formState, setFormState] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState(null);
-  const [syncing, setSyncing] = useState(false);
-  const [syncMessage, setSyncMessage] = useState('');
+  const [addingOutfit, setAddingOutfit] = useState(false);
 
   const sortedGames = useMemo(
     () => [...games].sort((a, b) => (a.date || '').localeCompare(b.date || '')),
@@ -42,19 +51,28 @@ export default function VestTrackerDashboard() {
     [completedGames]
   );
 
+  const existingOutfits = useMemo(
+    () => [...new Set(games.filter((g) => g.outfit).map((g) => g.outfit))].sort(),
+    [games]
+  );
+
+  // Timeline: newest first
   const visibleGames = useMemo(() => {
-    if (selectedOutfit === 'All outfits') return sortedGames;
-    return sortedGames.filter((game) => game.outfit === selectedOutfit);
+    const base =
+      selectedOutfit === 'All outfits'
+        ? sortedGames
+        : sortedGames.filter((game) => game.outfit === selectedOutfit);
+    return [...base].reverse();
   }, [sortedGames, selectedOutfit]);
 
   const summary = useMemo(() => {
-    const sourceGames = selectedOutfit === 'All outfits'
-      ? completedGames
-      : completedGames.filter((game) => game.outfit === selectedOutfit);
+    const sourceGames =
+      selectedOutfit === 'All outfits'
+        ? completedGames
+        : completedGames.filter((game) => game.outfit === selectedOutfit);
     const wins = sourceGames.filter((game) => game.result === 'W').length;
     const losses = sourceGames.length - wins;
-    const winRate = sourceGames.length ? Math.round((wins / sourceGames.length) * 100) : 0;
-    return { wins, losses, winRate };
+    return { wins, losses };
   }, [completedGames, selectedOutfit]);
 
   const outfitStats = useMemo(() => {
@@ -68,12 +86,14 @@ export default function VestTrackerDashboard() {
             losses: 0,
             games: 0,
             lastSeen: game.opponent,
+            lastSeenLocation: game.location || 'vs',
             lastIndex: index,
           };
         }
 
         acc[game.outfit].games += 1;
         acc[game.outfit].lastSeen = game.opponent;
+        acc[game.outfit].lastSeenLocation = game.location || 'vs';
         acc[game.outfit].lastIndex = index;
         if (game.result === 'W') acc[game.outfit].wins += 1;
         if (game.result === 'L') acc[game.outfit].losses += 1;
@@ -106,7 +126,7 @@ export default function VestTrackerDashboard() {
         return {
           ...entry,
           score: Math.round(score),
-          reason: `${entry.wins}-${entry.losses} record, ${entry.winRate}% wins, last worn ${recencyDistance} game${recencyDistance === 1 ? '' : 's'} ago`,
+          recencyDistance,
         };
       })
       .sort((a, b) => b.score - a.score);
@@ -121,10 +141,12 @@ export default function VestTrackerDashboard() {
   const resetForm = () => {
     setFormState(EMPTY_FORM);
     setEditingId(null);
+    setAddingOutfit(false);
   };
 
   const startEdit = (game) => {
     setEditingId(game.id);
+    setAddingOutfit(false);
     setFormState({
       date: game.date || '',
       location: game.location || 'vs',
@@ -160,116 +182,59 @@ export default function VestTrackerDashboard() {
     const nextId = Math.max(0, ...games.map((game) => game.id)) + 1;
     setGames((prev) => [...prev, { id: nextId, ...payload }]);
     setFormState({ ...EMPTY_FORM, result: 'W', location: 'vs' });
-  };
-
-  const handleSyncSchedule = async () => {
-    try {
-      setSyncing(true);
-      setSyncMessage('');
-      const response = await fetchVestSchedule('2025');
-      const incoming = response.games || [];
-
-      setGames((prev) => {
-        let nextId = Math.max(0, ...prev.map((game) => game.id));
-        const byKey = new Map(prev.map((game) => [`${game.date}|${game.opponent}`, game]));
-        const merged = [...prev];
-        let added = 0;
-        let updated = 0;
-
-        incoming.forEach((game) => {
-          const normalizedDate = toIsoDate(game.date);
-          const key = `${normalizedDate}|${game.opponent}`;
-          const existing = byKey.get(key);
-
-          if (existing) {
-            const patched = {
-              ...existing,
-              date: normalizedDate || existing.date,
-              location: game.location || existing.location || 'vs',
-              result: game.result || existing.result || '',
-              overtime: Boolean(game.overtime || existing.overtime),
-            };
-
-            const idx = merged.findIndex((entry) => entry.id === existing.id);
-            if (idx >= 0) {
-              merged[idx] = patched;
-              updated += 1;
-            }
-            return;
-          }
-
-          nextId += 1;
-          merged.push({
-            id: nextId,
-            date: normalizedDate,
-            opponent: game.opponent,
-            location: game.location || 'vs',
-            outfit: '',
-            result: game.result || '',
-            overtime: Boolean(game.overtime),
-          });
-          added += 1;
-        });
-
-        setSyncMessage(`Synced schedule: ${added} added, ${updated} updated.`);
-        return merged;
-      });
-    } catch (error) {
-      setSyncMessage('Could not auto-sync right now. Backend may not have external network access.');
-    } finally {
-      setSyncing(false);
-    }
+    setAddingOutfit(false);
   };
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Header */}
       <section className="bg-neutral-900 text-neutral-100 border border-red-900/40 rounded-2xl p-5 sm:p-6 shadow-sm mb-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.15em] text-neutral-400">Vest Tracker</p>
             <h2 className="text-3xl font-black tracking-tight mt-1">{summary.wins}-{summary.losses}</h2>
-            <p className="text-neutral-400 text-sm mt-1">Win rate: {summary.winRate}%</p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
-            <div className="min-w-[220px]">
-              <label className="block text-xs uppercase tracking-[0.12em] text-neutral-400 mb-2" htmlFor="outfit-filter">
-                Filter by outfit
-              </label>
-              <select
-                id="outfit-filter"
-                value={selectedOutfit}
-                onChange={(event) => setSelectedOutfit(event.target.value)}
-                className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2 text-sm text-neutral-100 focus:outline-none focus:ring-1 focus:ring-red-500"
-              >
-                {outfits.map((outfit) => (
-                  <option key={outfit} value={outfit}>
-                    {outfit}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button onClick={handleSyncSchedule} disabled={syncing} className="btn-secondary text-sm h-[42px]">
-              {syncing ? 'Syncing…' : 'Auto-sync schedule'}
-            </button>
+          <div className="min-w-[220px]">
+            <label className="block text-xs uppercase tracking-[0.12em] text-neutral-400 mb-2" htmlFor="outfit-filter">
+              Filter by outfit
+            </label>
+            <select
+              id="outfit-filter"
+              value={selectedOutfit}
+              onChange={(event) => setSelectedOutfit(event.target.value)}
+              className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2 text-sm text-neutral-100 focus:outline-none focus:ring-1 focus:ring-red-500"
+            >
+              {outfits.map((outfit) => (
+                <option key={outfit} value={outfit}>
+                  {outfit}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
-
-        {syncMessage && <p className="text-xs text-red-100 mt-3">{syncMessage}</p>}
 
         {recommendation && (
           <div className="mt-5 rounded-xl border border-red-700/40 bg-red-950/30 p-4">
             <p className="text-[11px] uppercase tracking-[0.12em] text-red-200">Next fit recommendation</p>
             <p className="text-lg font-bold mt-1">{recommendation.top.outfit}</p>
-            <p className="text-sm text-red-100 mt-1">{recommendation.top.reason}</p>
-            <p className="text-xs text-red-200/85 mt-2">Rule applied: no back-to-back repeats (last fit: {recommendation.blockedOutfit}).</p>
+            <p className="text-sm text-red-100/90 mt-1">
+              {recommendation.top.wins}-{recommendation.top.losses} in {recommendation.top.games}{' '}
+              {recommendation.top.games === 1 ? 'game' : 'games'}, last worn{' '}
+              {recommendation.top.recencyDistance === 1
+                ? '1 game ago'
+                : `${recommendation.top.recencyDistance} games ago`}
+            </p>
             {recommendation.alternatives.length > 0 && (
-              <p className="text-xs text-red-200/85 mt-1">Alt options: {recommendation.alternatives.map((entry) => entry.outfit).join(' • ')}</p>
+              <p className="text-xs text-red-200/70 mt-2">
+                Also consider: {recommendation.alternatives.map((entry) => entry.outfit).join(' • ')}
+              </p>
             )}
           </div>
         )}
       </section>
 
+      {/* Outfit cards */}
       <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
         {outfitStats.map((stat) => {
           const winWidth = (stat.wins / stat.games) * 100;
@@ -288,13 +253,14 @@ export default function VestTrackerDashboard() {
               </div>
 
               <div className="mt-2 text-sm text-stone-500 dark:text-stone-400">
-                {stat.winRate}% win rate • {stat.games} games • last seen {stat.lastSeen}
+                {stat.games} {stat.games === 1 ? 'game' : 'games'} • last seen {stat.lastSeenLocation} {stat.lastSeen}
               </div>
             </article>
           );
         })}
       </section>
 
+      {/* Season timeline — newest first */}
       <section className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 shadow-sm mb-6">
         <div className="flex items-center justify-between gap-3 mb-3">
           <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">Season timeline</h3>
@@ -302,11 +268,14 @@ export default function VestTrackerDashboard() {
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2">
           {visibleGames.map((game, index) => {
-            const resultClass = game.result === 'W'
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-200'
-              : game.result === 'L'
-                ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/30 dark:border-red-800 dark:text-red-200'
-                : 'bg-stone-50 border-stone-200 text-stone-700 dark:bg-stone-700/30 dark:border-stone-600 dark:text-stone-200';
+            const resultClass =
+              game.result === 'W'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-200'
+                : game.result === 'L'
+                  ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/30 dark:border-red-800 dark:text-red-200'
+                  : 'bg-stone-50 border-stone-200 text-stone-700 dark:bg-stone-700/30 dark:border-stone-600 dark:text-stone-200';
+
+            const resultLabel = game.result === 'W' ? 'Win' : game.result === 'L' ? 'Loss' : 'Upcoming';
 
             return (
               <button
@@ -314,11 +283,14 @@ export default function VestTrackerDashboard() {
                 onClick={() => startEdit(game)}
                 className={`min-w-[176px] rounded-xl border px-3 py-2 text-left text-sm transition-colors ${resultClass}`}
               >
-                <div className="text-xs opacity-75">{game.date || `Game ${index + 1}`}</div>
+                <div className="flex items-center gap-1.5 text-xs opacity-75">
+                  <span>{formatDate(game.date) || `Game ${index + 1}`}</span>
+                  {game.ranking && <span className="font-bold">#{game.ranking}</span>}
+                </div>
                 <div className="font-semibold">{game.location || 'vs'} {game.opponent}</div>
                 <div className="text-xs mt-1 opacity-80">{game.outfit || 'Outfit TBD'}</div>
                 <div className="text-xs mt-1 font-semibold">
-                  {game.result || 'Upcoming'}{game.overtime ? ' • OT' : ''}
+                  {resultLabel}{game.overtime ? ' (OT)' : ''}
                 </div>
               </button>
             );
@@ -326,8 +298,11 @@ export default function VestTrackerDashboard() {
         </div>
       </section>
 
+      {/* Add / Edit form */}
       <section className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 shadow-sm">
-        <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-3">{editingId ? `Edit game #${editingId}` : 'Add game (after the fact)'}</h3>
+        <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-3">
+          {editingId ? `Edit game #${editingId}` : 'Add game'}
+        </h3>
 
         <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-7 gap-3 items-end">
           <label className="block">
@@ -364,12 +339,40 @@ export default function VestTrackerDashboard() {
 
           <label className="block">
             <span className="text-xs uppercase tracking-[0.08em] text-stone-500">Outfit</span>
-            <input
-              value={formState.outfit}
-              onChange={(event) => setFormState((prev) => ({ ...prev, outfit: event.target.value }))}
-              className="mt-1 w-full rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-2 text-sm"
-              placeholder="Red Vest"
-            />
+            {addingOutfit ? (
+              <input
+                autoFocus
+                value={formState.outfit}
+                onChange={(event) => setFormState((prev) => ({ ...prev, outfit: event.target.value }))}
+                className="mt-1 w-full rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-2 text-sm"
+                placeholder="e.g. Red Vest"
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setAddingOutfit(false);
+                    setFormState((prev) => ({ ...prev, outfit: '' }));
+                  }
+                }}
+              />
+            ) : (
+              <select
+                value={formState.outfit}
+                onChange={(event) => {
+                  if (event.target.value === '__add__') {
+                    setAddingOutfit(true);
+                    setFormState((prev) => ({ ...prev, outfit: '' }));
+                  } else {
+                    setFormState((prev) => ({ ...prev, outfit: event.target.value }));
+                  }
+                }}
+                className="mt-1 w-full rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-2 text-sm"
+              >
+                <option value="">Select outfit</option>
+                {existingOutfits.map((o) => (
+                  <option key={o} value={o}>{o}</option>
+                ))}
+                <option value="__add__">+ Add Outfit</option>
+              </select>
+            )}
           </label>
 
           <label className="block">
