@@ -9,6 +9,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
   const [cropping, setCropping] = useState(false);
   const [imageToCrop, setImageToCrop] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [isDark, setIsDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   useEffect(() => {
     const handleEscape = (e) => {
@@ -25,6 +26,13 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [onClose, showMenu]);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e) => setIsDark(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   const handlePhotoUpload = async (file) => {
     if (!file) return;
@@ -176,10 +184,16 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
                 <img src={visit.photo_url} alt={visit.coffee_shop_name} className="w-full h-full object-cover" />
                 {visit.notes && (
                   <div
-                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white/25 via-white/10 to-transparent dark:from-black/40 dark:via-black/15 dark:to-transparent pt-24 pb-5 px-5 sm:pb-6 sm:px-7"
-                    style={{ backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}
+                    className="absolute bottom-0 left-0 right-0 pt-32 pb-5 px-5 sm:pb-6 sm:px-7"
+                    style={{
+                      background: isDark
+                        ? 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.35) 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.1) 60%, rgba(0,0,0,0.05) 80%, transparent 100%)'
+                        : 'linear-gradient(to top, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.25) 20%, rgba(255,255,255,0.15) 40%, rgba(255,255,255,0.08) 60%, rgba(255,255,255,0.03) 80%, transparent 100%)',
+                      backdropFilter: 'blur(20px)',
+                      WebkitBackdropFilter: 'blur(20px)'
+                    }}
                   >
-                    <p className="text-white text-lg sm:text-xl font-semibold leading-relaxed tracking-wide" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}>
+                    <p className="text-white text-lg sm:text-xl font-semibold leading-relaxed tracking-wide" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.7)' }}>
                       "{visit.notes}"
                     </p>
                   </div>
