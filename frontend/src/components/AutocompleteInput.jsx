@@ -88,14 +88,14 @@ export default function AutocompleteInput({
       {shouldShowSuggestions && (
         <div
           ref={dropdownRef}
-          className="absolute z-20 w-full mt-1 bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-600 rounded-md shadow-lg max-h-60 overflow-y-auto"
+          className="absolute z-30 w-full mt-1.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl shadow-xl overflow-hidden max-h-56 overflow-y-auto"
         >
           {filteredSuggestions.map((suggestion) => (
             <button
               key={`${name}-${suggestion}`}
               type="button"
               onClick={() => handleSelectSuggestion(suggestion)}
-              className="w-full text-left px-4 py-2.5 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors first:rounded-t-md last:rounded-b-md"
+              className="w-full text-left px-4 py-2.5 text-[14px] text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700/60 transition-colors border-b border-stone-100 dark:border-stone-700/50 last:border-0"
             >
               {suggestion}
             </button>

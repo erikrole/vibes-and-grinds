@@ -21,7 +21,7 @@ async function parseApiError(response, fallbackMessage) {
   }
 }
 
-export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, disabled = false }) {
+export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, disabled = false, inputClassName = 'input-field' }) {
   const [suggestions, setSuggestions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
@@ -154,7 +154,7 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, d
         onChange={onChange}
         onFocus={() => setShowSuggestions(true)}
         placeholder="Search for a coffee shop..."
-        className="input-field"
+        className={inputClassName}
         autoComplete="off"
         disabled={disabled}
       />

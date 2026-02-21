@@ -7,16 +7,16 @@ export default function FormModal({ title, onClose, children }) {
       />
       <div className="flex min-h-full items-center justify-center p-4">
         <div
-          className="relative bg-white dark:bg-stone-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[92vh] overflow-y-auto transition-colors border border-stone-200 dark:border-stone-700"
+          className="animate-modal-in relative bg-white dark:bg-stone-800 rounded-3xl shadow-2xl max-w-xl w-full max-h-[92vh] overflow-y-auto border border-stone-200/60 dark:border-stone-700/60"
           onClick={(e) => e.stopPropagation()}
         >
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors z-20"
+            className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-600 transition-all"
             aria-label={`Close ${title}`}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
           <div className="p-5 sm:p-7">{children}</div>
