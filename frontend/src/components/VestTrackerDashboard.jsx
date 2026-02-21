@@ -32,6 +32,15 @@ const formatDate = (dateStr) => {
   return `${month} ${day}, ${parts[0]}`;
 };
 
+const toSuperscript = (num) => {
+  if (!num) return '';
+  const superscripts = ['⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'];
+  return String(num)
+    .split('')
+    .map((digit) => superscripts[parseInt(digit, 10)])
+    .join('');
+};
+
 const loadGames = () => {
   try {
     const raw = localStorage.getItem(VEST_GAMES_KEY);
@@ -356,10 +365,11 @@ export default function VestTrackerDashboard() {
               >
                 <div className="flex items-center gap-1.5 text-xs opacity-75">
                   <span>{formatDate(game.date) || `Game ${index + 1}`}</span>
-                  {game.ranking && <span className="font-bold">#{game.ranking}</span>}
                   {game.overtime && <span className="font-bold">OT</span>}
                 </div>
-                <div className="font-semibold">{game.location || 'vs'} {game.opponent}</div>
+                <div className="font-semibold">
+                  {game.location || 'vs'} {game.ranking && toSuperscript(game.ranking)}{game.opponent}
+                </div>
                 <div className="text-xs mt-1 opacity-80">{game.outfit || 'Outfit TBD'}</div>
                 <div className="text-xs mt-1 font-semibold">
                   {resultLabel}
