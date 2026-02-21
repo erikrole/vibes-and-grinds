@@ -363,13 +363,13 @@ export default function VestTrackerDashboard() {
                 onClick={() => startEdit(game)}
                 className={`min-w-[176px] rounded-xl border px-3 py-2 text-left text-sm transition-colors ${resultClass}`}
               >
-                <div className="flex items-center gap-1.5 text-xs opacity-75">
-                  <span>{formatDate(game.date) || `Game ${index + 1}`}</span>
-                  {game.overtime && <span className="font-bold">OT</span>}
+                <div className="text-xs opacity-75">
+                  {formatDate(game.date) || `Game ${index + 1}`}
                 </div>
                 <div className="font-semibold">
-                  {game.location || 'vs'} {game.ranking && toSuperscript(game.ranking)}{game.opponent}
+                  {game.location === '@' ? 'at' : game.location || 'vs'}&nbsp;&nbsp;{game.ranking && toSuperscript(game.ranking)}&thinsp;{game.opponent}
                 </div>
+                {game.overtime && <div className="text-xs font-bold opacity-75">OT</div>}
                 <div className="text-xs mt-1 opacity-80">{game.outfit || 'Outfit TBD'}</div>
                 <div className="text-xs mt-1 font-semibold">
                   {resultLabel}
