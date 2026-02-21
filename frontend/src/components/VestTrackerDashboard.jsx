@@ -249,24 +249,12 @@ export default function VestTrackerDashboard() {
               </p>
             )}
           </div>
-
-          <div className="min-w-[220px]">
-            <label className="block text-xs uppercase tracking-[0.12em] text-neutral-400 mb-2" htmlFor="outfit-filter">
-              Filter by outfit
-            </label>
-            <select
-              id="outfit-filter"
-              value={selectedOutfit}
-              onChange={(event) => setSelectedOutfit(event.target.value)}
-              className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2 text-sm text-neutral-100 focus:outline-none focus:ring-1 focus:ring-red-500"
-            >
-              {outfits.map((outfit) => (
-                <option key={outfit} value={outfit}>
-                  {outfit}
-                </option>
-              ))}
-            </select>
-          </div>
+          {selectedOutfit !== 'All outfits' && (
+            <div className="text-sm">
+              <p className="text-xs uppercase tracking-[0.12em] text-neutral-400">Filtered by</p>
+              <p className="font-semibold mt-1">{selectedOutfit}</p>
+            </div>
+          )}
         </div>
 
         {recommendation && (
@@ -290,41 +278,53 @@ export default function VestTrackerDashboard() {
       </section>
 
       {/* Outfit cards */}
-      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
-        {outfitStats.map((stat) => {
-          const winWidth = (stat.wins / stat.games) * 100;
-          const lossWidth = (stat.losses / stat.games) * 100;
+      <section className="mb-6">
+        <p className="text-xs uppercase tracking-[0.08em] text-stone-500 mb-3">Click an outfit to filter timeline</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {outfitStats.map((stat) => {
+            const winWidth = (stat.wins / stat.games) * 100;
+            const lossWidth = (stat.losses / stat.games) * 100;
+            const isSelected = selectedOutfit === stat.outfit;
 
-          return (
-            <article key={stat.outfit} className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 shadow-sm">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">{stat.outfit}</h3>
-                  {stat.form === 'hot' && (
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">
-                      🔥 Hot
-                    </span>
-                  )}
-                  {stat.form === 'cold' && (
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
-                      ❄️ Cold
-                    </span>
-                  )}
+            return (
+              <button
+                key={stat.outfit}
+                onClick={() => setSelectedOutfit(isSelected ? 'All outfits' : stat.outfit)}
+                className={`bg-white dark:bg-stone-800 border rounded-2xl p-5 shadow-sm text-left transition-all hover:shadow-md ${
+                  isSelected
+                    ? 'border-red-500 dark:border-red-600 ring-2 ring-red-500/20 dark:ring-red-600/30'
+                    : 'border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
+                }`}
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">{stat.outfit}</h3>
+                    {stat.form === 'hot' && (
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">
+                        🔥 Hot
+                      </span>
+                    )}
+                    {stat.form === 'cold' && (
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
+                        ❄️ Cold
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-sm font-semibold text-stone-500 dark:text-stone-300 shrink-0 ml-2">{stat.wins}-{stat.losses}</span>
                 </div>
-                <span className="text-sm font-semibold text-stone-500 dark:text-stone-300 shrink-0 ml-2">{stat.wins}-{stat.losses}</span>
-              </div>
 
-              <div className="h-2 rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden flex">
-                <div className="h-full bg-emerald-500" style={{ width: `${winWidth}%` }} title={`Wins: ${stat.wins}`} />
-                <div className="h-full bg-red-500" style={{ width: `${lossWidth}%` }} title={`Losses: ${stat.losses}`} />
-              </div>
+                <div className="h-2 rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden flex">
+                  <div className="h-full bg-emerald-500" style={{ width: `${winWidth}%` }} title={`Wins: ${stat.wins}`} />
+                  <div className="h-full bg-red-500" style={{ width: `${lossWidth}%` }} title={`Losses: ${stat.losses}`} />
+                </div>
 
-              <div className="mt-2 text-sm text-stone-500 dark:text-stone-400">
-                {stat.games} {stat.games === 1 ? 'game' : 'games'} • last seen {stat.lastSeenLocation} {stat.lastSeen}
-              </div>
-            </article>
-          );
-        })}
+                <div className="mt-2 text-sm text-stone-500 dark:text-stone-400">
+                  {stat.games} {stat.games === 1 ? 'game' : 'games'} • last seen {stat.lastSeenLocation} {stat.lastSeen}
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </section>
 
       {/* Season timeline — newest first */}
