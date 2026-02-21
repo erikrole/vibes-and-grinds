@@ -51,7 +51,7 @@ export default function AutocompleteInput({
   const handleSelectSuggestion = (suggestion) => {
     onChange({ target: { name, value: suggestion } });
     setShowSuggestions(false);
-    inputRef.current?.focus();
+    setIsFocused(false);
   };
 
   const handleInputChange = (e) => {

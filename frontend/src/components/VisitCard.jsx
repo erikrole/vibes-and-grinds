@@ -4,6 +4,7 @@ import CompositeBadge from './CompositeBadge';
 
 export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visitCount = 1 }) {
   const [showMenu, setShowMenu] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const menuRef = useRef(null);
 
   // Format date - parse manually to avoid timezone issues
@@ -16,7 +17,10 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
   });
 
   useEffect(() => {
-    if (!showMenu) return;
+    if (!showMenu) {
+      setConfirmingDelete(false);
+      return;
+    }
 
     const onKeyDown = (event) => {
       if (event.key === 'Escape') {
@@ -38,13 +42,6 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
       document.removeEventListener('mousedown', onPointerDown);
     };
   }, [showMenu]);
-
-  const handleDelete = () => {
-    if (window.confirm(`Are you sure you want to delete the visit to ${visit.coffee_shop_name}?`)) {
-      onDelete(visit.id);
-    }
-    setShowMenu(false);
-  };
 
   return (
     <div className="card">
@@ -86,7 +83,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
               </button>
               {showMenu && (
                 <div
-                  className="absolute right-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-md shadow-lg z-20 border border-stone-200 dark:border-stone-700 transition-colors"
+                  className="absolute right-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-2xl shadow-xl z-20 border border-stone-200 dark:border-stone-700 overflow-hidden"
                   role="menu"
                 >
                   <button
@@ -94,18 +91,38 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
                       onEdit(visit);
                       setShowMenu(false);
                     }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 rounded-t-md transition-colors"
+                    className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors border-b border-stone-100 dark:border-stone-700"
                     role="menuitem"
                   >
-                    Edit
+                    Edit Visit
                   </button>
-                  <button
-                    onClick={handleDelete}
-                    className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-b-md transition-colors"
-                    role="menuitem"
-                  >
-                    Delete
-                  </button>
+                  {confirmingDelete ? (
+                    <div className="px-4 py-3">
+                      <p className="text-xs text-stone-500 dark:text-stone-400 mb-2.5">Delete this visit?</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => { onDelete(visit.id); setShowMenu(false); }}
+                          className="flex-1 text-xs py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors"
+                        >
+                          Delete
+                        </button>
+                        <button
+                          onClick={() => setConfirmingDelete(false)}
+                          className="flex-1 text-xs py-2 bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200 rounded-xl font-medium transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmingDelete(true)}
+                      className="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      role="menuitem"
+                    >
+                      Delete Visit
+                    </button>
+                  )}
                 </div>
               )}
             </div>

@@ -130,16 +130,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
 
   const handleEdit = () => {
     setShowMenu(false);
-    setConfirmAction({
-      type: 'edit',
-      title: 'Edit this visit?',
-      message: 'You can make changes and save them.',
-      confirmText: 'Edit Visit',
-      onConfirm: () => {
-        setConfirmAction(null);
-        onEdit(visit);
-      },
-    });
+    onEdit(visit);
   };
 
   const handleDuplicate = () => {
@@ -147,7 +138,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
     setConfirmAction({
       type: 'duplicate',
       title: 'Duplicate this visit?',
-      message: 'This will create a copy with today\'s date that you can edit.',
+      message: "This will create a copy with today's date that you can edit.",
       confirmText: 'Duplicate Visit',
       onConfirm: () => {
         setConfirmAction(null);
@@ -181,7 +172,6 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
   const hasCoordinates = Number.isFinite(Number(visit.coffee_shop_lat)) && Number.isFinite(Number(visit.coffee_shop_lng));
 
   const mapEmbedUrl = useMemo(() => {
-    // place_id + coords: shows info overlay and respects zoom via ll+z
     if (visit.coffee_shop_place_id && hasCoordinates) {
       return `https://maps.google.com/maps?q=place_id:${visit.coffee_shop_place_id}&ll=${visit.coffee_shop_lat},${visit.coffee_shop_lng}&z=15&output=embed`;
     }
@@ -203,6 +193,20 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
       ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(visit.coffee_shop_address)}`
       : '';
 
+  const detailRows = [
+    visit.coffee_order && { label: 'Order', value: visit.coffee_order },
+    visit.coffee_shop_address && { label: 'Address', value: visit.coffee_shop_address },
+    googleMapsUrl && {
+      label: 'Map',
+      value: (
+        <a href={googleMapsUrl} target="_blank" rel="noreferrer" className="text-stone-700 dark:text-stone-300 underline underline-offset-2">
+          Open in Google Maps ↗
+        </a>
+      ),
+    },
+    !visit.photo_url && visit.notes && { label: 'Notes', value: visit.notes },
+  ].filter(Boolean);
+
   return (
     <div
       className="fixed inset-0 z-[1001] overflow-y-auto bg-black/70 dark:bg-black/80 backdrop-blur-sm transition-colors"
@@ -210,17 +214,17 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
     >
       <div className="flex min-h-full items-center justify-center p-4">
         <div
-          className="relative w-full max-w-3xl bg-white dark:bg-stone-800 rounded-3xl shadow-2xl overflow-hidden transition-colors"
+          className="animate-modal-in relative w-full max-w-2xl bg-white dark:bg-stone-800 rounded-3xl shadow-2xl overflow-hidden border border-stone-200/60 dark:border-stone-700/60 transition-colors"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Photo / placeholder */}
           <div className="relative">
             {visit.photo_url ? (
               <div className="relative aspect-[16/9] bg-stone-100 dark:bg-stone-700 overflow-hidden">
                 <img src={visit.photo_url} alt={visit.coffee_shop_name} className="w-full h-full object-cover" />
-
                 {visit.notes && (
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-6">
-                    <p className="text-white text-base leading-relaxed italic">“{visit.notes}”</p>
+                    <p className="text-white text-base leading-relaxed italic">"{visit.notes}"</p>
                   </div>
                 )}
               </div>
@@ -245,7 +249,9 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
             )}
           </div>
 
-          <div className="p-6 sm:p-8">
+          {/* Body */}
+          <div className="p-6 sm:p-7">
+            {/* Top-right controls */}
             <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
               <button
                 onClick={() => setShowMenu((prev) => !prev)}
@@ -268,7 +274,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
               {showMenu && (
                 <>
                   <div className="fixed inset-0" onClick={() => setShowMenu(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-stone-800 rounded-xl shadow-xl z-20 border border-stone-200 dark:border-stone-700 overflow-hidden">
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-stone-800 rounded-2xl shadow-xl z-20 border border-stone-200 dark:border-stone-700 overflow-hidden">
                     {!visit.photo_url && (
                       <button
                         onClick={handleReplacePhoto}
@@ -300,7 +306,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
                         </button>
                       </>
                     )}
-                    <div className="border-t border-stone-200 dark:border-stone-700" />
+                    <div className="border-t border-stone-100 dark:border-stone-700" />
                     <button
                       onClick={handleEdit}
                       className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
@@ -313,7 +319,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
                     >
                       Duplicate Visit
                     </button>
-                    <div className="border-t border-stone-200 dark:border-stone-700" />
+                    <div className="border-t border-stone-100 dark:border-stone-700" />
                     <button
                       onClick={handleDelete}
                       className="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-stone-700 transition-colors"
@@ -326,13 +332,14 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
             </div>
 
             {photoError && (
-              <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm rounded-lg flex items-center justify-between">
+              <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm rounded-xl flex items-center justify-between">
                 <span>{photoError}</span>
                 <button onClick={() => setPhotoError(null)} className="ml-2 text-red-500 hover:text-red-700">✕</button>
               </div>
             )}
 
-            <h2 className="text-4xl font-black text-stone-900 dark:text-stone-50 tracking-wide uppercase">
+            {/* Title */}
+            <h2 className="coffee-shop-name text-4xl pr-20">
               {visit.coffee_shop_name}
             </h2>
 
@@ -354,16 +361,20 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
               )}
             </div>
 
-            <p className="text-sm text-stone-500 dark:text-stone-400 mt-4">{formattedDate}</p>
+            <p className="text-sm text-stone-500 dark:text-stone-400 mt-3">{formattedDate}</p>
 
-            <div className="grid grid-cols-3 gap-3 mt-6">
-              <ScoreCard label="Vibe" score={visit.vibe_rating} />
-              <ScoreCard label="Coffee" score={visit.coffee_rating} />
-              <ScoreCard label="Total" score={visit.composite_score} isTotal />
+            {/* Ratings — iOS grouped card */}
+            <div className="mt-5 rounded-2xl bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700/60 shadow-sm overflow-hidden">
+              <div className="grid grid-cols-3 divide-x divide-stone-100 dark:divide-stone-700/50">
+                <ScoreCell label="Vibe" score={visit.vibe_rating} />
+                <ScoreCell label="Coffee" score={visit.coffee_rating} />
+                <ScoreCell label="Total" score={visit.composite_score} isTotal />
+              </div>
             </div>
 
+            {/* Map embed */}
             {mapEmbedUrl && (
-              <div className="mt-6 rounded-xl overflow-hidden border border-stone-200 dark:border-stone-700 h-48">
+              <div className="mt-5 rounded-2xl overflow-hidden border border-stone-200 dark:border-stone-700 h-44">
                 <iframe
                   title="Shop location"
                   src={mapEmbedUrl}
@@ -373,82 +384,97 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
               </div>
             )}
 
+            {/* Shop history */}
             {visitCount > 1 && (
-              <section className="mt-6 p-4 rounded-xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200 dark:border-stone-700">
-                <h3 className="text-sm font-semibold text-stone-700 dark:text-stone-200 uppercase tracking-wide">Shop History Snapshot</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
-                  <SnapshotStat label="Visits" value={visitCount} />
-                  <SnapshotStat label="Avg vibe" value={avgVibe.toFixed(1)} />
-                  <SnapshotStat label="Avg coffee" value={avgCoffee.toFixed(1)} />
-                  <SnapshotStat label="Avg total" value={avgTotal.toFixed(1)} />
+              <div className="mt-5 rounded-2xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200/80 dark:border-stone-700/60 overflow-hidden">
+                <p className="px-4 pt-3.5 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 select-none">
+                  Shop History
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-stone-200/60 dark:divide-stone-700/50 border-t border-stone-200/60 dark:border-stone-700/50">
+                  <SnapshotCell label="Visits" value={visitCount} />
+                  <SnapshotCell label="Avg Vibe" value={avgVibe.toFixed(1)} />
+                  <SnapshotCell label="Avg Coffee" value={avgCoffee.toFixed(1)} />
+                  <SnapshotCell label="Avg Total" value={avgTotal.toFixed(1)} />
                 </div>
                 {latestShopVisit && (
-                  <p className="mt-3 text-xs text-stone-500 dark:text-stone-400">
-                    Last stop here: {new Date(latestShopVisit.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  <p className="px-4 py-2.5 border-t border-stone-200/60 dark:border-stone-700/50 text-xs text-stone-400 dark:text-stone-500">
+                    Last visit: {new Date(latestShopVisit.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </p>
                 )}
-              </section>
+              </div>
             )}
 
-            <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-              {visit.coffee_order && <DetailRow label="Order" value={visit.coffee_order} />}
-              {visit.coffee_shop_address && <DetailRow label="Address" value={visit.coffee_shop_address} />}
-              {googleMapsUrl && (
-                <DetailRow
-                  label="Map"
-                  value={<a href={googleMapsUrl} target="_blank" rel="noreferrer" className="text-stone-700 dark:text-stone-300 underline underline-offset-2">Open in Google Maps ↗</a>}
-                />
-              )}
-              {!visit.photo_url && visit.notes && <DetailRow label="Notes" value={visit.notes} />}
-            </section>
+            {/* Detail rows — iOS grouped list */}
+            {detailRows.length > 0 && (
+              <div className="mt-5 rounded-2xl bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700/60 shadow-sm divide-y divide-stone-100 dark:divide-stone-700/50 overflow-hidden">
+                {detailRows.map((row) => (
+                  <div key={row.label} className="px-4 py-3.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 mb-1 select-none">
+                      {row.label}
+                    </p>
+                    <p className="text-[15px] text-stone-800 dark:text-stone-100 leading-snug">{row.value}</p>
+                  </div>
+                ))}
+              </div>
+            )}
 
-            <div className="flex flex-wrap gap-3 mt-8">
+            {/* Action buttons */}
+            <div className="mt-6 space-y-2">
               <button
                 onClick={handleEdit}
-                className="flex-1 min-w-[120px] px-6 py-3 bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-stone-50 rounded-lg hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors font-medium"
+                className="w-full py-3.5 bg-stone-900 dark:bg-stone-50 text-white dark:text-stone-900 rounded-2xl font-semibold text-[15px] tracking-wide hover:bg-stone-800 dark:hover:bg-white transition-all active:scale-[0.99]"
               >
                 Edit Visit
               </button>
-              <button
-                onClick={handleDuplicate}
-                className="px-6 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/35 transition-colors font-medium"
-              >
-                Duplicate
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-6 py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors font-medium"
-              >
-                Delete
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={handleDuplicate}
+                  className="py-3 bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200 rounded-2xl font-medium text-sm hover:bg-stone-200 dark:hover:bg-stone-600 transition-all active:scale-[0.99]"
+                >
+                  Duplicate
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-2xl font-medium text-sm hover:bg-red-100 dark:hover:bg-red-900/30 transition-all active:scale-[0.99]"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Confirmation dialog */}
       {confirmAction && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 dark:bg-black/80 backdrop-blur-sm" onClick={() => setConfirmAction(null)}>
-          <div className="bg-white dark:bg-stone-800 rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 dark:bg-black/80 backdrop-blur-sm"
+          onClick={() => setConfirmAction(null)}
+        >
+          <div
+            className="bg-white dark:bg-stone-800 rounded-3xl shadow-2xl max-w-sm w-full p-7 border border-stone-200/60 dark:border-stone-700/60"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="text-xl font-bold text-stone-900 dark:text-stone-50 mb-2">{confirmAction.title}</h3>
-            <p className="text-stone-600 dark:text-stone-400 mb-6">{confirmAction.message}</p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmAction(null)}
-                className="flex-1 px-4 py-2.5 bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-stone-50 rounded-lg hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors font-medium"
-              >
-                Cancel
-              </button>
+            <p className="text-stone-500 dark:text-stone-400 text-sm leading-relaxed mb-7">{confirmAction.message}</p>
+            <div className="space-y-2">
               <button
                 onClick={confirmAction.onConfirm}
-                className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-colors ${
+                className={`w-full py-3.5 rounded-2xl font-semibold text-[15px] tracking-wide transition-all active:scale-[0.99] ${
                   confirmAction.type === 'delete'
                     ? 'bg-red-600 hover:bg-red-700 text-white'
                     : confirmAction.type === 'duplicate'
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                    : 'bg-stone-800 hover:bg-stone-900 dark:bg-stone-100 dark:hover:bg-stone-200 text-white dark:text-stone-900'
+                    ? 'bg-stone-900 dark:bg-stone-50 hover:bg-stone-800 dark:hover:bg-white text-white dark:text-stone-900'
+                    : 'bg-stone-900 dark:bg-stone-50 hover:bg-stone-800 dark:hover:bg-white text-white dark:text-stone-900'
                 }`}
               >
                 {confirmAction.confirmText}
+              </button>
+              <button
+                onClick={() => setConfirmAction(null)}
+                className="w-full py-3 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 font-medium text-sm transition-colors"
+              >
+                Cancel
               </button>
             </div>
           </div>
@@ -462,18 +488,19 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
   );
 }
 
-function ScoreCard({ label, score, isTotal = false }) {
+function ScoreCell({ label, score, isTotal = false }) {
   const bgColor = isTotal ? getCompositeColor(score) : getRatingColor(score);
 
   return (
-    <div className="rounded-xl border border-stone-200 dark:border-stone-700 p-3 text-center bg-white/60 dark:bg-stone-800/60">
-      <p className="text-[11px] uppercase tracking-widest text-stone-500 dark:text-stone-400 mb-2">{label}</p>
+    <div className="px-4 py-4 text-center">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 mb-2 select-none">
+        {label}
+      </p>
       <div
-        className="rounded-lg px-3 py-2 rating-number text-2xl"
+        className="inline-block rounded-xl px-3 py-1.5 rating-number text-2xl font-black"
         style={{
           backgroundColor: bgColor,
           color: getTextColor(bgColor),
-          border: isTotal ? `2px solid ${bgColor}dd` : 'none',
         }}
       >
         {score.toFixed(1)}
@@ -482,20 +509,11 @@ function ScoreCard({ label, score, isTotal = false }) {
   );
 }
 
-function SnapshotStat({ label, value }) {
+function SnapshotCell({ label, value }) {
   return (
-    <div className="rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 px-3 py-2">
-      <p className="text-[11px] uppercase tracking-wide text-stone-500 dark:text-stone-400">{label}</p>
-      <p className="text-lg font-semibold text-stone-900 dark:text-stone-100 mt-1 rating-number">{value}</p>
-    </div>
-  );
-}
-
-function DetailRow({ label, value }) {
-  return (
-    <div className="rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 p-3">
-      <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">{label}</p>
-      <p className="text-stone-700 dark:text-stone-300 mt-1">{value}</p>
+    <div className="px-4 py-3.5">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 select-none">{label}</p>
+      <p className="text-xl font-black rating-number text-stone-900 dark:text-stone-100 mt-1">{value}</p>
     </div>
   );
 }

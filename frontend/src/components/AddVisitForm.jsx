@@ -82,7 +82,15 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
   const [imageToCrop, setImageToCrop] = useState(null);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const { name } = e.target;
+    let { value } = e.target;
+
+    // Clamp ratings to [0, 10] — skip while mid-decimal-entry (e.g. "8.")
+    if ((name === 'vibe_rating' || name === 'coffee_rating') && value !== '' && !value.endsWith('.')) {
+      const num = parseFloat(value);
+      if (!isNaN(num)) value = String(Math.min(10, Math.max(0, num)));
+    }
+
     const updates = { [name]: value };
 
     if (name === 'city' && value) {
@@ -198,9 +206,6 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
       {/* Header */}
       <div className="mb-7 pr-10">
         <h2 className="coffee-shop-name text-4xl">{isEditing ? 'Edit Visit' : 'New Visit'}</h2>
-        <p className="text-sm text-stone-400 dark:text-stone-500 mt-1.5">
-          {isEditing ? 'Update the details for this stop.' : 'Log your coffee shop experience.'}
-        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
@@ -268,7 +273,6 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
                 onChange={handleInputChange}
                 suggestions={suggestions.cities}
                 className={FI}
-                placeholder="City, ST"
               />
             </Field>
             <Field label="Opponent">
@@ -303,7 +307,6 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
               onChange={handleInputChange}
               suggestions={suggestions.orders}
               className={FI}
-              placeholder="e.g. Iced Salted Caramel Latte"
             />
           </Field>
 
@@ -411,7 +414,6 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
               onChange={handleInputChange}
               rows={3}
               className={`${FI} resize-none`}
-              placeholder="What stood out about this stop?"
             />
           </Field>
         </FormSection>

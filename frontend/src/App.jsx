@@ -281,7 +281,7 @@ export default function App() {
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {error && (
-            <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-5 py-4 rounded-md transition-colors">
+            <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-5 py-4 rounded-2xl transition-colors">
               {error}
             </div>
           )}
@@ -294,13 +294,13 @@ export default function App() {
           </section>
 
           {topCoffeeOrders.length > 0 && (
-            <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg p-4 sm:p-5 transition-colors">
-              <h3 className="text-sm font-semibold text-stone-700 dark:text-stone-200 uppercase tracking-wide mb-3">Top Coffee Orders</h3>
+            <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700/60 rounded-2xl p-4 sm:p-5 transition-colors shadow-sm">
+              <h3 className="text-[11px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-[0.08em] mb-3 select-none">Top Orders</h3>
               <div className="flex flex-wrap gap-2">
                 {topCoffeeOrders.map(({ order, count }) => (
                   <div
                     key={order}
-                    className="px-3 py-2 rounded-lg bg-stone-100 dark:bg-stone-700 border border-stone-200 dark:border-stone-600 flex items-center gap-2"
+                    className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-700 border border-stone-200 dark:border-stone-600 flex items-center gap-2"
                   >
                     <span className="text-sm font-medium text-stone-900 dark:text-stone-100">{order}</span>
                     <span className="px-2 py-0.5 rounded-full bg-stone-200 dark:bg-stone-600 text-xs font-semibold text-stone-700 dark:text-stone-200">
@@ -313,15 +313,15 @@ export default function App() {
           )}
 
           {visits.some((v) => v.coffee_shop_lat) && (
-            <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg p-4 sm:p-5 transition-colors">
-              <h3 className="text-sm font-semibold text-stone-700 dark:text-stone-200 uppercase tracking-wide mb-3">All Visits Map</h3>
+            <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700/60 rounded-2xl p-4 sm:p-5 transition-colors shadow-sm">
+              <h3 className="text-[11px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-[0.08em] mb-3 select-none">Map</h3>
               <div className="h-96 rounded-xl overflow-hidden" style={{ isolation: 'isolate' }}>
                 <VisitsMap visits={visits} onVisitClick={setViewingVisit} />
               </div>
             </section>
           )}
 
-          <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg p-4 sm:p-5 transition-colors">
+          <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700/60 rounded-2xl p-4 sm:p-5 transition-colors shadow-sm">
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
               <div>
                 <h2 className="text-3xl font-bold text-stone-900 dark:text-stone-50 mb-1 transition-colors">Visits</h2>
@@ -343,7 +343,7 @@ export default function App() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 sm:items-center lg:justify-end">
-                <div className="inline-flex rounded-md border border-stone-300 dark:border-stone-600 overflow-hidden">
+                <div className="inline-flex rounded-xl border border-stone-300 dark:border-stone-600 overflow-hidden">
                   {[
                     { value: 'date', label: 'Date' },
                     { value: 'vibe', label: 'Vibe' },
@@ -368,7 +368,7 @@ export default function App() {
                 <select
                   value={sportFilter}
                   onChange={(e) => setSportFilter(e.target.value)}
-                  className="px-3 py-2 text-sm rounded-md border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 cursor-pointer transition-colors min-w-[180px]"
+                  className="px-3 py-2 text-sm rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 cursor-pointer transition-colors min-w-[180px]"
                 >
                   <option value="">All sports</option>
                   <option value="Men's Basketball">Men's Basketball</option>
@@ -385,7 +385,7 @@ export default function App() {
                 placeholder="Search by shop name, city, opponent, or order..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3 pl-11 border border-stone-300 dark:border-stone-600 rounded-md focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-100 transition-colors"
+                className="w-full px-4 py-3 pl-11 border border-stone-300 dark:border-stone-600 rounded-xl focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-100 transition-colors"
               />
               <svg
                 className="absolute left-3.5 top-3.5 h-5 w-5 text-stone-400 dark:text-stone-500 transition-colors"
@@ -472,7 +472,7 @@ export default function App() {
         {toast && (
           <div className="fixed top-4 right-4 z-[70] animate-toast-in">
             <div
-              className={`px-4 py-3 rounded-lg shadow-lg border text-sm ${
+              className={`px-4 py-3 rounded-2xl shadow-lg border text-sm ${
                 toast.type === 'error'
                   ? 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/30 dark:border-red-700 dark:text-red-200'
                   : 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-200'
@@ -489,9 +489,9 @@ export default function App() {
 
 function SnapshotCard({ label, value }) {
   return (
-    <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg p-4 transition-colors">
-      <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-stone-400">{label}</p>
-      <p className="text-2xl font-bold text-stone-900 dark:text-stone-50 mt-1">{value}</p>
+    <div className="bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700/60 rounded-2xl p-4 sm:p-5 transition-colors shadow-sm">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 select-none">{label}</p>
+      <p className="text-3xl font-black rating-number text-stone-900 dark:text-stone-50 mt-2">{value}</p>
     </div>
   );
 }
