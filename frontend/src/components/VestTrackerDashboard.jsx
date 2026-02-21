@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { vestGames as seedGames } from '../utils/vestTrackerData';
+
+const VEST_GAMES_KEY = 'vibes-and-grinds:vest-games';
 
 const EMPTY_FORM = {
   date: '',
@@ -29,12 +31,31 @@ const formatDate = (dateStr) => {
   return `${month} ${day}, ${parts[0]}`;
 };
 
+const loadGames = () => {
+  try {
+    const raw = localStorage.getItem(VEST_GAMES_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {
+    // ignore
+  }
+  return seedGames;
+};
+
 export default function VestTrackerDashboard() {
-  const [games, setGames] = useState(seedGames);
+  const [games, setGames] = useState(loadGames);
   const [selectedOutfit, setSelectedOutfit] = useState('All outfits');
   const [formState, setFormState] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState(null);
   const [addingOutfit, setAddingOutfit] = useState(false);
+
+  // Persist any game changes to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(VEST_GAMES_KEY, JSON.stringify(games));
+    } catch {
+      // ignore
+    }
+  }, [games]);
 
   const sortedGames = useMemo(
     () => [...games].sort((a, b) => (a.date || '').localeCompare(b.date || '')),
@@ -75,6 +96,18 @@ export default function VestTrackerDashboard() {
     return { wins, losses };
   }, [completedGames, selectedOutfit]);
 
+  // Current streak — always based on overall completed games, not filtered
+  const streak = useMemo(() => {
+    if (!completedGames.length) return null;
+    const last = completedGames[completedGames.length - 1].result;
+    let count = 0;
+    for (let i = completedGames.length - 1; i >= 0; i--) {
+      if (completedGames[i].result === last) count++;
+      else break;
+    }
+    return { result: last, count };
+  }, [completedGames]);
+
   const outfitStats = useMemo(() => {
     const grouped = completedGames
       .filter((game) => game.outfit)
@@ -88,6 +121,7 @@ export default function VestTrackerDashboard() {
             lastSeen: game.opponent,
             lastSeenLocation: game.location || 'vs',
             lastIndex: index,
+            recentResults: [],
           };
         }
 
@@ -95,6 +129,7 @@ export default function VestTrackerDashboard() {
         acc[game.outfit].lastSeen = game.opponent;
         acc[game.outfit].lastSeenLocation = game.location || 'vs';
         acc[game.outfit].lastIndex = index;
+        acc[game.outfit].recentResults.push(game.result);
         if (game.result === 'W') acc[game.outfit].wins += 1;
         if (game.result === 'L') acc[game.outfit].losses += 1;
 
@@ -102,10 +137,18 @@ export default function VestTrackerDashboard() {
       }, {});
 
     return Object.values(grouped)
-      .map((entry) => ({
-        ...entry,
-        winRate: Math.round((entry.wins / entry.games) * 100),
-      }))
+      .map((entry) => {
+        const last3 = entry.recentResults.slice(-3);
+        let form = null;
+        if (last3.length >= 2 && last3.every((r) => r === 'W')) form = 'hot';
+        else if (last3.length >= 2 && last3.every((r) => r === 'L')) form = 'cold';
+
+        return {
+          ...entry,
+          winRate: Math.round((entry.wins / entry.games) * 100),
+          form,
+        };
+      })
       .sort((a, b) => b.winRate - a.winRate || b.wins - a.wins);
   }, [completedGames]);
 
@@ -193,6 +236,11 @@ export default function VestTrackerDashboard() {
           <div>
             <p className="text-xs uppercase tracking-[0.15em] text-neutral-400">Vest Tracker</p>
             <h2 className="text-3xl font-black tracking-tight mt-1">{summary.wins}-{summary.losses}</h2>
+            {streak && streak.count >= 2 && (
+              <p className={`text-sm font-semibold mt-1 ${streak.result === 'W' ? 'text-emerald-400' : 'text-red-400'}`}>
+                {streak.result === 'W' ? '🔥' : ''}{streak.count}{streak.result === 'W' ? 'W' : 'L'} streak
+              </p>
+            )}
           </div>
 
           <div className="min-w-[220px]">
@@ -242,9 +290,21 @@ export default function VestTrackerDashboard() {
 
           return (
             <article key={stat.outfit} className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">{stat.outfit}</h3>
-                <span className="text-sm font-semibold text-stone-500 dark:text-stone-300">{stat.wins}-{stat.losses}</span>
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">{stat.outfit}</h3>
+                  {stat.form === 'hot' && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">
+                      🔥 Hot
+                    </span>
+                  )}
+                  {stat.form === 'cold' && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
+                      ❄️ Cold
+                    </span>
+                  )}
+                </div>
+                <span className="text-sm font-semibold text-stone-500 dark:text-stone-300 shrink-0 ml-2">{stat.wins}-{stat.losses}</span>
               </div>
 
               <div className="h-2 rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden flex">
