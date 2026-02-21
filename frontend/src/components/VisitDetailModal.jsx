@@ -160,11 +160,15 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
 
   const mapEmbedUrl = useMemo(() => {
     if (hasCoordinates) {
-      const query = encodeURIComponent(`${visit.coffee_shop_name}@${visit.coffee_shop_lat},${visit.coffee_shop_lng}`);
-      return `https://maps.google.com/maps?q=${query}&z=17&output=embed`;
+      // Use place_id if available for better labeling, otherwise fall back to shop name
+      if (visit.coffee_shop_place_id) {
+        return `https://maps.google.com/maps?q=place_id:${visit.coffee_shop_place_id}&output=embed`;
+      }
+      const query = encodeURIComponent(visit.coffee_shop_name);
+      return `https://maps.google.com/maps?q=${query}&ll=${visit.coffee_shop_lat},${visit.coffee_shop_lng}&z=17&output=embed`;
     }
     return null;
-  }, [hasCoordinates, visit.coffee_shop_lat, visit.coffee_shop_lng, visit.coffee_shop_name]);
+  }, [hasCoordinates, visit.coffee_shop_lat, visit.coffee_shop_lng, visit.coffee_shop_name, visit.coffee_shop_place_id]);
 
   return (
     <div
