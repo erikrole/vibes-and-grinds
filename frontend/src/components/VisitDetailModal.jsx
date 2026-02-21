@@ -160,8 +160,8 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
 
   const mapEmbedUrl = useMemo(() => {
     if (hasCoordinates) {
-      const query = encodeURIComponent(visit.coffee_shop_name);
-      return `https://maps.google.com/maps?q=${query}&ll=${visit.coffee_shop_lat},${visit.coffee_shop_lng}&z=17&output=embed`;
+      const query = encodeURIComponent(`${visit.coffee_shop_name}@${visit.coffee_shop_lat},${visit.coffee_shop_lng}`);
+      return `https://maps.google.com/maps?q=${query}&z=17&output=embed`;
     }
     return null;
   }, [hasCoordinates, visit.coffee_shop_lat, visit.coffee_shop_lng, visit.coffee_shop_name]);
