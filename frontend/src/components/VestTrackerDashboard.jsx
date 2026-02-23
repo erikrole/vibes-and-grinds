@@ -60,8 +60,9 @@ const toSuperscript = (num) => {
 const normalizeTeamName = (value = '') => {
   const lower = value.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
   const expanded = OPPONENT_ALIASES[lower] || lower;
+  // Only strip "university" and "college" - preserve "state" and other key identifiers
   return expanded
-    .replace(/\b(university|college|state|st)\b/g, ' ')
+    .replace(/\b(university|college)\b/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 };

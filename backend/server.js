@@ -5,7 +5,7 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const DEFAULT_NET_RANKINGS_URL = 'https://www.ncaa.com/rankings/basketball-men/d1/ncaa-mens-basketball-net-rankings';
+const DEFAULT_NET_RANKINGS_URL = 'https://www.warrennolan.com/basketball/2026/net-rankings';
 
 // Middleware
 app.use(cors());
@@ -41,25 +41,62 @@ function stripHtmlTags(value = '') {
     .trim();
 }
 
+function normalizeTeamName(name) {
+  const normalized = name.toUpperCase().trim();
+  const mapping = {
+    'MICHIGAN ST': 'MICHIGAN STATE',
+    'MICHIGAN ST.': 'MICHIGAN STATE',
+    'OHIO ST': 'OHIO STATE',
+    'OHIO ST.': 'OHIO STATE',
+    'PENN ST': 'PENN STATE',
+    'PENN ST.': 'PENN STATE',
+    'INDIANA ST': 'INDIANA STATE',
+    'INDIANA ST.': 'INDIANA STATE',
+    'BALL ST': 'BALL STATE',
+    'BALL ST.': 'BALL STATE',
+    'IOWA ST': 'IOWA STATE',
+    'IOWA ST.': 'IOWA STATE',
+  };
+  return mapping[normalized] || normalized;
+}
+
 function parseNcaaNetRankings(html = '') {
   const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   const rows = [...html.matchAll(rowRegex)];
   const rankings = [];
 
-  for (const match of rows) {
-    const rowHtml = match[1] || '';
-    const cellRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
-    const cells = [...rowHtml.matchAll(cellRegex)].map((cellMatch) => stripHtmlTags(cellMatch[1]));
+  // Try to find the largest table (likely the NET rankings table)
+  const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
+  const tables = html.match(tableRegex);
 
-    if (cells.length < 2) continue;
+  if (tables && tables.length > 0) {
+    // Use the table with the most rows
+    const netTable = tables.reduce((best, t) =>
+      (t.match(/<tr/gi) || []).length > (best.match(/<tr/gi) || []).length ? t : best
+    );
+    const tableRows = [...netTable.matchAll(rowRegex)];
 
-    const rank = Number.parseInt(cells[0], 10);
-    if (!Number.isFinite(rank)) continue;
+    // WarrenNolan format: NET Rank (col 0) | Team (col 1) | Conference | Record | ...
+    for (let i = 1; i < tableRows.length; i++) {
+      const rowHtml = tableRows[i][1] || '';
+      if (rowHtml.includes('<th')) continue;
 
-    const team = cells[1]?.trim();
-    if (!team) continue;
+      const cellRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+      const cells = [...rowHtml.matchAll(cellRegex)].map((cellMatch) => stripHtmlTags(cellMatch[1]));
 
-    rankings.push({ team, rank });
+      if (cells.length < 2) continue;
+
+      const rank = Number.parseInt(cells[0], 10);
+      if (!Number.isFinite(rank)) continue;
+
+      let teamName = cells[1]?.trim();
+      if (!teamName) continue;
+
+      // Normalize team name (handle abbreviations like "Ohio St." → "Ohio State")
+      teamName = normalizeTeamName(teamName);
+
+      rankings.push({ team: teamName, rank });
+    }
   }
 
   return rankings;
@@ -354,11 +391,11 @@ app.get('/api/vest/net-rankings', async (req, res) => {
 
       if (!rankings.length) {
         return res.status(502).json({
-          error: 'Failed to parse NCAA NET rankings from upstream HTML source.',
+          error: 'Failed to parse NET rankings from WarrenNolan.',
         });
       }
 
-      return res.json({ rankings, source: 'NCAA' });
+      return res.json({ rankings, source: 'WarrenNolan' });
     }
 
     const data = await response.json();
