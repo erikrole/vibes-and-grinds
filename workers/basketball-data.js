@@ -31,7 +31,7 @@ export default {
         fetch('https://www.warrennolan.com/basketball/2026/conference/Big-Ten', {
           headers: { 'User-Agent': 'Mozilla/5.0 (compatible; VestTracker/1.0)' },
         }),
-        fetch('https://www.warrennolan.com/basketball/2026/net-rankings', {
+        fetch('https://www.warrennolan.com/basketball/2026/net', {
           headers: { 'User-Agent': 'Mozilla/5.0 (compatible; VestTracker/1.0)' },
         }),
         fetch('https://www.ncaa.com/rankings/basketball-men/d1/associated-press', {
