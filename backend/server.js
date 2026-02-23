@@ -41,25 +41,6 @@ function stripHtmlTags(value = '') {
     .trim();
 }
 
-function normalizeTeamName(name) {
-  const normalized = name.toUpperCase().trim();
-  const mapping = {
-    'MICHIGAN ST': 'MICHIGAN STATE',
-    'MICHIGAN ST.': 'MICHIGAN STATE',
-    'OHIO ST': 'OHIO STATE',
-    'OHIO ST.': 'OHIO STATE',
-    'PENN ST': 'PENN STATE',
-    'PENN ST.': 'PENN STATE',
-    'INDIANA ST': 'INDIANA STATE',
-    'INDIANA ST.': 'INDIANA STATE',
-    'BALL ST': 'BALL STATE',
-    'BALL ST.': 'BALL STATE',
-    'IOWA ST': 'IOWA STATE',
-    'IOWA ST.': 'IOWA STATE',
-  };
-  return mapping[normalized] || normalized;
-}
-
 function parseNcaaNetRankings(html = '') {
   const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   const rows = [...html.matchAll(rowRegex)];
@@ -89,11 +70,8 @@ function parseNcaaNetRankings(html = '') {
       const rank = Number.parseInt(cells[0], 10);
       if (!Number.isFinite(rank)) continue;
 
-      let teamName = cells[1]?.trim();
+      const teamName = cells[1]?.trim();
       if (!teamName) continue;
-
-      // Normalize team name (handle abbreviations like "Ohio St." → "Ohio State")
-      teamName = normalizeTeamName(teamName);
 
       rankings.push({ team: teamName, rank });
     }
