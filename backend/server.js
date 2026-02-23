@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const DEFAULT_NET_RANKINGS_URL = 'https://www.ncaa.com/rankings/basketball-men/d1/ncaa-mens-basketball-net-rankings';
 
 // Middleware
 app.use(cors());
@@ -25,6 +26,44 @@ initDatabase()
   });
 
 // Routes
+
+
+function stripHtmlTags(value = '') {
+  return value
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseNcaaNetRankings(html = '') {
+  const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  const rows = [...html.matchAll(rowRegex)];
+  const rankings = [];
+
+  for (const match of rows) {
+    const rowHtml = match[1] || '';
+    const cellRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
+    const cells = [...rowHtml.matchAll(cellRegex)].map((cellMatch) => stripHtmlTags(cellMatch[1]));
+
+    if (cells.length < 2) continue;
+
+    const rank = Number.parseInt(cells[0], 10);
+    if (!Number.isFinite(rank)) continue;
+
+    const team = cells[1]?.trim();
+    if (!team) continue;
+
+    rankings.push({ team, rank });
+  }
+
+  return rankings;
+}
 
 // Get all coffee visits
 app.get('/api/visits', async (req, res) => {
@@ -281,6 +320,55 @@ app.get('/api/vest/schedule', async (req, res) => {
     res.status(502).json({
       error: timedOut ? 'Schedule request timed out' : 'Failed to fetch vest schedule',
       details: timedOut ? 'ESPN did not respond in time.' : error.message,
+    });
+  }
+});
+
+
+app.get('/api/vest/net-rankings', async (req, res) => {
+  const netRankingsUrl = process.env.NET_RANKINGS_URL || DEFAULT_NET_RANKINGS_URL;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    const response = await fetch(netRankingsUrl, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; vibes-and-grinds/1.0)',
+      },
+    });
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      return res.status(502).json({
+        error: 'Failed to fetch NET rankings from upstream source.',
+        status: response.status,
+      });
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+
+    if (contentType.includes('text/html')) {
+      const html = await response.text();
+      const rankings = parseNcaaNetRankings(html);
+
+      if (!rankings.length) {
+        return res.status(502).json({
+          error: 'Failed to parse NCAA NET rankings from upstream HTML source.',
+        });
+      }
+
+      return res.json({ rankings, source: 'NCAA' });
+    }
+
+    const data = await response.json();
+    return res.json(data);
+  } catch (error) {
+    const timedOut = error?.name === 'AbortError';
+    console.error('Error fetching vest NET rankings:', error);
+    return res.status(502).json({
+      error: timedOut ? 'NET rankings request timed out' : 'Failed to fetch vest NET rankings',
+      details: timedOut ? 'Upstream NET feed did not respond in time.' : error.message,
     });
   }
 });
