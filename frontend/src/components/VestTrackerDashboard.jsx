@@ -99,7 +99,13 @@ const normalizeNetResponse = (payload) => {
   if (Array.isArray(payload.data)) return payload.data;
   if (Array.isArray(payload.teams)) return payload.teams;
 
-  // Reuse Big Ten standings worker payload: { standings: [{ team, netRank, ... }] }
+  // Combined worker payload: { standings, netRankings: { "DUKE": 1, ... } }
+  // Prefer netRankings (all D1) over standings (Big Ten only)
+  if (payload.netRankings && typeof payload.netRankings === 'object' && !Array.isArray(payload.netRankings)) {
+    return Object.entries(payload.netRankings).map(([team, netRank]) => ({ team, netRank }));
+  }
+
+  // Fallback: Big Ten standings worker payload: { standings: [{ team, netRank, ... }] }
   if (Array.isArray(payload.standings)) {
     return payload.standings
       .filter((entry) => Number.isFinite(Number(entry.netRank)))
