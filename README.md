@@ -77,8 +77,14 @@ Then in the project root `.env` (for the backend), add:
 
 ```env
 GOOGLE_MAPS_API_KEY=your_actual_api_key_here
+NET_RANKINGS_URL=https://your-cloudflare-worker.example.com/net-rankings
 ```
 
+If you want the frontend to call your worker directly instead of the API proxy, you can also set:
+
+```env
+VITE_NET_RANKINGS_URL=https://your-cloudflare-worker.example.com/net-rankings
+```
 
 Then start the development server:
 

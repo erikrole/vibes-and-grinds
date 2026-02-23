@@ -2,6 +2,22 @@ import { useEffect, useMemo, useState } from 'react';
 import { vestGames as seedGames } from '../utils/vestTrackerData';
 
 const VEST_GAMES_KEY = 'vibes-and-grinds:vest-games';
+const NET_RANKINGS_URL = import.meta.env.VITE_NET_RANKINGS_URL || '';
+const NET_FETCH_PATHS = ['/api/vest/net-rankings', '/api/vest/net'];
+
+const QUADRANT_THRESHOLDS = {
+  vs: [30, 75, 160, 353],
+  N: [50, 100, 200, 353],
+  '@': [75, 135, 240, 353],
+};
+
+const OPPONENT_ALIASES = {
+  'siu edwardsville': 'southern illinois edwardsville',
+  byu: 'brigham young',
+  ucla: 'california los angeles',
+  usc: 'southern california',
+  tcu: 'texas christian',
+};
 
 const EMPTY_FORM = {
   date: '',
@@ -41,6 +57,40 @@ const toSuperscript = (num) => {
     .join('');
 };
 
+const normalizeTeamName = (value = '') => {
+  const lower = value.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  const expanded = OPPONENT_ALIASES[lower] || lower;
+  return expanded
+    .replace(/\b(university|college|state|st)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+const getQuadrant = (location, netRank) => {
+  if (!Number.isFinite(netRank) || netRank < 1 || netRank > 353) return null;
+  const thresholds = QUADRANT_THRESHOLDS[location] || QUADRANT_THRESHOLDS.vs;
+  if (netRank <= thresholds[0]) return 1;
+  if (netRank <= thresholds[1]) return 2;
+  if (netRank <= thresholds[2]) return 3;
+  if (netRank <= thresholds[3]) return 4;
+  return null;
+};
+
+const normalizeNetResponse = (payload) => {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload.rankings)) return payload.rankings;
+  if (Array.isArray(payload.data)) return payload.data;
+  if (Array.isArray(payload.teams)) return payload.teams;
+  return [];
+};
+
+const formatLocationLabel = (location, mode = 'short') => {
+  if (location === '@') return mode === 'full' ? 'at' : '@';
+  if (location === 'N') return mode === 'full' ? 'neutral vs' : 'N';
+  return 'vs';
+};
+
 const loadGames = () => {
   try {
     const raw = localStorage.getItem(VEST_GAMES_KEY);
@@ -53,6 +103,8 @@ const loadGames = () => {
 
 export default function VestTrackerDashboard() {
   const [games, setGames] = useState(loadGames);
+  const [netRankings, setNetRankings] = useState([]);
+  const [netStatus, setNetStatus] = useState('idle');
   const [selectedOutfit, setSelectedOutfit] = useState('All outfits');
   const [formState, setFormState] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState(null);
@@ -66,6 +118,77 @@ export default function VestTrackerDashboard() {
       // ignore
     }
   }, [games]);
+
+  useEffect(() => {
+    const sources = [
+      ...NET_FETCH_PATHS,
+      ...(NET_RANKINGS_URL ? [NET_RANKINGS_URL] : []),
+    ];
+
+    let cancelled = false;
+
+    const toRows = (payload) => normalizeNetResponse(payload)
+      .map((entry) => {
+        const teamName = entry.team || entry.teamName || entry.school || entry.name || entry.program;
+        const rankValue =
+          entry.netRank ??
+          entry.rank ??
+          entry.net_ranking ??
+          entry.NET ??
+          entry.position;
+        const rank = Number(rankValue);
+
+        if (!teamName || !Number.isFinite(rank)) return null;
+
+        return {
+          team: teamName,
+          rank,
+          key: normalizeTeamName(teamName),
+        };
+      })
+      .filter(Boolean);
+
+    const loadNetRankings = async () => {
+      setNetStatus('loading');
+
+      for (const url of sources) {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) continue;
+
+          const payload = await response.json();
+          const rows = toRows(payload);
+          if (!rows.length) continue;
+
+          if (!cancelled) {
+            setNetRankings(rows);
+            setNetStatus('loaded');
+          }
+          return;
+        } catch {
+          // try next source
+        }
+      }
+
+      if (!cancelled) {
+        setNetRankings([]);
+        setNetStatus(NET_RANKINGS_URL ? 'error' : 'missing-url');
+      }
+    };
+
+    loadNetRankings();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const netLookup = useMemo(() => {
+    const map = new Map();
+    netRankings.forEach((entry) => {
+      map.set(entry.key, entry.rank);
+    });
+    return map;
+  }, [netRankings]);
 
   const sortedGames = useMemo(
     () => [...games].sort((a, b) => (a.date || '').localeCompare(b.date || '')),
@@ -139,6 +262,12 @@ export default function VestTrackerDashboard() {
             lastSeenLocation: game.location || 'vs',
             lastIndex: index,
             recentResults: [],
+            quadrants: {
+              1: { wins: 0, losses: 0 },
+              2: { wins: 0, losses: 0 },
+              3: { wins: 0, losses: 0 },
+              4: { wins: 0, losses: 0 },
+            },
           };
         }
 
@@ -149,6 +278,14 @@ export default function VestTrackerDashboard() {
         acc[game.outfit].recentResults.push(game.result);
         if (game.result === 'W') acc[game.outfit].wins += 1;
         if (game.result === 'L') acc[game.outfit].losses += 1;
+
+        const opponentKey = normalizeTeamName(game.opponent);
+        const netRank = netLookup.get(opponentKey);
+        const quadrant = getQuadrant(game.location, netRank);
+        if (quadrant && (game.result === 'W' || game.result === 'L')) {
+          if (game.result === 'W') acc[game.outfit].quadrants[quadrant].wins += 1;
+          if (game.result === 'L') acc[game.outfit].quadrants[quadrant].losses += 1;
+        }
 
         return acc;
       }, {});
@@ -167,7 +304,7 @@ export default function VestTrackerDashboard() {
         };
       })
       .sort((a, b) => b.winRate - a.winRate || b.wins - a.wins);
-  }, [completedGames]);
+  }, [completedGames, netLookup]);
 
   const recommendation = useMemo(() => {
     if (!completedGames.length || outfitStats.length < 2) return null;
@@ -332,12 +469,27 @@ export default function VestTrackerDashboard() {
                 </div>
 
                 <div className="mt-2 text-sm text-stone-500 dark:text-stone-400">
-                  {stat.games} {stat.games === 1 ? 'game' : 'games'} • last worn {stat.lastSeenLocation} {stat.lastSeen}
+                  {stat.games} {stat.games === 1 ? 'game' : 'games'} • last worn {formatLocationLabel(stat.lastSeenLocation)} {stat.lastSeen}
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-1 text-[11px] text-stone-600 dark:text-stone-300">
+                  {[1, 2, 3, 4].map((quad) => (
+                    <div key={quad} className="rounded-lg bg-stone-100 dark:bg-stone-700/60 px-2 py-1">
+                      Q{quad}: {netStatus === 'loaded' ? `${stat.quadrants[quad].wins}-${stat.quadrants[quad].losses}` : '—'}
+                    </div>
+                  ))}
                 </div>
               </button>
             );
           })}
         </div>
+        {netStatus !== 'loaded' && (
+          <p className="text-xs text-stone-500 mt-3">
+            {netStatus === 'missing-url' && 'Set NET_RANKINGS_URL on the API (or VITE_NET_RANKINGS_URL in frontend) to load live NET-based quadrant records.'}
+            {netStatus === 'loading' && 'Loading live NET rankings…'}
+            {netStatus === 'error' && 'Unable to load NET rankings. Quadrant stats are temporarily unavailable.'}
+          </p>
+        )}
       </section>
 
       {/* Season timeline — newest first */}
@@ -367,7 +519,7 @@ export default function VestTrackerDashboard() {
                   {formatDate(game.date) || `Game ${index + 1}`}
                 </div>
                 <div className="font-semibold">
-                  {game.location === '@' ? 'at' : game.location || 'vs'}&nbsp;&nbsp;{game.ranking ? <>{toSuperscript(game.ranking)}&thinsp;</> : null}{game.opponent}{game.overtime && ' (OT)'}
+                  {formatLocationLabel(game.location, 'full')}&nbsp;&nbsp;{game.ranking ? <>{toSuperscript(game.ranking)}&thinsp;</> : null}{game.opponent}{game.overtime && ' (OT)'}
                 </div>
                 <div className="text-xs mt-1 opacity-80">{game.outfit || 'Outfit TBD'}</div>
                 <div className="text-xs mt-1 font-semibold">
@@ -405,6 +557,7 @@ export default function VestTrackerDashboard() {
             >
               <option value="vs">vs</option>
               <option value="@">@</option>
+              <option value="N">N</option>
             </select>
           </label>
 

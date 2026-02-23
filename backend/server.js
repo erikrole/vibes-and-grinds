@@ -285,6 +285,42 @@ app.get('/api/vest/schedule', async (req, res) => {
   }
 });
 
+
+app.get('/api/vest/net-rankings', async (req, res) => {
+  const netRankingsUrl = process.env.NET_RANKINGS_URL;
+
+  if (!netRankingsUrl) {
+    return res.status(503).json({
+      error: 'NET rankings feed is not configured.',
+      details: 'Set NET_RANKINGS_URL in backend environment variables.',
+    });
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    const response = await fetch(netRankingsUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      return res.status(502).json({
+        error: 'Failed to fetch NET rankings from upstream source.',
+        status: response.status,
+      });
+    }
+
+    const data = await response.json();
+    return res.json(data);
+  } catch (error) {
+    const timedOut = error?.name === 'AbortError';
+    console.error('Error fetching vest NET rankings:', error);
+    return res.status(502).json({
+      error: timedOut ? 'NET rankings request timed out' : 'Failed to fetch vest NET rankings',
+      details: timedOut ? 'Upstream NET feed did not respond in time.' : error.message,
+    });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
