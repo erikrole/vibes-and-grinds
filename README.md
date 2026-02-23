@@ -86,6 +86,8 @@ If you want the frontend to call your worker directly instead of the API proxy, 
 VITE_NET_RANKINGS_URL=https://your-cloudflare-worker.example.com/net-rankings
 ```
 
+The vest tracker accepts either a dedicated NET rankings payload or your existing Big Ten standings worker shape (`{ standings: [{ team, netRank, ... }] }`).
+
 Then start the development server:
 
 ```bash

@@ -79,9 +79,22 @@ const getQuadrant = (location, netRank) => {
 const normalizeNetResponse = (payload) => {
   if (!payload) return [];
   if (Array.isArray(payload)) return payload;
+
+  // Native NET payload shapes
   if (Array.isArray(payload.rankings)) return payload.rankings;
   if (Array.isArray(payload.data)) return payload.data;
   if (Array.isArray(payload.teams)) return payload.teams;
+
+  // Reuse Big Ten standings worker payload: { standings: [{ team, netRank, ... }] }
+  if (Array.isArray(payload.standings)) {
+    return payload.standings
+      .filter((entry) => Number.isFinite(Number(entry.netRank)))
+      .map((entry) => ({
+        team: entry.team,
+        netRank: Number(entry.netRank),
+      }));
+  }
+
   return [];
 };
 
@@ -485,7 +498,7 @@ export default function VestTrackerDashboard() {
         </div>
         {netStatus !== 'loaded' && (
           <p className="text-xs text-stone-500 mt-3">
-            {netStatus === 'missing-url' && 'Set NET_RANKINGS_URL on the API (or VITE_NET_RANKINGS_URL in frontend) to load live NET-based quadrant records.'}
+            {netStatus === 'missing-url' && 'Set NET_RANKINGS_URL on the API (or VITE_NET_RANKINGS_URL in frontend) to load live NET-based quadrant records. Big Ten standings worker payloads are supported.'}
             {netStatus === 'loading' && 'Loading live NET rankings…'}
             {netStatus === 'error' && 'Unable to load NET rankings. Quadrant stats are temporarily unavailable.'}
           </p>
