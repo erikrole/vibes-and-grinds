@@ -68,11 +68,35 @@ function parseNetRankingsTable(html) {
   const rankings = {};
 
   try {
+    // Try to find pre-formatted text data (some pages return plain text tables)
+    const preMatch = html.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
+    if (preMatch) {
+      const lines = preMatch[1].split('\n');
+      for (const line of lines) {
+        const parts = line.trim().split(/\s+/);
+        if (parts.length < 2) continue;
+
+        const rank = parseInt(parts[0], 10);
+        if (!rank || rank < 1 || rank > 363) continue;
+
+        // Team name is everything after the rank until we hit numbers/conference
+        let teamName = parts.slice(1).join(' ');
+        // Remove trailing conference/record info
+        teamName = teamName.replace(/\s+(ACC|SEC|Big Ten|Big 12|Pac-12|Big East|AAC|MWC|WCC|A-10|MAC|C-USA|Sun Belt|WAC|Summit|Horizon|CAA|MVC|SoCon|Southland|NEC|MAAC|Ivy|Patriot|MEAC|SWAC|Big Sky|Big South|OVC|AEC|ASun).*$/i, '');
+        teamName = teamName.replace(/\s+\d+-\d+.*$/, '').trim().toUpperCase();
+
+        if (teamName && teamName.length > 1) {
+          rankings[teamName] = rank;
+        }
+      }
+      if (Object.keys(rankings).length > 0) return rankings;
+    }
+
+    // Fallback: try HTML table parsing
     const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
     const tables = html.match(tableRegex);
-    if (!tables) throw new Error('No tables found');
+    if (!tables) throw new Error('No tables or pre blocks found');
 
-    // Find the largest table — the NET rankings list
     const rankingsTable = tables.reduce((best, t) =>
       (t.match(/<tr/gi) || []).length > (best.match(/<tr/gi) || []).length ? t : best
     );
