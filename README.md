@@ -77,8 +77,16 @@ Then in the project root `.env` (for the backend), add:
 
 ```env
 GOOGLE_MAPS_API_KEY=your_actual_api_key_here
+NET_RANKINGS_URL=https://big-ten-standings.erikrole.workers.dev  # optional override
 ```
 
+If you want the frontend to call your worker directly instead of the API proxy, you can also set:
+
+```env
+VITE_NET_RANKINGS_URL=https://big-ten-standings.erikrole.workers.dev  # optional direct browser override
+```
+
+The vest tracker accepts either a dedicated NET rankings payload or your existing Big Ten standings worker shape (`{ standings: [{ team, netRank, ... }] }`). If no env var is set on the API, it defaults to the NCAA NET rankings page and parses all teams from HTML.
 
 Then start the development server:
 
