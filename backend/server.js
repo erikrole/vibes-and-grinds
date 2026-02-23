@@ -5,7 +5,7 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const DEFAULT_NET_RANKINGS_URL = 'https://www.warrennolan.com/basketball/2026/net-rankings';
+const DEFAULT_NET_RANKINGS_URL = 'https://big-ten-standings.erikrole.workers.dev';
 
 // Middleware
 app.use(cors());
