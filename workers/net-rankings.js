@@ -83,7 +83,7 @@ function parseNetRankingsTable(html) {
         let teamName = parts.slice(1).join(' ');
         // Remove trailing conference/record info
         teamName = teamName.replace(/\s+(ACC|SEC|Big Ten|Big 12|Pac-12|Big East|AAC|MWC|WCC|A-10|MAC|C-USA|Sun Belt|WAC|Summit|Horizon|CAA|MVC|SoCon|Southland|NEC|MAAC|Ivy|Patriot|MEAC|SWAC|Big Sky|Big South|OVC|AEC|ASun).*$/i, '');
-        teamName = teamName.replace(/\s+\d+-\d+.*$/, '').trim().toUpperCase();
+        teamName = normalizeTeamName(teamName.replace(/\s+\d+-\d+.*$/, '').trim());
 
         if (teamName && teamName.length > 1) {
           rankings[teamName] = rank;
@@ -114,7 +114,7 @@ function parseNetRankingsTable(html) {
       if (cells.length < 2) continue;
 
       const rank = parseInt(cells[0], 10);
-      const teamName = cells[1]?.trim().toUpperCase();
+      const teamName = normalizeTeamName(cells[1]?.trim() || '');
 
       if (!rank || !teamName) continue;
 

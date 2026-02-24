@@ -166,6 +166,32 @@ function parseNetRankingsPage(html) {
 
   if (!html) return rankings;
 
+  // Try <pre> text block first (mirrors net-rankings.js logic)
+  const preMatch = html.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
+  if (preMatch) {
+    const lines = preMatch[1].split('\n');
+    for (const line of lines) {
+      const parts = line.trim().split(/\s+/);
+      if (parts.length < 2) continue;
+
+      const rank = parseInt(parts[0], 10);
+      if (!rank || rank < 1 || rank > 363) continue;
+
+      let teamName = parts.slice(1).join(' ');
+      teamName = teamName.replace(
+        /\s+(ACC|SEC|Big Ten|Big 12|Pac-12|Big East|AAC|MWC|WCC|A-10|MAC|C-USA|Sun Belt|WAC|Summit|Horizon|CAA|MVC|SoCon|Southland|NEC|MAAC|Ivy|Patriot|MEAC|SWAC|Big Sky|Big South|OVC|AEC|ASun).*$/i,
+        ''
+      );
+      teamName = normalizeTeamName(teamName.replace(/\s+\d+-\d+.*$/, '').trim());
+
+      if (teamName && teamName.length > 1) {
+        rankings[teamName] = rank;
+      }
+    }
+    if (Object.keys(rankings).length > 0) return rankings;
+  }
+
+  // Fallback: HTML table parsing
   // Adjust these if the column positions differ on the actual page
   const RANK_COL = 0;
   const TEAM_COL = 1;
@@ -193,7 +219,7 @@ function parseNetRankingsPage(html) {
       if (cells.length <= TEAM_COL) continue;
 
       const rank = parseInt(cells[RANK_COL], 10);
-      const teamName = cells[TEAM_COL]?.toUpperCase().trim();
+      const teamName = normalizeTeamName(cells[TEAM_COL]?.trim() || '');
 
       if (!rank || !teamName) continue;
 
