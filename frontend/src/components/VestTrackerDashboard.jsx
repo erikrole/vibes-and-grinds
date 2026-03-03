@@ -690,6 +690,9 @@ export default function VestTrackerDashboard() {
                   : 'bg-stone-50 border-stone-200 text-stone-700 dark:bg-stone-700/30 dark:border-stone-600 dark:text-stone-200';
 
             const resultLabel = game.result === 'W' ? 'Win' : game.result === 'L' ? 'Loss' : 'Upcoming';
+            const gameQuadrant = (game.result === 'W' || game.result === 'L') && netStatus === 'loaded'
+              ? getQuadrant(game.location, netLookup.get(normalizeTeamName(game.opponent)))
+              : null;
 
             return (
               <button
@@ -705,7 +708,7 @@ export default function VestTrackerDashboard() {
                 </div>
                 <div className="text-xs mt-1 opacity-80">{game.outfit || 'Outfit TBD'}</div>
                 <div className="text-xs mt-1 font-semibold">
-                  {resultLabel}
+                  {resultLabel}{gameQuadrant ? ` • Q${gameQuadrant}` : ''}
                 </div>
               </button>
             );
