@@ -49,3 +49,21 @@ export async function deleteVisit(id) {
   }
 }
 
+
+
+export async function fetchVestGames() {
+  const response = await fetch(`${API_URL}/api/vest/games`);
+  if (!response.ok) throw new Error('Failed to fetch vest games');
+  return response.json();
+}
+
+export async function syncVestGames(games) {
+  const response = await fetch(`${API_URL}/api/vest/games`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ games }),
+  });
+
+  if (!response.ok) throw new Error('Failed to sync vest games');
+  return response.json();
+}

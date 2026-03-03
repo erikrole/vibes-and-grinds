@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { vestGames as seedGames } from '../utils/vestTrackerData';
+import { fetchVestGames, syncVestGames } from '../utils/api';
 
 const VEST_GAMES_KEY = 'vibes-and-grinds:vest-games';
 const NET_RANKINGS_URL = import.meta.env.VITE_NET_RANKINGS_URL || '';
 const NET_FETCH_PATHS = ['/api/vest/net-rankings', '/api/vest/net'];
 
 const QUADRANT_THRESHOLDS = {
-  vs: [30, 75, 160, 353],
-  N: [50, 100, 200, 353],
-  '@': [75, 135, 240, 353],
+  vs: [30, 75, 160, 365],
+  N: [50, 100, 200, 365],
+  '@': [75, 135, 240, 365],
 };
 
 const OPPONENT_ALIASES = {
@@ -17,9 +18,20 @@ const OPPONENT_ALIASES = {
   ucla: 'california los angeles',
   usc: 'southern california',
   tcu: 'texas christian',
-  'michigan st': 'michigan state',
+  'ole miss': 'mississippi',
+  uconn: 'connecticut',
+  smu: 'southern methodist',
+  lsu: 'louisiana state',
+  unc: 'north carolina',
+  'nc state': 'north carolina state',
+  'saint marys': 'saint marys ca',
   'ohio st': 'ohio state',
   'penn st': 'penn state',
+  'michigan st': 'michigan state',
+  'florida st': 'florida state',
+  'oklahoma st': 'oklahoma state',
+  'central michigan': 'central mich',
+  'northern illinois': 'northern ill',
 };
 
 const EMPTY_FORM = {
@@ -63,15 +75,73 @@ const toSuperscript = (num) => {
 const normalizeTeamName = (value = '') => {
   const lower = value.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
   const expanded = OPPONENT_ALIASES[lower] || lower;
-  // Only strip "university" and "college" - preserve "state" and other key identifiers
   return expanded
     .replace(/\b(university|college)\b/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 };
 
+
+
+
+const TOKEN_CANONICAL = {
+  st: 'state',
+  'st.': 'state',
+  univ: 'university',
+  mich: 'michigan',
+  ill: 'illinois',
+  n: 'north',
+  northern: 'north',
+  s: 'south',
+  southern: 'south',
+  e: 'east',
+  eastern: 'east',
+  w: 'west',
+  western: 'west',
+};
+
+const normalizeToken = (token) => TOKEN_CANONICAL[token] || token;
+
+const normalizeTokens = (value = '') => {
+  const cleaned = normalizeTeamName(value);
+  return cleaned
+    .split(' ')
+    .map((token) => normalizeToken(token))
+    .filter(Boolean);
+};
+
+const buildNetLookup = (rankings) => {
+  const exact = new Map();
+  const byTokenSet = [];
+
+  rankings.forEach((entry) => {
+    exact.set(entry.key, entry.rank);
+    byTokenSet.push({
+      tokens: new Set(normalizeTokens(entry.team)),
+      rank: entry.rank,
+    });
+  });
+
+  return { exact, byTokenSet };
+};
+
+const findNetRankForOpponent = (lookup, opponentName) => {
+  const key = normalizeTeamName(opponentName);
+  const exact = lookup.exact.get(key);
+  if (Number.isFinite(exact)) return exact;
+
+  const tokens = normalizeTokens(opponentName);
+  if (!tokens.length) return null;
+
+  for (const candidate of lookup.byTokenSet) {
+    if (tokens.every((token) => candidate.tokens.has(token))) return candidate.rank;
+  }
+
+  return null;
+};
+
 const getQuadrant = (location, netRank) => {
-  if (!Number.isFinite(netRank) || netRank < 1 || netRank > 353) return null;
+  if (!Number.isFinite(netRank) || netRank < 1 || netRank > 365) return null;
   const thresholds = QUADRANT_THRESHOLDS[location] || QUADRANT_THRESHOLDS.vs;
   if (netRank <= thresholds[0]) return 1;
   if (netRank <= thresholds[1]) return 2;
@@ -103,20 +173,27 @@ const normalizeNetResponse = (payload) => {
   if (Array.isArray(payload.data)) return payload.data;
   if (Array.isArray(payload.teams)) return payload.teams;
 
-  // Combined worker payload: { standings, netRankings: { "DUKE": 1, ... } }
-  // Prefer netRankings (all D1) over standings (Big Ten only)
-  if (payload.netRankings && typeof payload.netRankings === 'object' && !Array.isArray(payload.netRankings)) {
-    return Object.entries(payload.netRankings).map(([team, netRank]) => ({ team, netRank }));
-  }
-
-  // Fallback: Big Ten standings worker payload: { standings: [{ team, netRank, ... }] }
+  // Reuse Big Ten standings worker payload: { standings: [{ team, netRank, ... }] }
   if (Array.isArray(payload.standings)) {
     return payload.standings
-      .filter((entry) => Number.isFinite(Number(entry.netRank)))
       .map((entry) => ({
-        team: entry.team,
-        netRank: Number(entry.netRank),
-      }));
+        team: entry.team || entry.teamName || entry.school || entry.name || entry.program,
+        netRank: Number(
+          entry.netRank ??
+          entry.rank ??
+          entry.net_ranking ??
+          entry.NET ??
+          entry.position
+        ),
+      }))
+      .filter((entry) => entry.team && Number.isFinite(entry.netRank));
+  }
+
+  // Worker shape: { netRankings: { "DUKE": 1, ... } }
+  if (payload.netRankings && typeof payload.netRankings === 'object') {
+    return Object.entries(payload.netRankings)
+      .map(([team, rank]) => ({ team, netRank: Number(rank) }))
+      .filter((entry) => entry.team && Number.isFinite(entry.netRank));
   }
 
   return [];
@@ -146,6 +223,7 @@ export default function VestTrackerDashboard() {
   const [formState, setFormState] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState(null);
   const [addingOutfit, setAddingOutfit] = useState(false);
+  const [syncReady, setSyncReady] = useState(false);
 
   // Persist any game changes to localStorage
   useEffect(() => {
@@ -214,25 +292,56 @@ export default function VestTrackerDashboard() {
     };
 
     loadNetRankings();
-
-    // Refresh every 5 minutes so quadrant stats stay current as rankings update
-    const intervalId = setInterval(() => {
-      loadNetRankings();
-    }, 5 * 60 * 1000);
-
     return () => {
       cancelled = true;
-      clearInterval(intervalId);
     };
   }, []);
 
-  const netLookup = useMemo(() => {
-    const map = new Map();
-    netRankings.forEach((entry) => {
-      map.set(entry.key, entry.rank);
-    });
-    return map;
-  }, [netRankings]);
+  const netLookup = useMemo(() => buildNetLookup(netRankings), [netRankings]);
+
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadSyncedGames = async () => {
+      try {
+        const payload = await fetchVestGames();
+        const serverGames = Array.isArray(payload?.games) ? payload.games : [];
+        if (!cancelled && serverGames.length > 0) {
+          setGames(serverGames);
+        }
+      } catch {
+        // ignore - fallback to local storage seed data
+      } finally {
+        if (!cancelled) setSyncReady(true);
+      }
+    };
+
+    loadSyncedGames();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!syncReady) return;
+
+    let cancelled = false;
+
+    const pushSyncedGames = async () => {
+      try {
+        await syncVestGames(games);
+      } catch {
+        // ignore sync errors in offline/dev contexts
+      }
+    };
+
+    if (!cancelled) pushSyncedGames();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [games, syncReady]);
 
   const sortedGames = useMemo(
     () => [...games].sort((a, b) => (a.date || '').localeCompare(b.date || '')),
@@ -323,8 +432,7 @@ export default function VestTrackerDashboard() {
         if (game.result === 'W') acc[game.outfit].wins += 1;
         if (game.result === 'L') acc[game.outfit].losses += 1;
 
-        const opponentKey = normalizeTeamName(game.opponent);
-        const netRank = netLookup.get(opponentKey);
+        const netRank = findNetRankForOpponent(netLookup, game.opponent);
         const quadrant = getQuadrant(game.location, netRank);
         if (quadrant && (game.result === 'W' || game.result === 'L')) {
           if (game.result === 'W') acc[game.outfit].quadrants[quadrant].wins += 1;
@@ -489,6 +597,9 @@ export default function VestTrackerDashboard() {
                 Also consider: {recommendation.alternatives.map((entry) => entry.outfit).join(' • ')}
               </p>
             )}
+            <p className="text-[11px] text-red-200/60 mt-2">
+              Smart pick blends win rate, recent form, and performance against tougher (Q1/Q2) opponents.
+            </p>
           </div>
         )}
       </section>
@@ -554,6 +665,11 @@ export default function VestTrackerDashboard() {
             {netStatus === 'missing-url' && 'Set NET_RANKINGS_URL on the API (or VITE_NET_RANKINGS_URL in frontend) to load live NET-based quadrant records. Big Ten standings worker payloads are supported.'}
             {netStatus === 'loading' && 'Loading live NET rankings…'}
             {netStatus === 'error' && 'Unable to load NET rankings. Quadrant stats are temporarily unavailable.'}
+          </p>
+        )}
+        {netStatus === 'loaded' && (
+          <p className="text-xs text-stone-500 mt-3">
+            NET feed loaded: {netRankings.length} teams (target ~365).
           </p>
         )}
       </section>

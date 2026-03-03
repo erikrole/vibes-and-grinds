@@ -36,6 +36,22 @@ async function initDatabase() {
 
     CREATE INDEX IF NOT EXISTS idx_date ON coffee_visits(date DESC);
     CREATE INDEX IF NOT EXISTS idx_composite ON coffee_visits(composite_score DESC);
+
+    CREATE TABLE IF NOT EXISTS vest_games (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      game_id INTEGER NOT NULL UNIQUE,
+      date TEXT,
+      location TEXT,
+      opponent TEXT NOT NULL,
+      ranking INTEGER,
+      outfit TEXT,
+      result TEXT,
+      overtime INTEGER DEFAULT 0,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_vest_game_id ON vest_games(game_id);
+    CREATE INDEX IF NOT EXISTS idx_vest_date ON vest_games(date DESC);
   `);
 
   // Lightweight migrations for older local databases

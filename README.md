@@ -86,7 +86,11 @@ If you want the frontend to call your worker directly instead of the API proxy, 
 VITE_NET_RANKINGS_URL=https://big-ten-standings.erikrole.workers.dev  # optional direct browser override
 ```
 
-The vest tracker accepts either a dedicated NET rankings payload or your existing Big Ten standings worker shape (`{ standings: [{ team, netRank, ... }] }`). If no env var is set on the API, it defaults to the NCAA NET rankings page and parses all teams from HTML.
+The vest tracker accepts either a dedicated NET rankings payload, your Big Ten standings worker shape (`{ standings: [{ team, netRank, ... }] }`), or a full D1 map shape (`{ netRankings: { "DUKE": 1, ... } }`). If no env var is set on the API, it defaults to `https://www.warrennolan.com/basketball/2026/net` and parses all teams from HTML.
+
+Vest games now sync via `/api/vest/games` backed by DB storage (instead of device-only localStorage), so updates on one device can appear on another once both are online.
+
+If using Cloudflare D1, re-run migrations/schema apply so `vest_games` exists.
 
 Then start the development server:
 
