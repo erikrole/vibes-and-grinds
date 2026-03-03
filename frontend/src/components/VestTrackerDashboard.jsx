@@ -17,6 +17,9 @@ const OPPONENT_ALIASES = {
   ucla: 'california los angeles',
   usc: 'southern california',
   tcu: 'texas christian',
+  'michigan st': 'michigan state',
+  'ohio st': 'ohio state',
+  'penn st': 'penn state',
 };
 
 const EMPTY_FORM = {
@@ -211,8 +214,15 @@ export default function VestTrackerDashboard() {
     };
 
     loadNetRankings();
+
+    // Refresh every 5 minutes so quadrant stats stay current as rankings update
+    const intervalId = setInterval(() => {
+      loadNetRankings();
+    }, 5 * 60 * 1000);
+
     return () => {
       cancelled = true;
+      clearInterval(intervalId);
     };
   }, []);
 
@@ -479,9 +489,6 @@ export default function VestTrackerDashboard() {
                 Also consider: {recommendation.alternatives.map((entry) => entry.outfit).join(' • ')}
               </p>
             )}
-            <p className="text-[11px] text-red-200/60 mt-2">
-              Smart pick blends win rate, recent form, and performance against tougher (Q1/Q2) opponents.
-            </p>
           </div>
         )}
       </section>
