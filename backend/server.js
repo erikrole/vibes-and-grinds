@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const DEFAULT_NET_RANKINGS_URL = 'https://www.warrennolan.com/basketball/2026/net';
 
 // Middleware
 app.use(cors());
@@ -25,6 +26,56 @@ initDatabase()
   });
 
 // Routes
+
+
+function stripHtmlTags(value = '') {
+  return value
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseNetRankingsHtml(html = '') {
+  const rankings = [];
+
+  if (!html) return rankings;
+
+  const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
+  const tables = html.match(tableRegex);
+  if (!tables || tables.length === 0) return rankings;
+
+  const netTable = tables.reduce((best, table) => {
+    const bestRows = (best.match(/<tr/gi) || []).length;
+    const tableRows = (table.match(/<tr/gi) || []).length;
+    return tableRows > bestRows ? table : best;
+  });
+
+  const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  const rows = [...netTable.matchAll(rowRegex)];
+
+  for (let i = 1; i < rows.length; i++) {
+    const rowHtml = rows[i][1] || '';
+    if (rowHtml.includes('<th')) continue;
+
+    const cellRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+    const cells = [...rowHtml.matchAll(cellRegex)].map((cellMatch) => stripHtmlTags(cellMatch[1]));
+    if (cells.length < 2) continue;
+
+    const rank = Number.parseInt(cells[0], 10);
+    const team = (cells[1] || '').trim();
+
+    if (!Number.isFinite(rank) || !team) continue;
+    rankings.push({ team, rank });
+  }
+
+  return rankings;
+}
 
 // Get all coffee visits
 app.get('/api/visits', async (req, res) => {
@@ -225,6 +276,78 @@ app.get('/api/stats', async (req, res) => {
 });
 
 
+
+app.get('/api/vest/games', async (req, res) => {
+  try {
+    const rows = await db.all(`
+      SELECT game_id, date, location, opponent, ranking, outfit, result, overtime
+      FROM vest_games
+      ORDER BY date ASC, game_id ASC
+    `);
+
+    const games = rows.map((row) => ({
+      id: row.game_id,
+      date: row.date,
+      location: row.location || 'vs',
+      opponent: row.opponent,
+      ranking: row.ranking,
+      outfit: row.outfit || '',
+      result: row.result || '',
+      overtime: Boolean(row.overtime),
+    }));
+
+    return res.json({ games });
+  } catch (error) {
+    console.error('Error fetching vest games:', error);
+    return res.status(500).json({ error: 'Failed to fetch vest games' });
+  }
+});
+
+app.put('/api/vest/games', async (req, res) => {
+  const incoming = Array.isArray(req.body?.games) ? req.body.games : null;
+  if (!incoming) {
+    return res.status(400).json({ error: 'Invalid payload. Expected { games: [] }' });
+  }
+
+  try {
+    await db.exec('BEGIN TRANSACTION');
+    await db.run('DELETE FROM vest_games');
+
+    const stmt = await db.prepare(`
+      INSERT INTO vest_games (game_id, date, location, opponent, ranking, outfit, result, overtime, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `);
+
+    for (const game of incoming) {
+      const gameId = Number.parseInt(game.id, 10);
+      const ranking = game.ranking === null || game.ranking === '' || game.ranking === undefined
+        ? null
+        : Number.parseInt(game.ranking, 10);
+
+      if (!Number.isFinite(gameId) || !`${game.opponent || ''}`.trim()) continue;
+
+      await stmt.run([
+        gameId,
+        game.date || null,
+        game.location || 'vs',
+        `${game.opponent}`.trim(),
+        Number.isFinite(ranking) ? ranking : null,
+        `${game.outfit || ''}`.trim(),
+        game.result || '',
+        game.overtime ? 1 : 0,
+      ]);
+    }
+
+    await stmt.finalize();
+    await db.exec('COMMIT');
+    return res.json({ success: true, saved: incoming.length });
+  } catch (error) {
+    await db.exec('ROLLBACK');
+    console.error('Error syncing vest games:', error);
+    return res.status(500).json({ error: 'Failed to sync vest games' });
+  }
+});
+
 app.get('/api/vest/schedule', async (req, res) => {
   const season = String(req.query.season || '2025');
   const teamId = '275'; // Wisconsin
@@ -281,6 +404,59 @@ app.get('/api/vest/schedule', async (req, res) => {
     res.status(502).json({
       error: timedOut ? 'Schedule request timed out' : 'Failed to fetch vest schedule',
       details: timedOut ? 'ESPN did not respond in time.' : error.message,
+    });
+  }
+});
+
+
+app.get('/api/vest/net-rankings', async (req, res) => {
+  const netRankingsUrl = process.env.NET_RANKINGS_URL || DEFAULT_NET_RANKINGS_URL;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    const response = await fetch(netRankingsUrl, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; vibes-and-grinds/1.0)',
+      },
+    });
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      return res.status(502).json({
+        error: 'Failed to fetch NET rankings from upstream source.',
+        status: response.status,
+      });
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+
+    if (contentType.includes('text/html')) {
+      const html = await response.text();
+      const rankings = parseNetRankingsHtml(html);
+
+      if (!rankings.length) {
+        return res.status(502).json({
+          error: 'Failed to parse NET rankings from upstream HTML source.',
+        });
+      }
+
+      const netRankings = Object.fromEntries(
+        rankings.map((entry) => [entry.team.toUpperCase(), entry.rank])
+      );
+
+      return res.json({ rankings, netRankings, source: 'WarrenNolan' });
+    }
+
+    const data = await response.json();
+    return res.json(data);
+  } catch (error) {
+    const timedOut = error?.name === 'AbortError';
+    console.error('Error fetching vest NET rankings:', error);
+    return res.status(502).json({
+      error: timedOut ? 'NET rankings request timed out' : 'Failed to fetch vest NET rankings',
+      details: timedOut ? 'Upstream NET feed did not respond in time.' : error.message,
     });
   }
 });
