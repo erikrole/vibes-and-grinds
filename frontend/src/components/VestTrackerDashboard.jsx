@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { vestGames as seedGames } from '../utils/vestTrackerData';
-import { fetchVestGames, syncVestGames } from '../utils/api';
+import { fetchVestGames, syncVestGames, fetchVisits } from '../utils/api';
 import NetRankingsPage from './NetRankingsPage';
 
 const VEST_GAMES_KEY = 'vibes-and-grinds:vest-games';
@@ -508,6 +508,208 @@ export default function VestTrackerDashboard() {
     };
   }, [completedGames, outfitStats]);
 
+  // ── Streak Badges per outfit ──
+  const outfitBadges = useMemo(() => {
+    const badges = {};
+    for (const stat of outfitStats) {
+      const b = [];
+      // Current streak
+      const results = stat.recentResults;
+      let streakCount = 0;
+      if (results.length >= 2) {
+        const last = results[results.length - 1];
+        for (let i = results.length - 1; i >= 0; i--) {
+          if (results[i] === last) streakCount++;
+          else break;
+        }
+        if (streakCount >= 3 && last === 'W') b.push(`${streakCount}-Game Heater`);
+        else if (streakCount >= 3 && last === 'L') b.push(`${streakCount}-Game Skid`);
+      }
+      // Road Warrior: 3+ away wins
+      const roadGames = completedGames.filter(g => g.outfit === stat.outfit && g.location === '@');
+      const roadWins = roadGames.filter(g => g.result === 'W').length;
+      if (roadWins >= 3) b.push(`Road Warrior (${roadWins}-${roadGames.length - roadWins} away)`);
+      // Q1 Slayer: 2+ Q1 wins
+      if (stat.quadrants[1].wins >= 2) b.push(`Q1 Slayer (${stat.quadrants[1].wins}-${stat.quadrants[1].losses})`);
+      // Undefeated
+      if (stat.games >= 3 && stat.losses === 0) b.push('Undefeated');
+      // Overtime Specialist
+      const otGames = completedGames.filter(g => g.outfit === stat.outfit && g.overtime);
+      const otWins = otGames.filter(g => g.result === 'W').length;
+      if (otWins >= 2) b.push(`OT Specialist (${otWins}-${otGames.length - otWins})`);
+
+      if (b.length) badges[stat.outfit] = b;
+    }
+    return badges;
+  }, [outfitStats, completedGames]);
+
+  // ── Jinx Alert for recommendation ──
+  const jinxAlert = useMemo(() => {
+    if (!recommendation) return null;
+    const upcoming = sortedGames.find(g => !g.result || (g.result !== 'W' && g.result !== 'L'));
+    if (!upcoming) return null;
+
+    const topOutfit = recommendation.top.outfit;
+    const netRank = findNetRankForOpponent(netLookup, upcoming.opponent);
+    const quadrant = getQuadrant(upcoming.location || 'vs', netRank);
+    if (!quadrant) return null;
+
+    const topStats = outfitStats.find(s => s.outfit === topOutfit);
+    if (!topStats) return null;
+
+    const qGames = topStats.quadrants[quadrant].wins + topStats.quadrants[quadrant].losses;
+    if (qGames === 0) {
+      return {
+        opponent: upcoming.opponent,
+        quadrant,
+        message: `${topOutfit} has never been worn in a Q${quadrant} game. Proceed with caution!`,
+      };
+    }
+    return null;
+  }, [recommendation, sortedGames, netLookup, outfitStats]);
+
+  // ── Head-to-Head Outfit Comparison ──
+  const [compareOutfits, setCompareOutfits] = useState([null, null]);
+
+  const comparisonData = useMemo(() => {
+    const [a, b] = compareOutfits;
+    if (!a || !b) return null;
+    const statA = outfitStats.find(s => s.outfit === a);
+    const statB = outfitStats.find(s => s.outfit === b);
+    if (!statA || !statB) return null;
+
+    const avgNetRank = (outfit) => {
+      const og = completedGames.filter(g => g.outfit === outfit);
+      const ranks = og.map(g => findNetRankForOpponent(netLookup, g.opponent)).filter(Number.isFinite);
+      return ranks.length ? Math.round(ranks.reduce((s, r) => s + r, 0) / ranks.length) : null;
+    };
+
+    return {
+      a: { ...statA, avgNet: avgNetRank(a), badges: outfitBadges[a] || [] },
+      b: { ...statB, avgNet: avgNetRank(b), badges: outfitBadges[b] || [] },
+    };
+  }, [compareOutfits, outfitStats, completedGames, netLookup, outfitBadges]);
+
+  // ── Season Storylines / Milestones ──
+  const milestones = useMemo(() => {
+    const ms = [];
+    if (!completedGames.length) return ms;
+
+    // Longest win streak (overall and per outfit)
+    let maxStreak = 0, maxStreakOutfit = null, curStreak = 0, curOutfit = null;
+    for (const g of completedGames) {
+      if (g.result === 'W') {
+        curStreak++;
+        if (curStreak > maxStreak) {
+          maxStreak = curStreak;
+        }
+      } else {
+        curStreak = 0;
+      }
+    }
+    if (maxStreak >= 3) ms.push({ icon: '🔥', text: `Longest win streak: ${maxStreak} games` });
+
+    // Per-outfit longest streak
+    const outfitStreaks = {};
+    for (const g of completedGames) {
+      if (!g.outfit) continue;
+      if (!outfitStreaks[g.outfit]) outfitStreaks[g.outfit] = { max: 0, cur: 0 };
+      if (g.result === 'W') {
+        outfitStreaks[g.outfit].cur++;
+        outfitStreaks[g.outfit].max = Math.max(outfitStreaks[g.outfit].max, outfitStreaks[g.outfit].cur);
+      } else {
+        outfitStreaks[g.outfit].cur = 0;
+      }
+    }
+    let bestOutfitStreak = { outfit: null, count: 0 };
+    for (const [outfit, data] of Object.entries(outfitStreaks)) {
+      if (data.max > bestOutfitStreak.count) bestOutfitStreak = { outfit, count: data.max };
+    }
+    if (bestOutfitStreak.count >= 3) ms.push({ icon: '👔', text: `Best outfit streak: ${bestOutfitStreak.count}W in ${bestOutfitStreak.outfit}` });
+
+    // First Q1 road win
+    const firstQ1Road = completedGames.find(g => {
+      if (g.result !== 'W' || g.location !== '@') return false;
+      const rank = findNetRankForOpponent(netLookup, g.opponent);
+      return getQuadrant('@', rank) === 1;
+    });
+    if (firstQ1Road) ms.push({ icon: '🏆', text: `First Q1 road win: ${formatLocationLabel('@', 'full')} ${firstQ1Road.opponent}` });
+
+    // Worst loss (highest NET rank opponent lost to)
+    let worstLoss = null, worstRank = 0;
+    for (const g of completedGames) {
+      if (g.result !== 'L') continue;
+      const rank = findNetRankForOpponent(netLookup, g.opponent);
+      if (rank && rank > worstRank) { worstRank = rank; worstLoss = g; }
+    }
+    if (worstLoss && worstRank > 150) ms.push({ icon: '😬', text: `Worst loss: ${formatLocationLabel(worstLoss.location, 'full')} ${worstLoss.opponent} (NET #${worstRank})` });
+
+    // Best win (lowest NET rank opponent beaten)
+    let bestWin = null, bestRank = 999;
+    for (const g of completedGames) {
+      if (g.result !== 'W') continue;
+      const rank = findNetRankForOpponent(netLookup, g.opponent);
+      if (rank && rank < bestRank) { bestRank = rank; bestWin = g; }
+    }
+    if (bestWin && bestRank <= 25) ms.push({ icon: '⭐', text: `Best win: ${formatLocationLabel(bestWin.location, 'full')} ${bestWin.opponent} (NET #${bestRank})` });
+
+    // Overtime record
+    const otGames = completedGames.filter(g => g.overtime);
+    if (otGames.length >= 2) {
+      const otW = otGames.filter(g => g.result === 'W').length;
+      ms.push({ icon: '⏱️', text: `Overtime record: ${otW}-${otGames.length - otW}` });
+    }
+
+    return ms;
+  }, [completedGames, netLookup]);
+
+  // ── Coffee + Vest Crossover ──
+  const [coffeeVisits, setCoffeeVisits] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchVisits()
+      .then(data => {
+        if (!cancelled) setCoffeeVisits(Array.isArray(data) ? data : data?.visits || []);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const coffeeCrossover = useMemo(() => {
+    if (!coffeeVisits.length || !completedGames.length) return [];
+    // For each completed game, check if there was a coffee visit on the same day
+    const gameDateMap = {};
+    for (const g of completedGames) {
+      if (g.date) gameDateMap[g.date] = g;
+    }
+
+    // Group by drink
+    const drinkStats = {};
+    for (const visit of coffeeVisits) {
+      const visitDate = toIsoDate(visit.date || visit.visitDate);
+      const game = gameDateMap[visitDate];
+      if (!game) continue;
+
+      const drink = visit.drink || visit.order || visit.item || 'Unknown';
+      if (!drinkStats[drink]) drinkStats[drink] = { wins: 0, losses: 0, games: [] };
+      if (game.result === 'W') drinkStats[drink].wins++;
+      if (game.result === 'L') drinkStats[drink].losses++;
+      drinkStats[drink].games.push(game);
+    }
+
+    return Object.entries(drinkStats)
+      .filter(([, s]) => s.wins + s.losses >= 2)
+      .map(([drink, s]) => ({
+        drink,
+        wins: s.wins,
+        losses: s.losses,
+        total: s.wins + s.losses,
+        winRate: Math.round((s.wins / (s.wins + s.losses)) * 100),
+      }))
+      .sort((a, b) => b.winRate - a.winRate || b.total - a.total);
+  }, [coffeeVisits, completedGames]);
+
   const resetForm = () => {
     setFormState(EMPTY_FORM);
     setEditingId(null);
@@ -633,6 +835,11 @@ export default function VestTrackerDashboard() {
             <p className="text-[11px] text-red-200/60 mt-2">
               Smart pick blends win rate, recent form, and performance against tougher (Q1/Q2) opponents.
             </p>
+            {jinxAlert && (
+              <div className="mt-3 rounded-lg border border-amber-600/40 bg-amber-950/30 px-3 py-2 text-xs text-amber-200">
+                ⚠️ <span className="font-semibold">Jinx Alert:</span> {jinxAlert.message}
+              </div>
+            )}
           </div>
         )}
       </section>
@@ -672,6 +879,15 @@ export default function VestTrackerDashboard() {
                   </div>
                   <span className="text-sm font-semibold text-stone-500 dark:text-stone-300 shrink-0 ml-2">{stat.wins}-{stat.losses}</span>
                 </div>
+                {outfitBadges[stat.outfit]?.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {outfitBadges[stat.outfit].map((badge) => (
+                      <span key={badge} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                        {badge}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 <div className="h-2 rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden flex">
                   <div className="h-full bg-emerald-500" style={{ width: `${winWidth}%` }} title={`Wins: ${stat.wins}`} />
@@ -706,6 +922,94 @@ export default function VestTrackerDashboard() {
           </p>
         )}
       </section>
+
+      {/* Season Storylines / Milestones */}
+      {milestones.length > 0 && (
+        <section className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 shadow-sm mb-6">
+          <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-3">Season Storylines</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {milestones.map((m, i) => (
+              <div key={i} className="flex items-start gap-2 rounded-xl bg-stone-50 dark:bg-stone-700/40 px-3 py-2 text-sm text-stone-700 dark:text-stone-200">
+                <span className="text-base shrink-0">{m.icon}</span>
+                <span>{m.text}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Head-to-Head Outfit Comparison */}
+      {outfitStats.length >= 2 && (
+        <section className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 shadow-sm mb-6">
+          <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-3">Head-to-Head Comparison</h3>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {[0, 1].map((slot) => (
+              <select
+                key={slot}
+                value={compareOutfits[slot] || ''}
+                onChange={(e) => {
+                  const val = e.target.value || null;
+                  setCompareOutfits((prev) => {
+                    const next = [...prev];
+                    next[slot] = val;
+                    return next;
+                  });
+                }}
+                className="rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-2 text-sm"
+              >
+                <option value="">Select outfit {slot + 1}</option>
+                {outfitStats.map((s) => (
+                  <option key={s.outfit} value={s.outfit}>{s.outfit}</option>
+                ))}
+              </select>
+            ))}
+          </div>
+          {comparisonData && (
+            <div className="grid grid-cols-2 gap-4">
+              {[comparisonData.a, comparisonData.b].map((s) => (
+                <div key={s.outfit} className="rounded-xl border border-stone-200 dark:border-stone-600 p-4">
+                  <h4 className="font-bold text-stone-900 dark:text-stone-100 mb-2">{s.outfit}</h4>
+                  <div className="space-y-1 text-sm text-stone-600 dark:text-stone-300">
+                    <p>Record: <span className="font-semibold">{s.wins}-{s.losses}</span> ({s.winRate}%)</p>
+                    <p>Q1: {s.quadrants[1].wins}-{s.quadrants[1].losses} • Q2: {s.quadrants[2].wins}-{s.quadrants[2].losses}</p>
+                    <p>Q3: {s.quadrants[3].wins}-{s.quadrants[3].losses} • Q4: {s.quadrants[4].wins}-{s.quadrants[4].losses}</p>
+                    {s.avgNet && <p>Avg opponent NET: #{s.avgNet}</p>}
+                    <p>Form: {s.form === 'hot' ? '🔥 Hot' : s.form === 'cold' ? '❄️ Cold' : 'Neutral'}</p>
+                    {s.badges.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {s.badges.map((b) => (
+                          <span key={b} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">{b}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Coffee + Vest Crossover */}
+      {coffeeCrossover.length > 0 && (
+        <section className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 shadow-sm mb-6">
+          <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-1">Coffee Superstitions</h3>
+          <p className="text-xs text-stone-500 dark:text-stone-400 mb-3">Game-day drink correlations (min. 2 games)</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {coffeeCrossover.map((c) => (
+              <div key={c.drink} className="rounded-xl bg-stone-50 dark:bg-stone-700/40 px-3 py-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-stone-800 dark:text-stone-100">☕ {c.drink}</span>
+                  <span className={`font-bold ${c.winRate >= 60 ? 'text-emerald-600 dark:text-emerald-400' : c.winRate <= 40 ? 'text-red-600 dark:text-red-400' : 'text-stone-600 dark:text-stone-300'}`}>
+                    {c.winRate}%
+                  </span>
+                </div>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">{c.wins}-{c.losses} in {c.total} games</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Season timeline — newest first */}
       <section className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 shadow-sm mb-6">
