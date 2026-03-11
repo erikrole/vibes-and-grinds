@@ -71,7 +71,17 @@ function parseNetRankingsHtml(html = '') {
     const team = (cells[1] || '').trim();
 
     if (!Number.isFinite(rank) || !team) continue;
-    rankings.push({ team, rank });
+
+    // Scan remaining cells for a W-L record pattern
+    let record = null;
+    for (let c = 2; c < cells.length; c++) {
+      if (/^\d+-\d+$/.test(cells[c])) {
+        record = cells[c];
+        break;
+      }
+    }
+
+    rankings.push({ team, rank, record });
   }
 
   return rankings;

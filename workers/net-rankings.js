@@ -31,14 +31,14 @@ export default {
       const netHTML = await netResponse.text();
       const apPollHTML = apPollResponse.ok ? await apPollResponse.text() : '';
 
-      const netRankings = parseNetRankingsTable(netHTML);
-      if (Object.keys(netRankings).length === 0) {
+      const netResult = parseNetRankingsTable(netHTML);
+      if (netResult.rankings.length === 0) {
         throw new Error('No NET rankings data found');
       }
 
       const apRankings = parseAPPoll(apPollHTML);
 
-      return new Response(JSON.stringify({ netRankings, apRankings }), {
+      return new Response(JSON.stringify({ netRankings: netResult.netRankings, rankings: netResult.rankings, apRankings }), {
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
@@ -62,10 +62,12 @@ export default {
 
 /**
  * Parse WarrenNolan full NET rankings page (/basketball/2026/net)
- * Returns { "DUKE": 1, "AUBURN": 2, ... }
+ * Returns { netRankings: { "DUKE": 1, ... }, rankings: [{ team, rank, record }, ...] }
  */
 function parseNetRankingsTable(html) {
-  const rankings = {};
+  const netRankings = {};
+  const rankings = [];
+  const recordPattern = /\b(\d+-\d+)\b/;
 
   try {
     // Try to find pre-formatted text data (some pages return plain text tables)
@@ -81,15 +83,19 @@ function parseNetRankingsTable(html) {
 
         // Team name is everything after the rank until we hit numbers/conference
         let teamName = parts.slice(1).join(' ');
+        // Capture W-L record before stripping it
+        const recordMatch = teamName.match(recordPattern);
+        const record = recordMatch ? recordMatch[1] : null;
         // Remove trailing conference/record info
         teamName = teamName.replace(/\s+(ACC|SEC|Big Ten|Big 12|Pac-12|Big East|AAC|MWC|WCC|A-10|MAC|C-USA|Sun Belt|WAC|Summit|Horizon|CAA|MVC|SoCon|Southland|NEC|MAAC|Ivy|Patriot|MEAC|SWAC|Big Sky|Big South|OVC|AEC|ASun).*$/i, '');
         teamName = normalizeTeamName(teamName.replace(/\s+\d+-\d+.*$/, '').trim());
 
         if (teamName && teamName.length > 1) {
-          rankings[teamName] = rank;
+          netRankings[teamName] = rank;
+          rankings.push({ team: teamName, rank, record });
         }
       }
-      if (Object.keys(rankings).length > 0) return rankings;
+      if (rankings.length > 0) return { netRankings, rankings };
     }
 
     // Fallback: try HTML table parsing
@@ -118,13 +124,23 @@ function parseNetRankingsTable(html) {
 
       if (!rank || !teamName) continue;
 
-      rankings[teamName] = rank;
+      // Scan remaining cells for a W-L record pattern
+      let record = null;
+      for (let c = 2; c < cells.length; c++) {
+        if (/^\d+-\d+$/.test(cells[c])) {
+          record = cells[c];
+          break;
+        }
+      }
+
+      netRankings[teamName] = rank;
+      rankings.push({ team: teamName, rank, record });
     }
   } catch (error) {
     throw new Error(`NET parse error: ${error.message}`);
   }
 
-  return rankings;
+  return { netRankings, rankings };
 }
 
 /**

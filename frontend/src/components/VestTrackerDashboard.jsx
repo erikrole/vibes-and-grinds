@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { vestGames as seedGames } from '../utils/vestTrackerData';
 import { fetchVestGames, syncVestGames } from '../utils/api';
+import NetRankingsPage from './NetRankingsPage';
 
 const VEST_GAMES_KEY = 'vibes-and-grinds:vest-games';
 const NET_RANKINGS_URL = import.meta.env.VITE_NET_RANKINGS_URL || '';
@@ -224,6 +225,7 @@ export default function VestTrackerDashboard() {
   const [editingId, setEditingId] = useState(null);
   const [addingOutfit, setAddingOutfit] = useState(false);
   const [syncReady, setSyncReady] = useState(false);
+  const [vestTab, setVestTab] = useState('dashboard');
 
   // Persist any game changes to localStorage
   useEffect(() => {
@@ -259,6 +261,7 @@ export default function VestTrackerDashboard() {
           team: teamName,
           rank,
           key: normalizeTeamName(teamName),
+          record: entry.record || null,
         };
       })
       .filter(Boolean);
@@ -555,8 +558,38 @@ export default function VestTrackerDashboard() {
     setAddingOutfit(false);
   };
 
+  if (vestTab === 'rankings') {
+    return (
+      <NetRankingsPage
+        netRankings={netRankings}
+        netStatus={netStatus}
+        onBack={() => setVestTab('dashboard')}
+      />
+    );
+  }
+
   return (
     <main className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Tab navigation */}
+      <div className="mb-6 inline-flex rounded-xl border border-stone-300 dark:border-stone-600 overflow-hidden">
+        {[
+          { value: 'dashboard', label: 'Dashboard' },
+          { value: 'rankings', label: 'NET Rankings' },
+        ].map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => setVestTab(tab.value)}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-r last:border-r-0 border-stone-300 dark:border-stone-600 ${
+              vestTab === tab.value
+                ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
+                : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* Header */}
       <section className="bg-neutral-900 text-neutral-100 border border-red-900/40 rounded-2xl p-5 sm:p-6 shadow-sm mb-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -691,7 +724,7 @@ export default function VestTrackerDashboard() {
 
             const resultLabel = game.result === 'W' ? 'Win' : game.result === 'L' ? 'Loss' : 'Upcoming';
             const gameQuadrant = (game.result === 'W' || game.result === 'L') && netStatus === 'loaded'
-              ? getQuadrant(game.location, netLookup.get(normalizeTeamName(game.opponent)))
+              ? getQuadrant(game.location, findNetRankForOpponent(netLookup, game.opponent))
               : null;
 
             return (
