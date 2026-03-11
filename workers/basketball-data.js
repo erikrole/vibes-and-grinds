@@ -60,16 +60,16 @@ export default {
       }
 
       // Full D1 NET rankings map — covers non-Big Ten opponents
-      const netRankings = parseNetRankingsPage(netPageHTML);
+      const netResult = parseNetRankingsPage(netPageHTML);
 
       // Backfill netRankings with Big Ten data we already have
       for (const team of standings) {
-        if (team.netRank && !netRankings[team.team]) {
-          netRankings[team.team] = team.netRank;
+        if (team.netRank && !netResult.netRankings[team.team]) {
+          netResult.netRankings[team.team] = team.netRank;
         }
       }
 
-      return new Response(JSON.stringify({ standings, netRankings }), {
+      return new Response(JSON.stringify({ standings, netRankings: netResult.netRankings, rankings: netResult.rankings }), {
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
@@ -155,16 +155,18 @@ function parseConferenceTable(html) {
 
 /**
  * Parse WarrenNolan full NET rankings page (/net-rankings)
- * Returns { "DUKE": 1, "AUBURN": 2, ... } for all D1 teams.
+ * Returns { netRankings: { "DUKE": 1, ... }, rankings: [{ team, rank, record }, ...] }
  *
  * NET page columns: NET Rank | Team | Conference | Record | ...
  * If results look wrong, check the Cloudflare Worker logs and adjust
  * RANK_COL / TEAM_COL below to match the actual column positions.
  */
 function parseNetRankingsPage(html) {
-  const rankings = {};
+  const netRankings = {};
+  const rankings = [];
+  const recordPattern = /\b(\d+-\d+)\b/;
 
-  if (!html) return rankings;
+  if (!html) return { netRankings, rankings };
 
   // Try <pre> text block first (mirrors net-rankings.js logic)
   const preMatch = html.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
@@ -178,6 +180,9 @@ function parseNetRankingsPage(html) {
       if (!rank || rank < 1 || rank > 363) continue;
 
       let teamName = parts.slice(1).join(' ');
+      // Capture W-L record before stripping it
+      const recordMatch = teamName.match(recordPattern);
+      const record = recordMatch ? recordMatch[1] : null;
       teamName = teamName.replace(
         /\s+(ACC|SEC|Big Ten|Big 12|Pac-12|Big East|AAC|MWC|WCC|A-10|MAC|C-USA|Sun Belt|WAC|Summit|Horizon|CAA|MVC|SoCon|Southland|NEC|MAAC|Ivy|Patriot|MEAC|SWAC|Big Sky|Big South|OVC|AEC|ASun).*$/i,
         ''
@@ -185,21 +190,21 @@ function parseNetRankingsPage(html) {
       teamName = normalizeTeamName(teamName.replace(/\s+\d+-\d+.*$/, '').trim());
 
       if (teamName && teamName.length > 1) {
-        rankings[teamName] = rank;
+        netRankings[teamName] = rank;
+        rankings.push({ team: teamName, rank, record });
       }
     }
-    if (Object.keys(rankings).length > 0) return rankings;
+    if (rankings.length > 0) return { netRankings, rankings };
   }
 
   // Fallback: HTML table parsing
-  // Adjust these if the column positions differ on the actual page
   const RANK_COL = 0;
   const TEAM_COL = 1;
 
   try {
     const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
     const tables = html.match(tableRegex);
-    if (!tables) return rankings;
+    if (!tables) return { netRankings, rankings };
 
     // Use the table with the most rows
     const netTable = tables.reduce((best, t) =>
@@ -223,14 +228,24 @@ function parseNetRankingsPage(html) {
 
       if (!rank || !teamName) continue;
 
-      rankings[teamName] = rank;
+      // Scan remaining cells for a W-L record pattern
+      let record = null;
+      for (let c = TEAM_COL + 1; c < cells.length; c++) {
+        if (/^\d+-\d+$/.test(cells[c])) {
+          record = cells[c];
+          break;
+        }
+      }
+
+      netRankings[teamName] = rank;
+      rankings.push({ team: teamName, rank, record });
     }
   } catch (error) {
     // Non-fatal — standings still work without the full NET map
     console.error('NET rankings parse error:', error.message);
   }
 
-  return rankings;
+  return { netRankings, rankings };
 }
 
 /**
