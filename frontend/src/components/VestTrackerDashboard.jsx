@@ -206,6 +206,17 @@ const formatLocationLabel = (location, mode = 'short') => {
   return 'vs';
 };
 
+const countTrailingStreak = (results) => {
+  if (!results.length) return null;
+  const last = results[results.length - 1];
+  let count = 0;
+  for (let i = results.length - 1; i >= 0; i--) {
+    if (results[i] === last) count++;
+    else break;
+  }
+  return { result: last, count };
+};
+
 const loadGames = () => {
   try {
     const raw = localStorage.getItem(VEST_GAMES_KEY);
@@ -393,16 +404,10 @@ export default function VestTrackerDashboard() {
   }, [completedGames, selectedOutfit]);
 
   // Current streak — always based on overall completed games, not filtered
-  const streak = useMemo(() => {
-    if (!completedGames.length) return null;
-    const last = completedGames[completedGames.length - 1].result;
-    let count = 0;
-    for (let i = completedGames.length - 1; i >= 0; i--) {
-      if (completedGames[i].result === last) count++;
-      else break;
-    }
-    return { result: last, count };
-  }, [completedGames]);
+  const streak = useMemo(
+    () => countTrailingStreak(completedGames.map(g => g.result)),
+    [completedGames]
+  );
 
   const outfitStats = useMemo(() => {
     const grouped = completedGames
@@ -418,6 +423,12 @@ export default function VestTrackerDashboard() {
             lastSeenLocation: game.location || 'vs',
             lastIndex: index,
             recentResults: [],
+            roadWins: 0,
+            roadLosses: 0,
+            otWins: 0,
+            otLosses: 0,
+            netRankSum: 0,
+            netRankCount: 0,
             quadrants: {
               1: { wins: 0, losses: 0 },
               2: { wins: 0, losses: 0 },
@@ -427,19 +438,30 @@ export default function VestTrackerDashboard() {
           };
         }
 
-        acc[game.outfit].games += 1;
-        acc[game.outfit].lastSeen = game.opponent;
-        acc[game.outfit].lastSeenLocation = game.location || 'vs';
-        acc[game.outfit].lastIndex = index;
-        acc[game.outfit].recentResults.push(game.result);
-        if (game.result === 'W') acc[game.outfit].wins += 1;
-        if (game.result === 'L') acc[game.outfit].losses += 1;
+        const o = acc[game.outfit];
+        o.games += 1;
+        o.lastSeen = game.opponent;
+        o.lastSeenLocation = game.location || 'vs';
+        o.lastIndex = index;
+        o.recentResults.push(game.result);
+        if (game.result === 'W') o.wins += 1;
+        if (game.result === 'L') o.losses += 1;
+
+        if (game.location === '@') {
+          if (game.result === 'W') o.roadWins += 1;
+          if (game.result === 'L') o.roadLosses += 1;
+        }
+        if (game.overtime) {
+          if (game.result === 'W') o.otWins += 1;
+          if (game.result === 'L') o.otLosses += 1;
+        }
 
         const netRank = findNetRankForOpponent(netLookup, game.opponent);
+        if (Number.isFinite(netRank)) { o.netRankSum += netRank; o.netRankCount += 1; }
         const quadrant = getQuadrant(game.location, netRank);
         if (quadrant && (game.result === 'W' || game.result === 'L')) {
-          if (game.result === 'W') acc[game.outfit].quadrants[quadrant].wins += 1;
-          if (game.result === 'L') acc[game.outfit].quadrants[quadrant].losses += 1;
+          if (game.result === 'W') o.quadrants[quadrant].wins += 1;
+          if (game.result === 'L') o.quadrants[quadrant].losses += 1;
         }
 
         return acc;
@@ -455,6 +477,7 @@ export default function VestTrackerDashboard() {
         return {
           ...entry,
           winRate: Math.round((entry.wins / entry.games) * 100),
+          avgNet: entry.netRankCount ? Math.round(entry.netRankSum / entry.netRankCount) : null,
           form,
         };
       })
@@ -513,35 +536,17 @@ export default function VestTrackerDashboard() {
     const badges = {};
     for (const stat of outfitStats) {
       const b = [];
-      // Current streak
-      const results = stat.recentResults;
-      let streakCount = 0;
-      if (results.length >= 2) {
-        const last = results[results.length - 1];
-        for (let i = results.length - 1; i >= 0; i--) {
-          if (results[i] === last) streakCount++;
-          else break;
-        }
-        if (streakCount >= 3 && last === 'W') b.push(`${streakCount}-Game Heater`);
-        else if (streakCount >= 3 && last === 'L') b.push(`${streakCount}-Game Skid`);
-      }
-      // Road Warrior: 3+ away wins
-      const roadGames = completedGames.filter(g => g.outfit === stat.outfit && g.location === '@');
-      const roadWins = roadGames.filter(g => g.result === 'W').length;
-      if (roadWins >= 3) b.push(`Road Warrior (${roadWins}-${roadGames.length - roadWins} away)`);
-      // Q1 Slayer: 2+ Q1 wins
+      const s = countTrailingStreak(stat.recentResults);
+      if (s && s.count >= 3 && s.result === 'W') b.push(`${s.count}-Game Heater`);
+      else if (s && s.count >= 3 && s.result === 'L') b.push(`${s.count}-Game Skid`);
+      if (stat.roadWins >= 3) b.push(`Road Warrior (${stat.roadWins}-${stat.roadLosses} away)`);
       if (stat.quadrants[1].wins >= 2) b.push(`Q1 Slayer (${stat.quadrants[1].wins}-${stat.quadrants[1].losses})`);
-      // Undefeated
       if (stat.games >= 3 && stat.losses === 0) b.push('Undefeated');
-      // Overtime Specialist
-      const otGames = completedGames.filter(g => g.outfit === stat.outfit && g.overtime);
-      const otWins = otGames.filter(g => g.result === 'W').length;
-      if (otWins >= 2) b.push(`OT Specialist (${otWins}-${otGames.length - otWins})`);
-
+      if (stat.otWins >= 2) b.push(`OT Specialist (${stat.otWins}-${stat.otLosses})`);
       if (b.length) badges[stat.outfit] = b;
     }
     return badges;
-  }, [outfitStats, completedGames]);
+  }, [outfitStats]);
 
   // ── Jinx Alert for recommendation ──
   const jinxAlert = useMemo(() => {
@@ -559,11 +564,7 @@ export default function VestTrackerDashboard() {
 
     const qGames = topStats.quadrants[quadrant].wins + topStats.quadrants[quadrant].losses;
     if (qGames === 0) {
-      return {
-        opponent: upcoming.opponent,
-        quadrant,
-        message: `${topOutfit} has never been worn in a Q${quadrant} game. Proceed with caution!`,
-      };
+      return { opponent: upcoming.opponent, quadrant, outfit: topOutfit };
     }
     return null;
   }, [recommendation, sortedGames, netLookup, outfitStats]);
@@ -578,87 +579,68 @@ export default function VestTrackerDashboard() {
     const statB = outfitStats.find(s => s.outfit === b);
     if (!statA || !statB) return null;
 
-    const avgNetRank = (outfit) => {
-      const og = completedGames.filter(g => g.outfit === outfit);
-      const ranks = og.map(g => findNetRankForOpponent(netLookup, g.opponent)).filter(Number.isFinite);
-      return ranks.length ? Math.round(ranks.reduce((s, r) => s + r, 0) / ranks.length) : null;
-    };
-
     return {
-      a: { ...statA, avgNet: avgNetRank(a), badges: outfitBadges[a] || [] },
-      b: { ...statB, avgNet: avgNetRank(b), badges: outfitBadges[b] || [] },
+      a: { ...statA, badges: outfitBadges[a] || [] },
+      b: { ...statB, badges: outfitBadges[b] || [] },
     };
-  }, [compareOutfits, outfitStats, completedGames, netLookup, outfitBadges]);
+  }, [compareOutfits, outfitStats, outfitBadges]);
 
-  // ── Season Storylines / Milestones ──
+  // ── Season Storylines / Milestones (single pass) ──
   const milestones = useMemo(() => {
-    const ms = [];
-    if (!completedGames.length) return ms;
+    if (!completedGames.length) return [];
 
-    // Longest win streak (overall and per outfit)
     let maxStreak = 0, curStreak = 0;
+    const outfitStreaks = {};
+    let firstQ1Road = null;
+    let worstLoss = null, worstRank = 0;
+    let bestWin = null, bestRank = 999;
+    let otWins = 0, otTotal = 0;
+
     for (const g of completedGames) {
-      if (g.result === 'W') {
-        curStreak++;
-        if (curStreak > maxStreak) {
-          maxStreak = curStreak;
+      // Overall win streak
+      if (g.result === 'W') { curStreak++; if (curStreak > maxStreak) maxStreak = curStreak; }
+      else { curStreak = 0; }
+
+      // Per-outfit win streak
+      if (g.outfit) {
+        if (!outfitStreaks[g.outfit]) outfitStreaks[g.outfit] = { max: 0, cur: 0 };
+        if (g.result === 'W') {
+          outfitStreaks[g.outfit].cur++;
+          outfitStreaks[g.outfit].max = Math.max(outfitStreaks[g.outfit].max, outfitStreaks[g.outfit].cur);
+        } else {
+          outfitStreaks[g.outfit].cur = 0;
         }
-      } else {
-        curStreak = 0;
       }
+
+      const rank = findNetRankForOpponent(netLookup, g.opponent);
+
+      // First Q1 road win
+      if (!firstQ1Road && g.result === 'W' && g.location === '@' && getQuadrant('@', rank) === 1) {
+        firstQ1Road = g;
+      }
+
+      // Best win / worst loss
+      if (rank) {
+        if (g.result === 'W' && rank < bestRank) { bestRank = rank; bestWin = g; }
+        if (g.result === 'L' && rank > worstRank) { worstRank = rank; worstLoss = g; }
+      }
+
+      // Overtime
+      if (g.overtime) { otTotal++; if (g.result === 'W') otWins++; }
     }
+
+    const ms = [];
     if (maxStreak >= 3) ms.push({ icon: '🔥', text: `Longest win streak: ${maxStreak} games` });
 
-    // Per-outfit longest streak
-    const outfitStreaks = {};
-    for (const g of completedGames) {
-      if (!g.outfit) continue;
-      if (!outfitStreaks[g.outfit]) outfitStreaks[g.outfit] = { max: 0, cur: 0 };
-      if (g.result === 'W') {
-        outfitStreaks[g.outfit].cur++;
-        outfitStreaks[g.outfit].max = Math.max(outfitStreaks[g.outfit].max, outfitStreaks[g.outfit].cur);
-      } else {
-        outfitStreaks[g.outfit].cur = 0;
-      }
-    }
     let bestOutfitStreak = { outfit: null, count: 0 };
     for (const [outfit, data] of Object.entries(outfitStreaks)) {
       if (data.max > bestOutfitStreak.count) bestOutfitStreak = { outfit, count: data.max };
     }
     if (bestOutfitStreak.count >= 3) ms.push({ icon: '👔', text: `Best outfit streak: ${bestOutfitStreak.count}W in ${bestOutfitStreak.outfit}` });
-
-    // First Q1 road win
-    const firstQ1Road = completedGames.find(g => {
-      if (g.result !== 'W' || g.location !== '@') return false;
-      const rank = findNetRankForOpponent(netLookup, g.opponent);
-      return getQuadrant('@', rank) === 1;
-    });
     if (firstQ1Road) ms.push({ icon: '🏆', text: `First Q1 road win: ${formatLocationLabel('@', 'full')} ${firstQ1Road.opponent}` });
-
-    // Worst loss (highest NET rank opponent lost to)
-    let worstLoss = null, worstRank = 0;
-    for (const g of completedGames) {
-      if (g.result !== 'L') continue;
-      const rank = findNetRankForOpponent(netLookup, g.opponent);
-      if (rank && rank > worstRank) { worstRank = rank; worstLoss = g; }
-    }
     if (worstLoss && worstRank > 150) ms.push({ icon: '😬', text: `Worst loss: ${formatLocationLabel(worstLoss.location, 'full')} ${worstLoss.opponent} (NET #${worstRank})` });
-
-    // Best win (lowest NET rank opponent beaten)
-    let bestWin = null, bestRank = 999;
-    for (const g of completedGames) {
-      if (g.result !== 'W') continue;
-      const rank = findNetRankForOpponent(netLookup, g.opponent);
-      if (rank && rank < bestRank) { bestRank = rank; bestWin = g; }
-    }
     if (bestWin && bestRank <= 25) ms.push({ icon: '⭐', text: `Best win: ${formatLocationLabel(bestWin.location, 'full')} ${bestWin.opponent} (NET #${bestRank})` });
-
-    // Overtime record
-    const otGames = completedGames.filter(g => g.overtime);
-    if (otGames.length >= 2) {
-      const otW = otGames.filter(g => g.result === 'W').length;
-      ms.push({ icon: '⏱️', text: `Overtime record: ${otW}-${otGames.length - otW}` });
-    }
+    if (otTotal >= 2) ms.push({ icon: '⏱️', text: `Overtime record: ${otWins}-${otTotal - otWins}` });
 
     return ms;
   }, [completedGames, netLookup]);
@@ -693,10 +675,9 @@ export default function VestTrackerDashboard() {
 
       const drink = visit.coffee_order || visit.drink || visit.order || '';
       if (!drink) continue;
-      if (!drinkStats[drink]) drinkStats[drink] = { wins: 0, losses: 0, games: [] };
+      if (!drinkStats[drink]) drinkStats[drink] = { wins: 0, losses: 0 };
       if (game.result === 'W') drinkStats[drink].wins++;
       if (game.result === 'L') drinkStats[drink].losses++;
-      drinkStats[drink].games.push(game);
     }
 
     return Object.entries(drinkStats)
@@ -838,7 +819,7 @@ export default function VestTrackerDashboard() {
             </p>
             {jinxAlert && (
               <div className="mt-3 rounded-lg border border-amber-600/40 bg-amber-950/30 px-3 py-2 text-xs text-amber-200">
-                ⚠️ <span className="font-semibold">Jinx Alert:</span> {jinxAlert.message}
+                ⚠️ <span className="font-semibold">Jinx Alert:</span> {jinxAlert.outfit} has never been worn in a Q{jinxAlert.quadrant} game. Proceed with caution!
               </div>
             )}
           </div>
