@@ -596,7 +596,7 @@ export default function VestTrackerDashboard() {
     if (!completedGames.length) return ms;
 
     // Longest win streak (overall and per outfit)
-    let maxStreak = 0, maxStreakOutfit = null, curStreak = 0, curOutfit = null;
+    let maxStreak = 0, curStreak = 0;
     for (const g of completedGames) {
       if (g.result === 'W') {
         curStreak++;
@@ -691,7 +691,8 @@ export default function VestTrackerDashboard() {
       const game = gameDateMap[visitDate];
       if (!game) continue;
 
-      const drink = visit.drink || visit.order || visit.item || 'Unknown';
+      const drink = visit.coffee_order || visit.drink || visit.order || '';
+      if (!drink) continue;
       if (!drinkStats[drink]) drinkStats[drink] = { wins: 0, losses: 0, games: [] };
       if (game.result === 'W') drinkStats[drink].wins++;
       if (game.result === 'L') drinkStats[drink].losses++;
@@ -844,6 +845,48 @@ export default function VestTrackerDashboard() {
         )}
       </section>
 
+      {/* Season timeline — newest first (above outfit cards for easy filtering) */}
+      <section className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 shadow-sm mb-6">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">Season Timeline</h3>
+          <span className="text-xs uppercase tracking-[0.08em] text-stone-500">Click a game to edit</span>
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {visibleGames.map((game, index) => {
+            const resultClass =
+              game.result === 'W'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-200'
+                : game.result === 'L'
+                  ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/30 dark:border-red-800 dark:text-red-200'
+                  : 'bg-stone-50 border-stone-200 text-stone-700 dark:bg-stone-700/30 dark:border-stone-600 dark:text-stone-200';
+
+            const resultLabel = game.result === 'W' ? 'Win' : game.result === 'L' ? 'Loss' : 'Upcoming';
+            const gameQuadrant = (game.result === 'W' || game.result === 'L') && netStatus === 'loaded'
+              ? getQuadrant(game.location, findNetRankForOpponent(netLookup, game.opponent))
+              : null;
+
+            return (
+              <button
+                key={`${game.id}-${index}`}
+                onClick={() => startEdit(game)}
+                className={`min-w-[176px] rounded-xl border px-3 py-2 text-left text-sm transition-colors ${resultClass}`}
+              >
+                <div className="text-xs opacity-75">
+                  {formatDate(game.date) || `Game ${index + 1}`}
+                </div>
+                <div className="font-semibold">
+                  {formatLocationLabel(game.location, 'full')}&nbsp;&nbsp;{game.ranking ? <>{toSuperscript(game.ranking)}&thinsp;</> : null}{game.opponent}{game.overtime && ' (OT)'}
+                </div>
+                <div className="text-xs mt-1 opacity-80">{game.outfit || 'Outfit TBD'}</div>
+                <div className="text-xs mt-1 font-semibold">
+                  {resultLabel}{gameQuadrant ? ` • Q${gameQuadrant}` : ''}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
       {/* Outfit cards */}
       <section className="mb-6">
         <p className="text-xs uppercase tracking-[0.08em] text-stone-500 mb-3">Click an outfit to filter timeline</p>
@@ -912,7 +955,7 @@ export default function VestTrackerDashboard() {
         {netStatus !== 'loaded' && (
           <p className="text-xs text-stone-500 mt-3">
             {netStatus === 'missing-url' && 'Set NET_RANKINGS_URL on the API (or VITE_NET_RANKINGS_URL in frontend) to load live NET-based quadrant records. Big Ten standings worker payloads are supported.'}
-            {netStatus === 'loading' && 'Loading live NET rankings…'}
+            {netStatus === 'loading' && 'Loading live NET rankings\u2026'}
             {netStatus === 'error' && 'Unable to load NET rankings. Quadrant stats are temporarily unavailable.'}
           </p>
         )}
@@ -941,7 +984,17 @@ export default function VestTrackerDashboard() {
       {/* Head-to-Head Outfit Comparison */}
       {outfitStats.length >= 2 && (
         <section className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 shadow-sm mb-6">
-          <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-3">Head-to-Head Comparison</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">Head-to-Head Comparison</h3>
+            {(compareOutfits[0] || compareOutfits[1]) && (
+              <button
+                onClick={() => setCompareOutfits([null, null])}
+                className="text-xs text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors"
+              >
+                Clear
+              </button>
+            )}
+          </div>
           <div className="flex flex-wrap gap-2 mb-4">
             {[0, 1].map((slot) => (
               <select
@@ -993,65 +1046,26 @@ export default function VestTrackerDashboard() {
       {/* Coffee + Vest Crossover */}
       {coffeeCrossover.length > 0 && (
         <section className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 shadow-sm mb-6">
-          <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-1">Coffee Superstitions</h3>
-          <p className="text-xs text-stone-500 dark:text-stone-400 mb-3">Game-day drink correlations (min. 2 games)</p>
+          <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-1">Game-Day Coffee</h3>
+          <p className="text-xs text-stone-500 dark:text-stone-400 mb-3">Does your coffee order affect the outcome?</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {coffeeCrossover.map((c) => (
               <div key={c.drink} className="rounded-xl bg-stone-50 dark:bg-stone-700/40 px-3 py-2 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-stone-800 dark:text-stone-100">☕ {c.drink}</span>
+                  <span className="font-semibold text-stone-800 dark:text-stone-100">{c.drink}</span>
                   <span className={`font-bold ${c.winRate >= 60 ? 'text-emerald-600 dark:text-emerald-400' : c.winRate <= 40 ? 'text-red-600 dark:text-red-400' : 'text-stone-600 dark:text-stone-300'}`}>
-                    {c.winRate}%
+                    {c.wins}W-{c.losses}L
                   </span>
                 </div>
-                <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">{c.wins}-{c.losses} in {c.total} games</p>
+                <div className="mt-1 h-1.5 rounded-full bg-stone-200 dark:bg-stone-600 overflow-hidden flex">
+                  <div className="h-full bg-emerald-500" style={{ width: `${c.winRate}%` }} />
+                  <div className="h-full bg-red-500" style={{ width: `${100 - c.winRate}%` }} />
+                </div>
               </div>
             ))}
           </div>
         </section>
       )}
-
-      {/* Season timeline — newest first */}
-      <section className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 shadow-sm mb-6">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">Season Timeline</h3>
-          <span className="text-xs uppercase tracking-[0.08em] text-stone-500">Click a game to edit</span>
-        </div>
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {visibleGames.map((game, index) => {
-            const resultClass =
-              game.result === 'W'
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-200'
-                : game.result === 'L'
-                  ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/30 dark:border-red-800 dark:text-red-200'
-                  : 'bg-stone-50 border-stone-200 text-stone-700 dark:bg-stone-700/30 dark:border-stone-600 dark:text-stone-200';
-
-            const resultLabel = game.result === 'W' ? 'Win' : game.result === 'L' ? 'Loss' : 'Upcoming';
-            const gameQuadrant = (game.result === 'W' || game.result === 'L') && netStatus === 'loaded'
-              ? getQuadrant(game.location, findNetRankForOpponent(netLookup, game.opponent))
-              : null;
-
-            return (
-              <button
-                key={`${game.id}-${index}`}
-                onClick={() => startEdit(game)}
-                className={`min-w-[176px] rounded-xl border px-3 py-2 text-left text-sm transition-colors ${resultClass}`}
-              >
-                <div className="text-xs opacity-75">
-                  {formatDate(game.date) || `Game ${index + 1}`}
-                </div>
-                <div className="font-semibold">
-                  {formatLocationLabel(game.location, 'full')}&nbsp;&nbsp;{game.ranking ? <>{toSuperscript(game.ranking)}&thinsp;</> : null}{game.opponent}{game.overtime && ' (OT)'}
-                </div>
-                <div className="text-xs mt-1 opacity-80">{game.outfit || 'Outfit TBD'}</div>
-                <div className="text-xs mt-1 font-semibold">
-                  {resultLabel}{gameQuadrant ? ` • Q${gameQuadrant}` : ''}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </section>
 
       {/* Add / Edit form */}
       <section className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 shadow-sm">
