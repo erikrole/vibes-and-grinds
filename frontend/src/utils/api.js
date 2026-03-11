@@ -67,3 +67,13 @@ export async function syncVestGames(games) {
   if (!response.ok) throw new Error('Failed to sync vest games');
   return response.json();
 }
+
+export async function fetchVestBlurb(context) {
+  const response = await fetch(`${API_URL}/api/vest/blurb`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ context }),
+  });
+  if (!response.ok) throw new Error('Failed to generate blurb');
+  return response.json();
+}
