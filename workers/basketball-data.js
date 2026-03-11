@@ -3,9 +3,9 @@
  *
  * Fetches Big Ten conference standings from WarrenNolan, AP Poll from NCAA.com,
  * and full D1 NET rankings from multiple sources (tried in order):
- *   1. Barttorvik teamsheets (HTML table parse)
- *   2. WarrenNolan /net page (HTML table parse)
- *   3. NCAA API proxy (JSON)
+ *   1. NCAA.com direct scrape (same domain as AP poll, known reachable)
+ *   2. NCAA API proxy at ncaa-api.henrygd.me (JSON, with pagination)
+ *   3. WarrenNolan /net page (HTML table parse, fallback)
  *
  * Response shape:
  *   {
@@ -99,10 +99,11 @@ export default {
  * Try multiple sources for full D1 NET rankings, return the first that succeeds.
  */
 async function fetchAllNetRankings() {
+  const errors = [];
   const sources = [
-    { name: 'barttorvik', fn: fetchBarttorvik },
-    { name: 'warrennolan', fn: fetchWarrenNolanNet },
+    { name: 'ncaa.com', fn: fetchNcaaDirect },
     { name: 'ncaa-api', fn: fetchNcaaApi },
+    { name: 'warrennolan', fn: fetchWarrenNolanNet },
   ];
 
   for (const { name, fn } of sources) {
@@ -112,27 +113,97 @@ async function fetchAllNetRankings() {
         console.log(`NET rankings: ${result.rankings.length} teams from ${name}`);
         return { ...result, source: name };
       }
+      errors.push(`${name}: only ${result.rankings.length} teams`);
     } catch (err) {
+      errors.push(`${name}: ${err.message}`);
       console.error(`NET source ${name} failed:`, err.message);
     }
   }
 
-  console.warn('All NET ranking sources failed, returning empty');
-  return { netRankings: {}, rankings: [], source: 'none' };
+  console.warn('All NET ranking sources failed:', errors.join('; '));
+  return { netRankings: {}, rankings: [], source: 'none', errors };
 }
 
 /**
- * Fetch NET rankings from Barttorvik teamsheets page.
- * Returns { netRankings, rankings } or throws.
+ * Fetch NET rankings directly from NCAA.com (same domain as AP poll, known reachable).
+ * The page may have all teams in one table or may be paginated.
  */
-async function fetchBarttorvik() {
-  const resp = await fetch('https://barttorvik.com/teamsheets.php', {
-    headers: { 'User-Agent': UA },
-  });
-  if (!resp.ok) throw new Error(`Barttorvik returned ${resp.status}`);
+async function fetchNcaaDirect() {
+  const netRankings = {};
+  const rankings = [];
 
-  const html = await resp.text();
-  return parseBarttorvik(html);
+  // NCAA.com NET rankings may be paginated — fetch up to 10 pages
+  for (let page = 1; page <= 10; page++) {
+    const url = page === 1
+      ? 'https://www.ncaa.com/rankings/basketball-men/d1/ncaa-mens-basketball-net-rankings'
+      : `https://www.ncaa.com/rankings/basketball-men/d1/ncaa-mens-basketball-net-rankings?page=${page}`;
+
+    const resp = await fetch(url, { headers: { 'User-Agent': UA } });
+    if (!resp.ok) {
+      if (page === 1) throw new Error(`NCAA.com NET returned ${resp.status}`);
+      break; // subsequent pages may 404
+    }
+
+    const html = await resp.text();
+    const pageResult = parseGenericRankingsTable(html);
+
+    if (pageResult.length === 0) break; // no more data
+
+    for (const entry of pageResult) {
+      if (!netRankings[entry.team]) {
+        netRankings[entry.team] = entry.rank;
+        rankings.push(entry);
+      }
+    }
+
+    // If first page had a lot of teams, likely not paginated
+    if (page === 1 && pageResult.length > 300) break;
+  }
+
+  return { netRankings, rankings };
+}
+
+/**
+ * Fetch NET rankings from NCAA API proxy (henrygd) with pagination support.
+ */
+async function fetchNcaaApi() {
+  const netRankings = {};
+  const rankings = [];
+
+  for (let page = 1; page <= 10; page++) {
+    const url = page === 1
+      ? 'https://ncaa-api.henrygd.me/rankings/basketball-men/d1/ncaa-mens-basketball-net-rankings'
+      : `https://ncaa-api.henrygd.me/rankings/basketball-men/d1/ncaa-mens-basketball-net-rankings?page=${page}`;
+
+    const resp = await fetch(url, { headers: { 'User-Agent': UA } });
+    if (!resp.ok) {
+      if (page === 1) throw new Error(`NCAA API returned ${resp.status}`);
+      break;
+    }
+
+    const data = await resp.json();
+    const items = data.data || data.rankings || [];
+
+    if (items.length === 0) break;
+
+    for (const item of items) {
+      const rank = parseInt(item.RANK || item.rank || item.NET, 10);
+      const rawTeam = item.SCHOOL || item.school || item.team || item.name || '';
+      const team = normalizeTeamName(rawTeam.replace(/\([^)]*\)/g, '').trim());
+      const record = item.RECORD || item.record || item['W-L'] || null;
+
+      if (!rank || !team) continue;
+      if (!netRankings[team]) {
+        netRankings[team] = rank;
+        rankings.push({ team, rank, record });
+      }
+    }
+
+    const totalPages = data.pages || 1;
+    if (page >= totalPages) break;
+  }
+
+  return { netRankings, rankings };
 }
 
 /**
@@ -149,32 +220,85 @@ async function fetchWarrenNolanNet() {
 }
 
 /**
- * Fetch NET rankings from NCAA API proxy (henrygd).
+ * Generic table parser — works on NCAA.com, WarrenNolan, and similar pages.
+ * Returns [ { team, rank, record }, ... ] from the largest table on the page.
  */
-async function fetchNcaaApi() {
-  const resp = await fetch('https://ncaa-api.henrygd.me/rankings/basketball-men/d1/ncaa-mens-basketball-net-rankings', {
-    headers: { 'User-Agent': UA },
-  });
-  if (!resp.ok) throw new Error(`NCAA API returned ${resp.status}`);
+function parseGenericRankingsTable(html) {
+  const results = [];
+  if (!html) return results;
 
-  const data = await resp.json();
-  const items = data.data || data.rankings || [];
-  const netRankings = {};
-  const rankings = [];
-
-  for (const item of items) {
-    const rank = parseInt(item.RANK || item.rank || item.NET, 10);
-    const rawTeam = item.SCHOOL || item.school || item.team || item.name || '';
-    const team = normalizeTeamName(rawTeam.replace(/\([^)]*\)/g, '').trim());
-    const record = item.RECORD || item.record || item['W-L'] || null;
-
-    if (!rank || !team) continue;
-
-    netRankings[team] = rank;
-    rankings.push({ team, rank, record });
+  // Try embedded JSON first
+  const jsonMatches = html.matchAll(/(?:var|let|const)\s+\w+\s*=\s*(\[[\s\S]*?\]);/g);
+  for (const jsonMatch of jsonMatches) {
+    try {
+      const arr = JSON.parse(jsonMatch[1]);
+      if (!Array.isArray(arr) || arr.length < 20) continue;
+      for (const item of arr) {
+        const rank = parseInt(item.net || item.rank || item.NET || item.net_rank || item.RANK, 10);
+        const rawTeam = item.team || item.name || item.school || item.SCHOOL || '';
+        const team = normalizeTeamName(rawTeam.trim());
+        const record = item.record || item.rec || item.RECORD || null;
+        if (rank && team && rank >= 1 && rank <= 363) {
+          results.push({ team, rank, record });
+        }
+      }
+      if (results.length > 20) return results;
+    } catch (e) { /* not JSON */ }
   }
 
-  return { netRankings, rankings };
+  // HTML table parsing with header auto-detection
+  const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
+  const tables = html.match(tableRegex);
+  if (!tables) return results;
+
+  const bestTable = tables.reduce((best, t) =>
+    (t.match(/<tr/gi) || []).length > (best.match(/<tr/gi) || []).length ? t : best
+  );
+
+  const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  const rows = [...bestTable.matchAll(rowRegex)];
+
+  // Detect columns from header
+  let rankCol = -1, teamCol = -1, recordCol = -1;
+  if (rows.length > 0) {
+    const headerCells = [...rows[0][1].matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi)]
+      .map(m => stripHTML(m[1]).trim().toLowerCase());
+    for (let c = 0; c < headerCells.length; c++) {
+      const h = headerCells[c];
+      if (rankCol === -1 && /^(#|rank|net|net rk|net rank)$/.test(h)) rankCol = c;
+      if (teamCol === -1 && /^(team|school|name)$/.test(h)) teamCol = c;
+      if (recordCol === -1 && /^(record|rec|w-l|overall)$/.test(h)) recordCol = c;
+    }
+  }
+  if (teamCol === -1) teamCol = rankCol === 0 ? 1 : 0;
+  if (rankCol === -1) rankCol = teamCol === 0 ? 1 : 0;
+
+  for (let i = 1; i < rows.length; i++) {
+    const rowHTML = rows[i][1];
+    if (rowHTML.includes('<th')) continue;
+
+    const cellRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+    const cells = [...rowHTML.matchAll(cellRegex)].map(m => stripHTML(m[1]).trim());
+    if (cells.length < 2) continue;
+
+    const rank = parseInt(cells[rankCol], 10);
+    const team = normalizeTeamName(cells[teamCol] || '');
+    if (!rank || !team || rank < 1 || rank > 363) continue;
+
+    let record = recordCol >= 0 && recordCol < cells.length ? cells[recordCol] : null;
+    if (!record) {
+      for (let c = 0; c < cells.length; c++) {
+        if (c !== rankCol && c !== teamCol && /^\d+-\d+$/.test(cells[c])) {
+          record = cells[c];
+          break;
+        }
+      }
+    }
+
+    results.push({ team, rank, record });
+  }
+
+  return results;
 }
 
 /**
@@ -237,109 +361,6 @@ function parseConferenceTable(html) {
   }
 
   return standings;
-}
-
-/**
- * Parse Barttorvik teamsheets page.
- * The page has an HTML table with columns including NET rank, team name, and record.
- * Also checks for embedded JSON data in script tags.
- */
-function parseBarttorvik(html) {
-  const netRankings = {};
-  const rankings = [];
-
-  if (!html) return { netRankings, rankings };
-
-  // Check for Cloudflare challenge page
-  if (html.includes('Verifying your browser') || html.includes('cf-challenge') || html.includes('cf_chl_opt')) {
-    throw new Error('Barttorvik returned Cloudflare challenge page');
-  }
-
-  // Try embedded JSON data in script tags
-  const scriptDataMatch = html.match(/var\s+(?:teamData|data|rankings)\s*=\s*(\[[\s\S]*?\]);/);
-  if (scriptDataMatch) {
-    try {
-      const data = JSON.parse(scriptDataMatch[1]);
-      for (const item of data) {
-        const rank = parseInt(item.net || item.rank || item.NET || item[0], 10);
-        const rawTeam = item.team || item.name || item[1] || '';
-        const team = normalizeTeamName(rawTeam.trim());
-        const record = item.record || item.rec || item[2] || null;
-
-        if (rank && team) {
-          netRankings[team] = rank;
-          rankings.push({ team, rank, record });
-        }
-      }
-      if (rankings.length > 0) return { netRankings, rankings };
-    } catch (e) {
-      // Not valid JSON, continue to table parsing
-    }
-  }
-
-  // Parse HTML table — look for the table with the most rows
-  const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
-  const tables = html.match(tableRegex);
-  if (!tables) throw new Error('No tables found in Barttorvik HTML');
-
-  const rankingsTable = tables.reduce((best, t) =>
-    (t.match(/<tr/gi) || []).length > (best.match(/<tr/gi) || []).length ? t : best
-  );
-
-  const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-  const rows = [...rankingsTable.matchAll(rowRegex)];
-
-  // Try to detect column positions from header row
-  let netCol = -1;
-  let teamCol = -1;
-  let recordCol = -1;
-
-  if (rows.length > 0) {
-    const headerCells = [...rows[0][1].matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi)]
-      .map(m => stripHTML(m[1]).trim().toLowerCase());
-
-    for (let c = 0; c < headerCells.length; c++) {
-      const h = headerCells[c];
-      if (netCol === -1 && (h === 'net' || h === 'net rk' || h === 'net rank' || h === '#')) netCol = c;
-      if (teamCol === -1 && (h === 'team' || h === 'school' || h === 'name')) teamCol = c;
-      if (recordCol === -1 && (h === 'record' || h === 'rec' || h === 'w-l')) recordCol = c;
-    }
-  }
-
-  // Defaults if headers weren't detected
-  if (teamCol === -1) teamCol = netCol === 0 ? 1 : 0;
-  if (netCol === -1) netCol = teamCol === 0 ? 1 : 0;
-
-  for (let i = 1; i < rows.length; i++) {
-    const rowHTML = rows[i][1];
-    if (rowHTML.includes('<th')) continue;
-
-    const cellRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
-    const cells = [...rowHTML.matchAll(cellRegex)].map(m => stripHTML(m[1]).trim());
-
-    if (cells.length < 2) continue;
-
-    const rank = parseInt(cells[netCol], 10);
-    const team = normalizeTeamName(cells[teamCol] || '');
-
-    if (!rank || !team || rank < 1 || rank > 363) continue;
-
-    let record = recordCol >= 0 && recordCol < cells.length ? cells[recordCol] : null;
-    // If record column wasn't identified, scan for W-L pattern
-    if (!record) {
-      for (let c = 0; c < cells.length; c++) {
-        if (c !== netCol && c !== teamCol && /^\d+-\d+$/.test(cells[c])) {
-          record = cells[c];
-          break;
-        }
-      }
-    }
-
-    netRankings[team] = rank;
-    rankings.push({ team, rank, record });
-  }
-
-  return { netRankings, rankings };
 }
 
 /**

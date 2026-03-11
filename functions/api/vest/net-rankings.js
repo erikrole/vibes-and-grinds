@@ -2,9 +2,9 @@
 // Supports both Cloudflare Pages Functions (onRequestGet) and Workers (default export).
 //
 // Tries multiple upstream sources for NET rankings:
-//   1. Barttorvik teamsheets (HTML table)
-//   2. WarrenNolan /net page (HTML table)
-//   3. NCAA API proxy (JSON)
+//   1. NCAA.com direct scrape (known reachable)
+//   2. NCAA API proxy at ncaa-api.henrygd.me (JSON, with pagination)
+//   3. WarrenNolan /net page (fallback)
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
@@ -35,149 +35,171 @@ function normalizeTeamName(name) {
 }
 
 /**
- * Parse an HTML page looking for a table with NET rankings.
- * Handles both WarrenNolan and Barttorvik table structures.
+ * Generic table parser with header auto-detection.
+ * Returns [ { team, rank, record }, ... ] from the largest table on the page.
  */
-function parseNetRankingsHtml(html = '') {
-  const rankings = [];
+function parseGenericRankingsTable(html = '') {
+  const results = [];
+  if (!html) return results;
 
-  if (!html) return rankings;
-
-  // Detect Cloudflare challenge page
-  if (html.includes('Verifying your browser') || html.includes('cf-challenge')) {
-    return rankings;
-  }
-
-  // Try embedded JSON in script tags
+  // Try embedded JSON first
   const jsonMatches = html.matchAll(/(?:var|let|const)\s+\w+\s*=\s*(\[[\s\S]*?\]);/g);
   for (const jsonMatch of jsonMatches) {
     try {
       const arr = JSON.parse(jsonMatch[1]);
-      if (!Array.isArray(arr) || arr.length < 50) continue;
+      if (!Array.isArray(arr) || arr.length < 20) continue;
       for (const item of arr) {
-        const rank = parseInt(item.net || item.rank || item.NET || item.net_rank, 10);
-        const rawTeam = item.team || item.name || item.school || '';
+        const rank = parseInt(item.net || item.rank || item.NET || item.net_rank || item.RANK, 10);
+        const rawTeam = item.team || item.name || item.school || item.SCHOOL || '';
         const team = normalizeTeamName(rawTeam.trim());
-        const record = item.record || item.rec || null;
+        const record = item.record || item.rec || item.RECORD || null;
         if (rank && team && rank >= 1 && rank <= 363) {
-          rankings.push({ team, rank, record });
+          results.push({ team, rank, record });
         }
       }
-      if (rankings.length > 50) return rankings;
-    } catch (e) { /* not valid JSON */ }
+      if (results.length > 20) return results;
+    } catch (e) { /* not JSON */ }
   }
 
   // HTML table parsing
   const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
   const tables = html.match(tableRegex);
-  if (!tables || tables.length === 0) return rankings;
+  if (!tables || tables.length === 0) return results;
 
-  const netTable = tables.reduce((best, table) => {
+  const bestTable = tables.reduce((best, table) => {
     const bestRows = (best.match(/<tr/gi) || []).length;
     const tableRows = (table.match(/<tr/gi) || []).length;
     return tableRows > bestRows ? table : best;
   });
 
   const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-  const rows = [...netTable.matchAll(rowRegex)];
+  const rows = [...bestTable.matchAll(rowRegex)];
 
-  // Detect column positions from header row
-  let netCol = -1, teamCol = -1, recordCol = -1;
+  // Detect columns from header
+  let rankCol = -1, teamCol = -1, recordCol = -1;
   if (rows.length > 0) {
     const headerCells = [...rows[0][1].matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi)]
       .map(m => stripHtmlTags(m[1]).trim().toLowerCase());
-
     for (let c = 0; c < headerCells.length; c++) {
       const h = headerCells[c];
-      if (netCol === -1 && (h === 'net' || h === 'net rk' || h === 'net rank' || h === '#' || h === 'rank')) netCol = c;
-      if (teamCol === -1 && (h === 'team' || h === 'school' || h === 'name')) teamCol = c;
-      if (recordCol === -1 && (h === 'record' || h === 'rec' || h === 'w-l')) recordCol = c;
+      if (rankCol === -1 && /^(#|rank|net|net rk|net rank)$/.test(h)) rankCol = c;
+      if (teamCol === -1 && /^(team|school|name)$/.test(h)) teamCol = c;
+      if (recordCol === -1 && /^(record|rec|w-l|overall)$/.test(h)) recordCol = c;
     }
   }
-
-  // Defaults: assume rank in col 0, team in col 1
-  if (teamCol === -1) teamCol = netCol === 0 ? 1 : 0;
-  if (netCol === -1) netCol = teamCol === 0 ? 1 : 0;
+  if (teamCol === -1) teamCol = rankCol === 0 ? 1 : 0;
+  if (rankCol === -1) rankCol = teamCol === 0 ? 1 : 0;
 
   for (let i = 1; i < rows.length; i++) {
     const rowHtml = rows[i][1] || '';
     if (rowHtml.includes('<th')) continue;
 
     const cellRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
-    const cells = [...rowHtml.matchAll(cellRegex)].map((cellMatch) => stripHtmlTags(cellMatch[1]));
+    const cells = [...rowHtml.matchAll(cellRegex)].map((m) => stripHtmlTags(m[1]));
     if (cells.length < 2) continue;
 
-    const rank = Number.parseInt(cells[netCol], 10);
+    const rank = Number.parseInt(cells[rankCol], 10);
     const team = normalizeTeamName((cells[teamCol] || '').trim());
-
     if (!Number.isFinite(rank) || !team || rank < 1 || rank > 363) continue;
 
     let record = recordCol >= 0 && recordCol < cells.length ? cells[recordCol] : null;
     if (!record) {
       for (let c = 0; c < cells.length; c++) {
-        if (c !== netCol && c !== teamCol && /^\d+-\d+$/.test(cells[c])) {
+        if (c !== rankCol && c !== teamCol && /^\d+-\d+$/.test(cells[c])) {
           record = cells[c];
           break;
         }
       }
     }
 
-    rankings.push({ team, rank, record });
+    results.push({ team, rank, record });
   }
 
-  return rankings;
+  return results;
 }
 
 /**
  * Try multiple sources for NET rankings, return the first that succeeds.
  */
 async function getNetRankingsResponse(envNetRankingsUrl) {
+  const errors = [];
   const sources = [
     {
-      name: 'barttorvik',
-      url: 'https://barttorvik.com/teamsheets.php',
-      type: 'html',
-    },
-    {
-      name: 'warrennolan',
-      url: envNetRankingsUrl || 'https://www.warrennolan.com/basketball/2026/net',
-      type: 'html',
+      name: 'ncaa.com',
+      async fn() {
+        const netRankings = {};
+        const rankings = [];
+        for (let page = 1; page <= 10; page++) {
+          const url = page === 1
+            ? 'https://www.ncaa.com/rankings/basketball-men/d1/ncaa-mens-basketball-net-rankings'
+            : `https://www.ncaa.com/rankings/basketball-men/d1/ncaa-mens-basketball-net-rankings?page=${page}`;
+          const resp = await fetch(url, { headers: { 'User-Agent': UA } });
+          if (!resp.ok) {
+            if (page === 1) throw new Error(`NCAA.com returned ${resp.status}`);
+            break;
+          }
+          const html = await resp.text();
+          const pageResult = parseGenericRankingsTable(html);
+          if (pageResult.length === 0) break;
+          for (const entry of pageResult) {
+            if (!netRankings[entry.team]) {
+              netRankings[entry.team] = entry.rank;
+              rankings.push(entry);
+            }
+          }
+          if (page === 1 && pageResult.length > 300) break;
+        }
+        return rankings;
+      },
     },
     {
       name: 'ncaa-api',
-      url: 'https://ncaa-api.henrygd.me/rankings/basketball-men/d1/ncaa-mens-basketball-net-rankings',
-      type: 'json',
+      async fn() {
+        const netRankings = {};
+        const rankings = [];
+        for (let page = 1; page <= 10; page++) {
+          const url = page === 1
+            ? 'https://ncaa-api.henrygd.me/rankings/basketball-men/d1/ncaa-mens-basketball-net-rankings'
+            : `https://ncaa-api.henrygd.me/rankings/basketball-men/d1/ncaa-mens-basketball-net-rankings?page=${page}`;
+          const resp = await fetch(url, { headers: { 'User-Agent': UA } });
+          if (!resp.ok) {
+            if (page === 1) throw new Error(`NCAA API returned ${resp.status}`);
+            break;
+          }
+          const data = await resp.json();
+          const items = data.data || data.rankings || [];
+          if (items.length === 0) break;
+          for (const item of items) {
+            const rank = parseInt(item.RANK || item.rank || item.NET, 10);
+            const rawTeam = item.SCHOOL || item.school || item.team || item.name || '';
+            const team = normalizeTeamName(rawTeam.replace(/\([^)]*\)/g, '').trim());
+            const record = item.RECORD || item.record || item['W-L'] || null;
+            if (rank && team && !netRankings[team]) {
+              netRankings[team] = rank;
+              rankings.push({ team, rank, record });
+            }
+          }
+          const totalPages = data.pages || 1;
+          if (page >= totalPages) break;
+        }
+        return rankings;
+      },
+    },
+    {
+      name: 'warrennolan',
+      async fn() {
+        const url = envNetRankingsUrl || 'https://www.warrennolan.com/basketball/2026/net';
+        const resp = await fetch(url, { headers: { 'User-Agent': UA } });
+        if (!resp.ok) throw new Error(`WarrenNolan returned ${resp.status}`);
+        const html = await resp.text();
+        return parseGenericRankingsTable(html);
+      },
     },
   ];
 
-  for (const { name, url, type } of sources) {
+  for (const { name, fn } of sources) {
     try {
-      const response = await fetch(url, {
-        headers: { 'User-Agent': UA },
-      });
-
-      if (!response.ok) {
-        console.error(`NET source ${name} returned ${response.status}`);
-        continue;
-      }
-
-      let rankings = [];
-
-      if (type === 'json') {
-        const data = await response.json();
-        const items = data.data || data.rankings || [];
-        for (const item of items) {
-          const rank = parseInt(item.RANK || item.rank || item.NET, 10);
-          const rawTeam = item.SCHOOL || item.school || item.team || item.name || '';
-          const team = normalizeTeamName(rawTeam.replace(/\([^)]*\)/g, '').trim());
-          const record = item.RECORD || item.record || item['W-L'] || null;
-          if (rank && team) rankings.push({ team, rank, record });
-        }
-      } else {
-        const html = await response.text();
-        rankings = parseNetRankingsHtml(html);
-      }
-
+      const rankings = await fn();
       if (rankings.length > 50) {
         console.log(`NET rankings: ${rankings.length} teams from ${name}`);
         const netRankings = Object.fromEntries(
@@ -187,15 +209,16 @@ async function getNetRankingsResponse(envNetRankingsUrl) {
           headers: { 'Content-Type': 'application/json' },
         });
       }
-
-      console.error(`NET source ${name} returned only ${rankings.length} teams`);
+      errors.push(`${name}: only ${rankings.length} teams`);
     } catch (err) {
+      errors.push(`${name}: ${err.message}`);
       console.error(`NET source ${name} failed:`, err.message);
     }
   }
 
   return new Response(JSON.stringify({
     error: 'All NET ranking sources failed.',
+    details: errors,
   }), {
     status: 502,
     headers: { 'Content-Type': 'application/json' },
