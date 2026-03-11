@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { vestGames as seedGames } from '../utils/vestTrackerData';
-import { fetchVestGames, syncVestGames, fetchVisits } from '../utils/api';
+import { fetchVestGames, syncVestGames, fetchVisits, fetchVestBlurb } from '../utils/api';
 import NetRankingsPage from './NetRankingsPage';
 
 const VEST_GAMES_KEY = 'vibes-and-grinds:vest-games';
@@ -692,6 +692,109 @@ export default function VestTrackerDashboard() {
       .sort((a, b) => b.winRate - a.winRate || b.total - a.total);
   }, [coffeeVisits, completedGames]);
 
+  // ── Opponent Scouting Report for upcoming games ──
+  const scoutingReport = useMemo(() => {
+    const upcoming = sortedGames.filter(g => !g.result || (g.result !== 'W' && g.result !== 'L'));
+    if (!upcoming.length || netStatus !== 'loaded') return null;
+    const game = upcoming[0];
+    const rank = findNetRankForOpponent(netLookup, game.opponent);
+    const quadrant = getQuadrant(game.location || 'vs', rank);
+
+    // Historical record vs this opponent
+    const vsOpponent = completedGames.filter(g =>
+      g.opponent.toLowerCase() === game.opponent.toLowerCase()
+    );
+    const vsWins = vsOpponent.filter(g => g.result === 'W').length;
+    const vsLosses = vsOpponent.length - vsWins;
+
+    // Record per outfit in this quadrant
+    const outfitInQuadrant = quadrant ? outfitStats.map(stat => {
+      const qW = stat.quadrants[quadrant].wins;
+      const qL = stat.quadrants[quadrant].losses;
+      return { outfit: stat.outfit, wins: qW, losses: qL, games: qW + qL };
+    }).filter(o => o.games > 0).sort((a, b) => {
+      const rateA = a.wins / a.games;
+      const rateB = b.wins / b.games;
+      return rateB - rateA || b.games - a.games;
+    }) : [];
+
+    return {
+      opponent: game.opponent,
+      location: game.location || 'vs',
+      date: game.date,
+      netRank: rank,
+      quadrant,
+      allTimeRecord: vsOpponent.length ? { wins: vsWins, losses: vsLosses } : null,
+      outfitInQuadrant,
+    };
+  }, [sortedGames, netLookup, netStatus, completedGames, outfitStats]);
+
+  // ── Vest Advisor: confidence per outfit for next game ──
+  const vestAdvisor = useMemo(() => {
+    if (!scoutingReport?.quadrant) return [];
+    const q = scoutingReport.quadrant;
+    const loc = scoutingReport.location;
+
+    return outfitStats.map(stat => {
+      const qW = stat.quadrants[q].wins;
+      const qL = stat.quadrants[q].losses;
+      const qGames = qW + qL;
+
+      // Location-specific record
+      const locGames = completedGames.filter(g => g.outfit === stat.outfit && g.location === loc);
+      const locW = locGames.filter(g => g.result === 'W').length;
+      const locL = locGames.length - locW;
+
+      let confidence = 'unknown';
+      if (qGames === 0) confidence = 'untested';
+      else if (qGames >= 2 && qW / qGames >= 0.7) confidence = 'high';
+      else if (qGames >= 2 && qW / qGames >= 0.4) confidence = 'medium';
+      else if (qGames >= 1) confidence = 'low';
+
+      return {
+        outfit: stat.outfit,
+        confidence,
+        qRecord: `${qW}-${qL}`,
+        locRecord: locGames.length ? `${locW}-${locL}` : null,
+        qGames,
+        form: stat.form,
+      };
+    }).sort((a, b) => {
+      const order = { high: 0, medium: 1, low: 2, untested: 3, unknown: 4 };
+      return (order[a.confidence] ?? 4) - (order[b.confidence] ?? 4);
+    });
+  }, [scoutingReport, outfitStats, completedGames]);
+
+  // ── AI Blurb ──
+  const [aiBlurb, setAiBlurb] = useState('');
+  const [aiBlurbLoading, setAiBlurbLoading] = useState(false);
+
+  const generateBlurb = async () => {
+    if (!recommendation || aiBlurbLoading) return;
+    setAiBlurbLoading(true);
+    setAiBlurb('');
+    try {
+      const top = recommendation.top;
+      const parts = [`Recommended outfit: ${top.outfit} (${top.wins}-${top.losses}, ${top.winRate}% win rate)`];
+      parts.push(`Last worn ${top.recencyDistance} games ago, form: ${top.form || 'neutral'}`);
+      parts.push(`Q1 record: ${top.quadrants[1].wins}-${top.quadrants[1].losses}, Q2: ${top.quadrants[2].wins}-${top.quadrants[2].losses}`);
+      if (top.avgNet) parts.push(`Avg opponent NET: #${top.avgNet}`);
+      if (scoutingReport) {
+        parts.push(`Next game: ${scoutingReport.location === '@' ? 'at' : 'vs'} ${scoutingReport.opponent}${scoutingReport.netRank ? ` (NET #${scoutingReport.netRank})` : ''}${scoutingReport.quadrant ? `, Q${scoutingReport.quadrant} game` : ''}`);
+      }
+      if (outfitBadges[top.outfit]?.length) parts.push(`Badges: ${outfitBadges[top.outfit].join(', ')}`);
+      const streak2 = countTrailingStreak(top.recentResults);
+      if (streak2 && streak2.count >= 2) parts.push(`Current streak: ${streak2.count}${streak2.result}`);
+
+      const { blurb } = await fetchVestBlurb(parts.join('. '));
+      setAiBlurb(blurb);
+    } catch {
+      setAiBlurb('');
+    } finally {
+      setAiBlurbLoading(false);
+    }
+  };
+
   const resetForm = () => {
     setFormState(EMPTY_FORM);
     setEditingId(null);
@@ -822,9 +925,97 @@ export default function VestTrackerDashboard() {
                 ⚠️ <span className="font-semibold">Jinx Alert:</span> {jinxAlert.outfit} has never been worn in a Q{jinxAlert.quadrant} game. Proceed with caution!
               </div>
             )}
+            <div className="mt-3 flex items-center gap-3">
+              <button
+                onClick={generateBlurb}
+                disabled={aiBlurbLoading}
+                className="text-[11px] uppercase tracking-[0.08em] text-red-200/70 hover:text-red-100 transition-colors disabled:opacity-50"
+              >
+                {aiBlurbLoading ? 'Generating...' : '✨ AI take'}
+              </button>
+              {aiBlurb && (
+                <p className="text-sm text-red-100/90 italic">{aiBlurb}</p>
+              )}
+            </div>
           </div>
         )}
       </section>
+
+      {/* Scouting Report + Vest Advisor for upcoming game */}
+      {scoutingReport && (
+        <section className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 shadow-sm mb-6">
+          <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-1">Scouting Report</h3>
+          <p className="text-xs text-stone-500 dark:text-stone-400 mb-3">
+            Next up: {formatLocationLabel(scoutingReport.location, 'full')} {scoutingReport.opponent}
+            {scoutingReport.date ? ` on ${formatDate(scoutingReport.date)}` : ''}
+          </p>
+          <div className="flex flex-wrap gap-3 mb-4">
+            {scoutingReport.netRank && (
+              <div className="rounded-xl bg-stone-50 dark:bg-stone-700/40 px-3 py-2 text-sm">
+                <span className="text-xs text-stone-500 dark:text-stone-400 block">NET Rank</span>
+                <span className="font-bold text-stone-800 dark:text-stone-100">#{scoutingReport.netRank}</span>
+              </div>
+            )}
+            {scoutingReport.quadrant && (
+              <div className="rounded-xl bg-stone-50 dark:bg-stone-700/40 px-3 py-2 text-sm">
+                <span className="text-xs text-stone-500 dark:text-stone-400 block">Quadrant</span>
+                <span className={`font-bold ${scoutingReport.quadrant <= 2 ? 'text-red-600 dark:text-red-400' : 'text-stone-800 dark:text-stone-100'}`}>
+                  Q{scoutingReport.quadrant}
+                </span>
+              </div>
+            )}
+            {scoutingReport.allTimeRecord && (
+              <div className="rounded-xl bg-stone-50 dark:bg-stone-700/40 px-3 py-2 text-sm">
+                <span className="text-xs text-stone-500 dark:text-stone-400 block">All-time vs {scoutingReport.opponent}</span>
+                <span className="font-bold text-stone-800 dark:text-stone-100">
+                  {scoutingReport.allTimeRecord.wins}-{scoutingReport.allTimeRecord.losses}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Vest Advisor */}
+          {vestAdvisor.length > 0 && scoutingReport.quadrant && (
+            <div>
+              <p className="text-xs uppercase tracking-[0.08em] text-stone-500 mb-2">
+                Vest Advisor — Q{scoutingReport.quadrant} {scoutingReport.location === '@' ? 'away' : scoutingReport.location === 'N' ? 'neutral' : 'home'} confidence
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {vestAdvisor.map(a => {
+                  const colors = {
+                    high: 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/20',
+                    medium: 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20',
+                    low: 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/20',
+                    untested: 'border-stone-300 bg-stone-50 dark:border-stone-600 dark:bg-stone-700/30',
+                    unknown: 'border-stone-300 bg-stone-50 dark:border-stone-600 dark:bg-stone-700/30',
+                  };
+                  const labels = { high: 'HIGH', medium: 'MED', low: 'LOW', untested: 'UNTESTED', unknown: '—' };
+                  const labelColors = {
+                    high: 'text-emerald-700 dark:text-emerald-400',
+                    medium: 'text-amber-700 dark:text-amber-400',
+                    low: 'text-red-700 dark:text-red-400',
+                    untested: 'text-stone-500 dark:text-stone-400',
+                    unknown: 'text-stone-500 dark:text-stone-400',
+                  };
+                  return (
+                    <div key={a.outfit} className={`rounded-xl border px-3 py-2 text-sm ${colors[a.confidence]}`}>
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-stone-800 dark:text-stone-100">{a.outfit}</span>
+                        <span className={`text-xs font-bold ${labelColors[a.confidence]}`}>{labels[a.confidence]}</span>
+                      </div>
+                      <div className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                        Q{scoutingReport.quadrant}: {a.qRecord}
+                        {a.locRecord && ` • ${scoutingReport.location === '@' ? 'Away' : scoutingReport.location === 'N' ? 'Neutral' : 'Home'}: ${a.locRecord}`}
+                        {a.form === 'hot' ? ' • 🔥' : a.form === 'cold' ? ' • ❄️' : ''}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Season timeline — newest first (above outfit cards for easy filtering) */}
       <section className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 shadow-sm mb-6">
@@ -920,6 +1111,9 @@ export default function VestTrackerDashboard() {
 
                 <div className="mt-2 text-sm text-stone-500 dark:text-stone-400">
                   {stat.games} {stat.games === 1 ? 'game' : 'games'} • last worn {formatLocationLabel(stat.lastSeenLocation)} {stat.lastSeen}
+                  {stat.avgNet && netStatus === 'loaded' && (
+                    <span className="ml-1">• SoS: #{stat.avgNet}</span>
+                  )}
                 </div>
 
                 <div className="mt-3 grid grid-cols-2 gap-1 text-[11px] text-stone-600 dark:text-stone-300">
