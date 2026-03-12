@@ -45,6 +45,22 @@ const EMPTY_FORM = {
   overtime: false,
 };
 
+const CONFIDENCE_COLORS = {
+  high: 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/20',
+  medium: 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20',
+  low: 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/20',
+  untested: 'border-stone-300 bg-stone-50 dark:border-stone-600 dark:bg-stone-700/30',
+  unknown: 'border-stone-300 bg-stone-50 dark:border-stone-600 dark:bg-stone-700/30',
+};
+const CONFIDENCE_LABELS = { high: 'HIGH', medium: 'MED', low: 'LOW', untested: 'UNTESTED', unknown: '—' };
+const CONFIDENCE_LABEL_COLORS = {
+  high: 'text-emerald-700 dark:text-emerald-400',
+  medium: 'text-amber-700 dark:text-amber-400',
+  low: 'text-red-700 dark:text-red-400',
+  untested: 'text-stone-500 dark:text-stone-400',
+  unknown: 'text-stone-500 dark:text-stone-400',
+};
+
 const toIsoDate = (value) => {
   if (!value) return '';
   if (value.length >= 10 && value[4] === '-') return value.slice(0, 10);
@@ -201,9 +217,13 @@ const normalizeNetResponse = (payload) => {
 };
 
 const formatLocationLabel = (location, mode = 'short') => {
-  if (location === '@') return mode === 'full' ? 'at' : '@';
-  if (location === 'N') return mode === 'full' ? 'neutral vs' : 'N';
-  return 'vs';
+  const labels = {
+    short: { '@': '@', N: 'N', vs: 'vs' },
+    full: { '@': 'at', N: 'neutral vs', vs: 'vs' },
+    adjective: { '@': 'away', N: 'neutral', vs: 'home' },
+    Adjective: { '@': 'Away', N: 'Neutral', vs: 'Home' },
+  };
+  return labels[mode]?.[location] || 'vs';
 };
 
 const countTrailingStreak = (results) => {
@@ -707,17 +727,6 @@ export default function VestTrackerDashboard() {
     const vsWins = vsOpponent.filter(g => g.result === 'W').length;
     const vsLosses = vsOpponent.length - vsWins;
 
-    // Record per outfit in this quadrant
-    const outfitInQuadrant = quadrant ? outfitStats.map(stat => {
-      const qW = stat.quadrants[quadrant].wins;
-      const qL = stat.quadrants[quadrant].losses;
-      return { outfit: stat.outfit, wins: qW, losses: qL, games: qW + qL };
-    }).filter(o => o.games > 0).sort((a, b) => {
-      const rateA = a.wins / a.games;
-      const rateB = b.wins / b.games;
-      return rateB - rateA || b.games - a.games;
-    }) : [];
-
     return {
       opponent: game.opponent,
       location: game.location || 'vs',
@@ -725,9 +734,8 @@ export default function VestTrackerDashboard() {
       netRank: rank,
       quadrant,
       allTimeRecord: vsOpponent.length ? { wins: vsWins, losses: vsLosses } : null,
-      outfitInQuadrant,
     };
-  }, [sortedGames, netLookup, netStatus, completedGames, outfitStats]);
+  }, [sortedGames, netLookup, netStatus, completedGames]);
 
   // ── Vest Advisor: confidence per outfit for next game ──
   const vestAdvisor = useMemo(() => {
@@ -780,7 +788,7 @@ export default function VestTrackerDashboard() {
       parts.push(`Q1 record: ${top.quadrants[1].wins}-${top.quadrants[1].losses}, Q2: ${top.quadrants[2].wins}-${top.quadrants[2].losses}`);
       if (top.avgNet) parts.push(`Avg opponent NET: #${top.avgNet}`);
       if (scoutingReport) {
-        parts.push(`Next game: ${scoutingReport.location === '@' ? 'at' : 'vs'} ${scoutingReport.opponent}${scoutingReport.netRank ? ` (NET #${scoutingReport.netRank})` : ''}${scoutingReport.quadrant ? `, Q${scoutingReport.quadrant} game` : ''}`);
+        parts.push(`Next game: ${formatLocationLabel(scoutingReport.location, 'full')} ${scoutingReport.opponent}${scoutingReport.netRank ? ` (NET #${scoutingReport.netRank})` : ''}${scoutingReport.quadrant ? `, Q${scoutingReport.quadrant} game` : ''}`);
       }
       if (outfitBadges[top.outfit]?.length) parts.push(`Badges: ${outfitBadges[top.outfit].join(', ')}`);
       const streak2 = countTrailingStreak(top.recentResults);
@@ -978,39 +986,22 @@ export default function VestTrackerDashboard() {
           {vestAdvisor.length > 0 && scoutingReport.quadrant && (
             <div>
               <p className="text-xs uppercase tracking-[0.08em] text-stone-500 mb-2">
-                Vest Advisor — Q{scoutingReport.quadrant} {scoutingReport.location === '@' ? 'away' : scoutingReport.location === 'N' ? 'neutral' : 'home'} confidence
+                Vest Advisor — Q{scoutingReport.quadrant} {formatLocationLabel(scoutingReport.location, 'adjective')} confidence
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {vestAdvisor.map(a => {
-                  const colors = {
-                    high: 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/20',
-                    medium: 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20',
-                    low: 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/20',
-                    untested: 'border-stone-300 bg-stone-50 dark:border-stone-600 dark:bg-stone-700/30',
-                    unknown: 'border-stone-300 bg-stone-50 dark:border-stone-600 dark:bg-stone-700/30',
-                  };
-                  const labels = { high: 'HIGH', medium: 'MED', low: 'LOW', untested: 'UNTESTED', unknown: '—' };
-                  const labelColors = {
-                    high: 'text-emerald-700 dark:text-emerald-400',
-                    medium: 'text-amber-700 dark:text-amber-400',
-                    low: 'text-red-700 dark:text-red-400',
-                    untested: 'text-stone-500 dark:text-stone-400',
-                    unknown: 'text-stone-500 dark:text-stone-400',
-                  };
-                  return (
-                    <div key={a.outfit} className={`rounded-xl border px-3 py-2 text-sm ${colors[a.confidence]}`}>
+                {vestAdvisor.map(a => (
+                    <div key={a.outfit} className={`rounded-xl border px-3 py-2 text-sm ${CONFIDENCE_COLORS[a.confidence]}`}>
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-stone-800 dark:text-stone-100">{a.outfit}</span>
-                        <span className={`text-xs font-bold ${labelColors[a.confidence]}`}>{labels[a.confidence]}</span>
+                        <span className={`text-xs font-bold ${CONFIDENCE_LABEL_COLORS[a.confidence]}`}>{CONFIDENCE_LABELS[a.confidence]}</span>
                       </div>
                       <div className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
                         Q{scoutingReport.quadrant}: {a.qRecord}
-                        {a.locRecord && ` • ${scoutingReport.location === '@' ? 'Away' : scoutingReport.location === 'N' ? 'Neutral' : 'Home'}: ${a.locRecord}`}
+                        {a.locRecord && ` • ${formatLocationLabel(scoutingReport.location, 'Adjective')}: ${a.locRecord}`}
                         {a.form === 'hot' ? ' • 🔥' : a.form === 'cold' ? ' • ❄️' : ''}
                       </div>
                     </div>
-                  );
-                })}
+                ))}
               </div>
             </div>
           )}
