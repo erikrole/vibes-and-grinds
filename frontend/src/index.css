@@ -3,6 +3,18 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --rating-low-r: 220;
+    --rating-low-g: 38;
+    --rating-low-b: 38;
+    --rating-mid-r: 220;
+    --rating-mid-g: 184;
+    --rating-mid-b: 38;
+    --rating-high-r: 34;
+    --rating-high-g: 197;
+    --rating-high-b: 94;
+  }
+
   body {
     @apply bg-stone-50 dark:bg-stone-900 text-stone-700 dark:text-stone-200 transition-colors duration-200;
     font-family: 'Fraunces', 'Georgia', serif;
@@ -29,7 +41,7 @@
   }
 
   .card {
-    @apply bg-white dark:bg-stone-800 rounded-2xl border border-stone-200/80 dark:border-stone-700/60 p-6 sm:p-8 transition-all;
+    @apply bg-white dark:bg-stone-800 rounded-2xl border border-stone-200/80 dark:border-stone-600/60 p-6 sm:p-8 transition-all;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   }
 
@@ -92,6 +104,40 @@
   animation: modal-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Modal exit */
+@keyframes modal-out {
+  from { opacity: 1; transform: scale(1)    translateY(0); }
+  to   { opacity: 0; transform: scale(0.97) translateY(10px); }
+}
+.animate-modal-out {
+  animation: modal-out 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+/* Backdrop fade */
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes backdrop-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+.animate-backdrop-in {
+  animation: backdrop-in 0.2s ease-out forwards;
+}
+.animate-backdrop-out {
+  animation: backdrop-out 0.2s ease-in forwards;
+}
+
+/* Toast exit */
+@keyframes toast-out {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(1rem); }
+}
+.animate-toast-out {
+  animation: toast-out 0.2s ease-in forwards;
+}
+
 /* Hide number input spinners */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
@@ -113,6 +159,4 @@ input[type="number"] { -moz-appearance: textfield; }
 .map-shop-label::before { display: none; }
 
 /* Date picker calendar icon in dark mode */
-@media (prefers-color-scheme: dark) {
-  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
-}
+.dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }

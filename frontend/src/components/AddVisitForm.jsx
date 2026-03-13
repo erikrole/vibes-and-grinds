@@ -419,7 +419,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
         </FormSection>
 
         {/* ── ACTIONS ──────────────────────────────────── */}
-        <div className="sticky bottom-0 z-10 bg-white/95 dark:bg-stone-800/95 backdrop-blur-md pt-4 pb-2 border-t border-stone-100 dark:border-stone-700/60">
+        <div className="sticky bottom-0 z-10 bg-white/95 dark:bg-stone-800/95 backdrop-blur-md pt-4 pb-2 border-t border-stone-100 dark:border-stone-600/60">
           <button
             type="submit"
             disabled={uploading}
@@ -454,7 +454,7 @@ function FormSection({ title, children }) {
         {title}
       </p>
       {/* No overflow-hidden so autocomplete dropdowns can escape the card */}
-      <div className="rounded-2xl bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700/60 divide-y divide-stone-100 dark:divide-stone-700/50 shadow-sm">
+      <div className="rounded-2xl bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 divide-y divide-stone-100 dark:divide-stone-700/50 shadow-sm">
         {children}
       </div>
     </div>

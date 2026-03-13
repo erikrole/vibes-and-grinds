@@ -1,34 +1,48 @@
 /**
+ * Read a CSS custom property as a number.
+ */
+function cssVar(name, fallback) {
+  const val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return val ? Number(val) : fallback;
+}
+
+/**
  * Get color for a rating on a 0-10 scale
  * Red (0) -> Yellow (5) -> Green (10)
+ * Uses CSS custom properties for easy theming.
  */
 export function getRatingColor(rating) {
-  // Clamp rating between 0 and 10
   const clampedRating = Math.max(0, Math.min(10, rating));
 
+  const lowR = cssVar('--rating-low-r', 220);
+  const lowG = cssVar('--rating-low-g', 38);
+  const lowB = cssVar('--rating-low-b', 38);
+  const midR = cssVar('--rating-mid-r', 220);
+  const midG = cssVar('--rating-mid-g', 184);
+  const midB = cssVar('--rating-mid-b', 38);
+  const highR = cssVar('--rating-high-r', 34);
+  const highG = cssVar('--rating-high-g', 197);
+  const highB = cssVar('--rating-high-b', 94);
+
   if (clampedRating <= 5) {
-    // Red to Yellow (0-5)
-    const percentage = clampedRating / 5;
-    const r = 220; // Red component (stays high)
-    const g = Math.round(38 + (184 - 38) * percentage); // Green increases
-    const b = 38; // Blue component (stays low)
+    const pct = clampedRating / 5;
+    const r = Math.round(lowR + (midR - lowR) * pct);
+    const g = Math.round(lowG + (midG - lowG) * pct);
+    const b = Math.round(lowB + (midB - lowB) * pct);
     return `rgb(${r}, ${g}, ${b})`;
   } else {
-    // Yellow to Green (5-10)
-    const percentage = (clampedRating - 5) / 5;
-    const r = Math.round(220 - (220 - 34) * percentage); // Red decreases
-    const g = Math.round(184 + (197 - 184) * percentage); // Green increases
-    const b = Math.round(38 + (94 - 38) * percentage); // Blue increases
+    const pct = (clampedRating - 5) / 5;
+    const r = Math.round(midR + (highR - midR) * pct);
+    const g = Math.round(midG + (highG - midG) * pct);
+    const b = Math.round(midB + (highB - midB) * pct);
     return `rgb(${r}, ${g}, ${b})`;
   }
 }
 
 /**
  * Get color for composite score (0-20 scale)
- * Since composite is sum of two ratings, max is 20
  */
 export function getCompositeColor(composite) {
-  // Normalize to 0-10 scale
   const normalized = composite / 2;
   return getRatingColor(normalized);
 }
@@ -37,15 +51,10 @@ export function getCompositeColor(composite) {
  * Get text color (black or white) based on background color for readability
  */
 export function getTextColor(bgColor) {
-  // Parse RGB values
   const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
   if (!match) return '#000000';
 
   const [, r, g, b] = match.map(Number);
-
-  // Calculate relative luminance
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-
-  // Return black for light backgrounds, white for dark backgrounds
   return luminance > 0.5 ? '#000000' : '#ffffff';
 }

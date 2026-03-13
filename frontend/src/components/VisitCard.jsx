@@ -151,10 +151,10 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
         </div>
 
         {/* Right side: Ratings */}
-        <div className="flex items-center gap-4 justify-center md:justify-end border-t md:border-t-0 md:border-l border-stone-100 dark:border-stone-700 pt-6 md:pt-0 md:pl-8 transition-colors">
+        <div className="flex items-center gap-4 justify-center md:justify-end mt-4 md:mt-0 pt-4 md:pt-0 md:pl-8 border-t md:border-t-0 md:border-l border-stone-200/60 dark:border-stone-600/40 transition-colors">
           <RatingBadge rating={visit.vibe_rating} label="Vibe" />
           <RatingBadge rating={visit.coffee_rating} label="Coffee" />
-          <div className="hidden md:block w-px h-24 bg-stone-200 dark:bg-stone-700 transition-colors" />
+          <div className="hidden md:block w-px h-24 bg-stone-200 dark:bg-stone-600 transition-colors" />
           <CompositeBadge composite={visit.composite_score} />
         </div>
       </div>

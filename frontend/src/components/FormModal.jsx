@@ -1,17 +1,78 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+
 export default function FormModal({ title, onClose, children }) {
+  const modalRef = useRef(null);
+  const [closing, setClosing] = useState(false);
+
+  const handleClose = useCallback(() => {
+    setClosing(true);
+    setTimeout(onClose, 200);
+  }, [onClose]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        handleClose();
+        return;
+      }
+
+      if (e.key !== 'Tab') return;
+
+      const modal = modalRef.current;
+      if (!modal) return;
+
+      const focusable = modal.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    const previouslyFocused = document.activeElement;
+    const timer = setTimeout(() => {
+      const firstFocusable = modalRef.current?.querySelector(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      firstFocusable?.focus();
+    }, 50);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      clearTimeout(timer);
+      previouslyFocused?.focus?.();
+    };
+  }, [handleClose]);
+
   return (
     <div className="fixed inset-0 z-[1001] overflow-y-auto" role="dialog" aria-modal="true" aria-label={title}>
       <div
-        className="fixed inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
+        className={`fixed inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-sm ${closing ? 'animate-backdrop-out' : 'animate-backdrop-in'}`}
+        onClick={handleClose}
       />
       <div className="flex min-h-full items-center justify-center p-4">
         <div
-          className="animate-modal-in relative bg-white dark:bg-stone-800 rounded-3xl shadow-2xl max-w-xl w-full max-h-[92vh] overflow-y-auto border border-stone-200/60 dark:border-stone-700/60"
+          ref={modalRef}
+          className={`${closing ? 'animate-modal-out' : 'animate-modal-in'} relative bg-white dark:bg-stone-800 rounded-3xl shadow-2xl max-w-xl w-full max-h-[92vh] overflow-y-auto border border-stone-200/60 dark:border-stone-600/60`}
           onClick={(e) => e.stopPropagation()}
         >
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-600 transition-all"
             aria-label={`Close ${title}`}
           >
