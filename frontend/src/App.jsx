@@ -8,6 +8,14 @@ import VestTrackerDashboard from './components/VestTrackerDashboard';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
 
 const VIEW_PREFERENCES_KEY = 'vibes-and-grinds:view-preferences';
+const DARK_MODE_KEY = 'vibes-and-grinds:dark-mode';
+
+function getInitialDarkMode() {
+  const stored = localStorage.getItem(DARK_MODE_KEY);
+  if (stored === 'true') return true;
+  if (stored === 'false') return false;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
 
 const APP_MODES = {
   VIBES: 'vibes',
@@ -38,12 +46,19 @@ export default function App() {
   const [viewingVisit, setViewingVisit] = useState(null);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
+  const [toastExiting, setToastExiting] = useState(false);
 
   const [sortBy, setSortBy] = useState('date');
   const [searchQuery, setSearchQuery] = useState('');
   const [sportFilter, setSportFilter] = useState('');
   const [appMode, setAppMode] = useState(isVestDomain ? APP_MODES.VEST : APP_MODES.VIBES);
   const [showModeMenu, setShowModeMenu] = useState(false);
+  const [darkMode, setDarkMode] = useState(getInitialDarkMode);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+    localStorage.setItem(DARK_MODE_KEY, String(darkMode));
+  }, [darkMode]);
 
   useEffect(() => {
     try {
@@ -81,12 +96,21 @@ export default function App() {
 
   useEffect(() => {
     if (!toast) return;
+    setToastExiting(false);
 
-    const timeout = window.setTimeout(() => {
+    const exitTimeout = window.setTimeout(() => {
+      setToastExiting(true);
+    }, 2200);
+
+    const removeTimeout = window.setTimeout(() => {
       setToast(null);
+      setToastExiting(false);
     }, 2500);
 
-    return () => window.clearTimeout(timeout);
+    return () => {
+      window.clearTimeout(exitTimeout);
+      window.clearTimeout(removeTimeout);
+    };
   }, [toast]);
 
   useEffect(() => {
@@ -343,11 +367,28 @@ export default function App() {
                 )}
               </div>
 
-              {appMode === APP_MODES.VIBES && !showForm && !editingVisit && (
-                <button onClick={() => setShowForm(true)} className="btn-primary hidden md:block">
-                  Add Visit
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setDarkMode((prev) => !prev)}
+                  className="p-2 rounded-xl text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+                  aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                  {darkMode ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                  )}
                 </button>
-              )}
+                {appMode === APP_MODES.VIBES && !showForm && !editingVisit && (
+                  <button onClick={() => setShowForm(true)} className="btn-primary hidden md:block">
+                    Add Visit
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </header>
@@ -370,7 +411,7 @@ export default function App() {
           </section>
 
           {topCoffeeOrders.length > 0 && (
-            <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700/60 rounded-2xl p-4 sm:p-5 transition-colors shadow-sm">
+            <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 rounded-2xl p-4 sm:p-5 transition-colors shadow-sm">
               <h3 className="text-[11px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-[0.08em] mb-3 select-none">Top Orders</h3>
               <div className="flex flex-wrap gap-2">
                 {topCoffeeOrders.map(({ order, count }) => (
@@ -389,7 +430,7 @@ export default function App() {
           )}
 
           {visits.some((v) => v.coffee_shop_lat) && (
-            <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700/60 rounded-2xl p-4 sm:p-5 transition-colors shadow-sm">
+            <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 rounded-2xl p-4 sm:p-5 transition-colors shadow-sm">
               <h3 className="text-[11px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-[0.08em] mb-3 select-none">Map</h3>
               <div className="h-96 rounded-xl overflow-hidden" style={{ isolation: 'isolate' }}>
                 <VisitsMap visits={visits} onVisitClick={setViewingVisit} />
@@ -397,7 +438,7 @@ export default function App() {
             </section>
           )}
 
-          <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700/60 rounded-2xl p-4 sm:p-5 transition-colors shadow-sm">
+          <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 rounded-2xl p-4 sm:p-5 transition-colors shadow-sm">
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
               <div>
                 <h2 className="text-3xl font-bold text-stone-900 dark:text-stone-50 mb-1 transition-colors">Visits</h2>
@@ -506,7 +547,7 @@ export default function App() {
         </main>
         )}
 
-        <footer className="mt-20 py-8 text-center text-stone-400 dark:text-stone-500 text-sm tracking-wide border-t border-stone-200 dark:border-stone-700 transition-colors">
+        <footer className="mt-20 py-8 text-center text-stone-400 dark:text-stone-400 text-sm tracking-wide border-t border-stone-200 dark:border-stone-600 transition-colors">
           <p>{appMode === APP_MODES.VEST ? "Built for charting AJ's sideline fits and results" : "Built for logging AJ Harrison's road coffee orders"}</p>
         </footer>
 
@@ -547,7 +588,7 @@ export default function App() {
         )}
 
         {toast && (
-          <div className="fixed top-4 right-4 z-[70] animate-toast-in">
+          <div className={`fixed top-4 right-4 z-[70] ${toastExiting ? 'animate-toast-out' : 'animate-toast-in'}`}>
             <div
               className={`px-4 py-3 rounded-2xl shadow-lg border text-sm ${
                 toast.type === 'error'
@@ -566,7 +607,7 @@ export default function App() {
 
 function SnapshotCard({ label, value }) {
   return (
-    <div className="bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700/60 rounded-2xl p-4 sm:p-5 transition-colors shadow-sm">
+    <div className="bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 rounded-2xl p-4 sm:p-5 transition-colors shadow-sm">
       <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 select-none">{label}</p>
       <p className="text-3xl font-black rating-number text-stone-900 dark:text-stone-50 mt-2">{value}</p>
     </div>

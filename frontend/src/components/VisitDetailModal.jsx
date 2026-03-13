@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -13,35 +13,64 @@ const coffeeIcon = L.divIcon({
 });
 
 export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onEdit, onDelete, onDuplicate }) {
+  const modalRef = useRef(null);
   const [showMenu, setShowMenu] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [photoError, setPhotoError] = useState(null);
   const [cropping, setCropping] = useState(false);
   const [imageToCrop, setImageToCrop] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
-  const [isDark, setIsDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+  const [closing, setClosing] = useState(false);
+
+  const handleClose = useCallback(() => {
+    setClosing(true);
+    setTimeout(onClose, 200);
+  }, [onClose]);
 
   useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key !== 'Escape') return;
-
-      if (showMenu) {
-        setShowMenu(false);
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (showMenu) {
+          setShowMenu(false);
+          return;
+        }
+        handleClose();
         return;
       }
 
-      onClose();
+      if (e.key === 'Tab') {
+        const modal = modalRef.current;
+        if (!modal) return;
+        const focusable = modal.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+        } else {
+          if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+      }
     };
 
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [onClose, showMenu]);
+    window.addEventListener('keydown', handleKeyDown);
+
+    const previouslyFocused = document.activeElement;
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      previouslyFocused?.focus?.();
+    };
+  }, [handleClose, showMenu]);
 
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = (e) => setIsDark(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
   }, []);
 
   const handlePhotoUpload = async (file) => {
@@ -175,16 +204,28 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
 
   return (
     <div
-      className="fixed inset-0 z-[1001] overflow-y-auto bg-black/70 dark:bg-black/80 backdrop-blur-sm transition-colors"
-      onClick={onClose}
+      className={`fixed inset-0 z-[1001] overflow-y-auto bg-black/70 dark:bg-black/80 backdrop-blur-sm ${closing ? 'animate-backdrop-out' : 'animate-backdrop-in'}`}
+      onClick={handleClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Visit details for ${visit.coffee_shop_name}`}
     >
       <div className="flex min-h-full items-center justify-center p-4">
         <div
-          className="animate-modal-in relative w-full max-w-2xl bg-white dark:bg-stone-800 rounded-3xl shadow-2xl overflow-hidden border border-stone-200/60 dark:border-stone-700/60 transition-colors"
+          ref={modalRef}
+          className={`${closing ? 'animate-modal-out' : 'animate-modal-in'} relative w-full max-w-2xl bg-white dark:bg-stone-800 rounded-3xl shadow-2xl overflow-hidden border border-stone-200/60 dark:border-stone-600/60 transition-colors`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Photo / placeholder */}
           <div className="relative">
+            {uploading && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/60 dark:bg-stone-900/60 backdrop-blur-sm">
+                <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white dark:bg-stone-800 shadow-lg border border-stone-200 dark:border-stone-700">
+                  <div className="w-5 h-5 border-2 border-stone-300 dark:border-stone-500 border-t-stone-700 dark:border-t-stone-200 rounded-full animate-spin" />
+                  <span className="text-sm font-medium text-stone-700 dark:text-stone-200">Uploading...</span>
+                </div>
+              </div>
+            )}
             {visit.photo_url ? (
               <div className="relative aspect-[16/9] bg-stone-100 dark:bg-stone-700 overflow-hidden">
                 <img src={visit.photo_url} alt={visit.coffee_shop_name} className="w-full h-full object-cover" />
@@ -211,6 +252,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
                   onClick={handleAddPhoto}
                   disabled={uploading}
                   className="flex flex-col items-center gap-3 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400 transition-colors"
+                  aria-label="Add photo to this visit"
                 >
                   <svg className="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -240,7 +282,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
                 </svg>
               </button>
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="bg-white/90 dark:bg-stone-800/90 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-50 p-2 rounded-full backdrop-blur-sm transition-all shadow-lg"
                 aria-label="Close"
               >
@@ -341,7 +383,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
             <p className="text-sm text-stone-500 dark:text-stone-400 mt-3">{formattedDate}</p>
 
             {/* Ratings — iOS grouped card */}
-            <div className="mt-5 rounded-2xl bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700/60 shadow-sm overflow-hidden">
+            <div className="mt-5 rounded-2xl bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 shadow-sm overflow-hidden">
               <div className="grid grid-cols-3 divide-x divide-stone-100 dark:divide-stone-700/50">
                 <ScoreCell label="Vibe" score={visit.vibe_rating} />
                 <ScoreCell label="Coffee" score={visit.coffee_rating} />
@@ -351,7 +393,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
 
             {/* Order - prominent card */}
             {visit.coffee_order && (
-              <div className="mt-5 p-5 rounded-2xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200/60 dark:border-stone-700/60">
+              <div className="mt-5 p-5 rounded-2xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200/60 dark:border-stone-600/60">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 mb-2 select-none">
                   Order
                 </p>
@@ -363,7 +405,10 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
 
             {/* Map */}
             {mapCenter && (
-              <div className="mt-5 relative rounded-2xl overflow-hidden border border-stone-200 dark:border-stone-700 h-48 sm:h-56">
+              <div className="mt-5 relative rounded-2xl overflow-hidden border border-stone-200 dark:border-stone-700 h-44 sm:h-56 md:h-64 bg-stone-100 dark:bg-stone-700">
+                <div className="absolute inset-0 flex items-center justify-center z-0">
+                  <div className="animate-pulse text-stone-300 dark:text-stone-600 text-sm">Loading map...</div>
+                </div>
                 <MapContainer
                   center={mapCenter}
                   zoom={18}
@@ -407,7 +452,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
 
             {/* Notes - if no photo */}
             {!visit.photo_url && visit.notes && (
-              <div className="mt-5 p-5 rounded-2xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200/60 dark:border-stone-700/60">
+              <div className="mt-5 p-5 rounded-2xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200/60 dark:border-stone-600/60">
                 <p className="text-base text-stone-700 dark:text-stone-300 italic leading-relaxed">
                   "{visit.notes}"
                 </p>
@@ -424,7 +469,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
           onClick={() => setConfirmAction(null)}
         >
           <div
-            className="bg-white dark:bg-stone-800 rounded-3xl shadow-2xl max-w-sm w-full p-7 border border-stone-200/60 dark:border-stone-700/60"
+            className="bg-white dark:bg-stone-800 rounded-3xl shadow-2xl max-w-sm w-full p-7 border border-stone-200/60 dark:border-stone-600/60"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-xl font-bold text-stone-900 dark:text-stone-50 mb-2">{confirmAction.title}</h3>
@@ -462,6 +507,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
 
 function ScoreCell({ label, score, isTotal = false }) {
   const bgColor = isTotal ? getCompositeColor(score) : getRatingColor(score);
+  const maxVal = isTotal ? 20 : 10;
 
   return (
     <div className="px-4 py-4 text-center">
@@ -474,6 +520,11 @@ function ScoreCell({ label, score, isTotal = false }) {
           backgroundColor: bgColor,
           color: getTextColor(bgColor),
         }}
+        role="meter"
+        aria-label={`${label} rating`}
+        aria-valuenow={score}
+        aria-valuemin={0}
+        aria-valuemax={maxVal}
       >
         {score.toFixed(1)}
       </div>
