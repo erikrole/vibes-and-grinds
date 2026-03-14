@@ -44,15 +44,25 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
   }, [showMenu]);
 
   return (
-    <div className="card">
+    <div className="card group cursor-pointer" onClick={() => onViewDetails(visit)}>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        {/* Left side: Shop info */}
-        <div className="flex-1">
+        {/* Left side: Photo + Shop info */}
+        <div className="flex-1 flex gap-5">
+          {visit.photo_url && (
+            <div className="hidden sm:block flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-stone-100 dark:bg-stone-700">
+              <img
+                src={visit.photo_url}
+                alt=""
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                loading="lazy"
+              />
+            </div>
+          )}
+          <div className="flex-1">
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
               <h3
-                onClick={() => onViewDetails(visit)}
-                className="coffee-shop-name text-2xl md:text-3xl mb-2 leading-tight cursor-pointer hover:text-stone-700 dark:hover:text-stone-300 transition-colors"
+                className="coffee-shop-name text-2xl md:text-3xl mb-2 leading-tight group-hover:text-stone-700 dark:group-hover:text-stone-300 transition-colors"
               >
                 {visit.coffee_shop_name}
               </h3>
@@ -71,7 +81,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
             </div>
             <div className="relative ml-4 flex-shrink-0" ref={menuRef}>
               <button
-                onClick={() => setShowMenu((prev) => !prev)}
+                onClick={(e) => { e.stopPropagation(); setShowMenu((prev) => !prev); }}
                 className="text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 p-1 transition-colors"
                 aria-label={`Open actions for ${visit.coffee_shop_name}`}
                 aria-expanded={showMenu}
@@ -87,7 +97,8 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
                   role="menu"
                 >
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       onEdit(visit);
                       setShowMenu(false);
                     }}
@@ -101,13 +112,13 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
                       <p className="text-xs text-stone-500 dark:text-stone-400 mb-2.5">Delete this visit?</p>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => { onDelete(visit.id); setShowMenu(false); }}
+                          onClick={(e) => { e.stopPropagation(); onDelete(visit.id); setShowMenu(false); }}
                           className="flex-1 text-xs py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors"
                         >
                           Delete
                         </button>
                         <button
-                          onClick={() => setConfirmingDelete(false)}
+                          onClick={(e) => { e.stopPropagation(); setConfirmingDelete(false); }}
                           className="flex-1 text-xs py-2 bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200 rounded-xl font-medium transition-colors"
                         >
                           Cancel
@@ -116,7 +127,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
                     </div>
                   ) : (
                     <button
-                      onClick={() => setConfirmingDelete(true)}
+                      onClick={(e) => { e.stopPropagation(); setConfirmingDelete(true); }}
                       className="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                       role="menuitem"
                     >
@@ -147,6 +158,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
                 <span className="text-stone-900 dark:text-stone-50 transition-colors">{visit.sport}</span>
               </div>
             )}
+          </div>
           </div>
         </div>
 
