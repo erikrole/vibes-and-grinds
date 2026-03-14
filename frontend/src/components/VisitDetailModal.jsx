@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import PhotoCropper from './PhotoCropper';
 import { getRatingColor, getCompositeColor, getTextColor } from '../utils/colors';
-import { formatDate } from '../utils/dates';
+import { formatDate, getRelativeLabel } from '../utils/dates';
 import useFocusTrap from '../hooks/useFocusTrap';
 
 const coffeeIcon = L.divIcon({
@@ -181,6 +181,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
   };
 
   const formattedDate = formatDate(visit.date);
+  const relativeLabel = getRelativeLabel(visit.date);
 
   const hasCoordinates = Number.isFinite(Number(visit.coffee_shop_lat)) && Number.isFinite(Number(visit.coffee_shop_lng));
 
@@ -203,7 +204,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
           className={`${closing ? 'animate-modal-out' : 'animate-modal-in'} relative w-full max-w-2xl bg-white dark:bg-stone-800 rounded-3xl shadow-2xl overflow-hidden border border-stone-200/60 dark:border-stone-600/60 transition-colors`}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Photo / placeholder */}
+          {/* Photo or decorative header */}
           <div className="relative">
             {uploading && (
               <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/60 dark:bg-stone-900/60 backdrop-blur-sm">
@@ -228,28 +229,24 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                     }}
                   >
                     <p className="text-white text-lg sm:text-xl font-semibold leading-relaxed tracking-wide" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}>
-                      "{visit.notes}"
+                      &ldquo;{visit.notes}&rdquo;
                     </p>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="relative aspect-[16/9] bg-stone-100 dark:bg-stone-700 flex items-center justify-center">
+              <div className="detail-header-accent h-28 sm:h-32 relative overflow-hidden">
+                <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '20px 20px' }} />
                 <button
                   onClick={handleAddPhoto}
                   disabled={uploading}
-                  className="flex flex-col items-center gap-3 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-400 transition-colors"
+                  className="absolute bottom-3 left-6 sm:left-7 flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm border border-stone-200/60 dark:border-stone-600/40 hover:border-stone-300 dark:hover:border-stone-500 transition-all shadow-sm"
                   aria-label="Add photo to this visit"
                 >
-                  <svg className="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  <span className="text-sm font-medium">{uploading ? 'Uploading...' : 'Add Photo'}</span>
+                  {uploading ? 'Uploading...' : 'Add Photo'}
                 </button>
               </div>
             )}
@@ -340,53 +337,81 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
             {photoError && (
               <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm rounded-xl flex items-center justify-between">
                 <span>{photoError}</span>
-                <button onClick={() => setPhotoError(null)} className="ml-2 text-red-500 hover:text-red-700">✕</button>
+                <button onClick={() => setPhotoError(null)} className="ml-2 text-red-500 hover:text-red-700">&times;</button>
               </div>
             )}
 
             {/* Title */}
-            <h2 className="coffee-shop-name text-4xl pr-20">
+            <h2 className="coffee-shop-name text-3xl sm:text-4xl pr-20 leading-tight">
               {visit.coffee_shop_name}
             </h2>
 
-            <div className="mt-3 flex flex-wrap gap-2 text-xs uppercase tracking-wide">
-              {visit.city && (
-                <span className="px-2.5 py-1 rounded-full bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300">
-                  {visit.city}
-                </span>
-              )}
-              {visit.sport && (
-                <span className="px-2.5 py-1 rounded-full bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300">
-                  {visit.sport}
-                </span>
-              )}
-              {visit.opponent && (
-                <span className="px-2.5 py-1 rounded-full bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300">
-                  {visit.opponent}
-                </span>
-              )}
-            </div>
+            {/* Date with relative label */}
+            <p className="text-sm text-stone-500 dark:text-stone-400 mt-2.5 flex items-center gap-2">
+              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>
+                {relativeLabel && (
+                  <span className="font-semibold text-stone-700 dark:text-stone-200 mr-1.5">{relativeLabel} &middot;</span>
+                )}
+                {formattedDate}
+              </span>
+            </p>
 
-            <p className="text-sm text-stone-500 dark:text-stone-400 mt-3">{formattedDate}</p>
-
-            {/* Ratings — iOS grouped card */}
-            <div className="mt-5 rounded-2xl bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 shadow-sm overflow-hidden">
-              <div className="grid grid-cols-3 divide-x divide-stone-100 dark:divide-stone-700/50">
-                <ScoreCell label="Vibe" score={visit.vibe_rating} />
-                <ScoreCell label="Coffee" score={visit.coffee_rating} />
-                <ScoreCell label="Total" score={visit.composite_score} isTotal />
+            {/* Metadata tags with icons */}
+            {(visit.city || visit.sport || visit.opponent) && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {visit.city && (
+                  <span className="detail-tag inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-stone-100 dark:bg-stone-700/60 text-stone-600 dark:text-stone-300 border border-stone-200/60 dark:border-stone-600/40">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    {visit.city}
+                  </span>
+                )}
+                {visit.sport && (
+                  <span className="detail-tag inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-stone-100 dark:bg-stone-700/60 text-stone-600 dark:text-stone-300 border border-stone-200/60 dark:border-stone-600/40">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    {visit.sport}
+                  </span>
+                )}
+                {visit.opponent && (
+                  <span className="detail-tag inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-stone-100 dark:bg-stone-700/60 text-stone-600 dark:text-stone-300 border border-stone-200/60 dark:border-stone-600/40">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    {visit.opponent}
+                  </span>
+                )}
               </div>
+            )}
+
+            {/* Ratings — prominent with glow */}
+            <div className="mt-6 flex items-stretch justify-center gap-4 sm:gap-5">
+              <ScoreCell label="Vibe" score={visit.vibe_rating} />
+              <ScoreCell label="Coffee" score={visit.coffee_rating} />
+              <div className="w-px bg-stone-200 dark:bg-stone-600/50 self-stretch my-2" />
+              <ScoreCell label="Total" score={visit.composite_score} isTotal />
             </div>
 
-            {/* Order - prominent card */}
+            {/* Order card */}
             {visit.coffee_order && (
-              <div className="mt-5 p-5 rounded-2xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200/60 dark:border-stone-600/60">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 mb-2 select-none">
-                  Order
-                </p>
-                <p className="text-xl font-semibold text-stone-900 dark:text-stone-50 leading-relaxed">
-                  {visit.coffee_order}
-                </p>
+              <div className="mt-5 flex items-center gap-4 p-4 sm:p-5 rounded-2xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200/60 dark:border-stone-600/60">
+                <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-stone-200/60 dark:bg-stone-700 flex items-center justify-center text-lg">
+                  ☕
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 mb-0.5 select-none">
+                    Order
+                  </p>
+                  <p className="text-lg font-semibold text-stone-900 dark:text-stone-50 truncate">
+                    {visit.coffee_order}
+                  </p>
+                </div>
               </div>
             )}
 
@@ -437,36 +462,45 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
               </div>
             )}
 
-            {/* Notes - if no photo */}
+            {/* Notes - when no photo to overlay on */}
             {!visit.photo_url && visit.notes && (
-              <div className="mt-5 p-5 rounded-2xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200/60 dark:border-stone-600/60">
-                <p className="text-base text-stone-700 dark:text-stone-300 italic leading-relaxed">
-                  "{visit.notes}"
+              <div className="mt-5 p-5 rounded-2xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200/60 dark:border-stone-600/60 relative">
+                <svg className="absolute top-4 left-4 w-5 h-5 text-stone-300 dark:text-stone-600" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
+                </svg>
+                <p className="text-base text-stone-700 dark:text-stone-300 italic leading-relaxed pl-8">
+                  {visit.notes}
                 </p>
               </div>
             )}
 
             {/* Prev/Next navigation */}
             {(prevVisit || nextVisit) && (
-              <div className="mt-6 pt-5 border-t border-stone-100 dark:border-stone-700/50 flex items-center justify-between">
+              <div className="mt-6 pt-5 border-t border-stone-100 dark:border-stone-700/50 grid grid-cols-2 gap-3">
                 {prevVisit ? (
                   <button
                     onClick={() => onNavigate(prevVisit)}
-                    className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 transition-colors group"
+                    className="flex items-center gap-2.5 px-4 py-3 rounded-xl text-left bg-stone-50 dark:bg-stone-900/40 border border-stone-200/60 dark:border-stone-600/40 hover:border-stone-300 dark:hover:border-stone-500 hover:bg-stone-100 dark:hover:bg-stone-700/40 transition-all group"
                   >
-                    <svg className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-stone-400 dark:text-stone-500 group-hover:-translate-x-0.5 transition-transform flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
-                    <span className="max-w-[140px] truncate">{prevVisit.coffee_shop_name}</span>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">Previous</p>
+                      <p className="text-sm font-medium text-stone-700 dark:text-stone-200 truncate">{prevVisit.coffee_shop_name}</p>
+                    </div>
                   </button>
                 ) : <div />}
                 {nextVisit ? (
                   <button
                     onClick={() => onNavigate(nextVisit)}
-                    className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 transition-colors group"
+                    className="flex items-center justify-end gap-2.5 px-4 py-3 rounded-xl text-right bg-stone-50 dark:bg-stone-900/40 border border-stone-200/60 dark:border-stone-600/40 hover:border-stone-300 dark:hover:border-stone-500 hover:bg-stone-100 dark:hover:bg-stone-700/40 transition-all group"
                   >
-                    <span className="max-w-[140px] truncate">{nextVisit.coffee_shop_name}</span>
-                    <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">Next</p>
+                      <p className="text-sm font-medium text-stone-700 dark:text-stone-200 truncate">{nextVisit.coffee_shop_name}</p>
+                    </div>
+                    <svg className="w-4 h-4 text-stone-400 dark:text-stone-500 group-hover:translate-x-0.5 transition-transform flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </button>
@@ -525,15 +559,17 @@ function ScoreCell({ label, score, isTotal = false }) {
   const maxVal = isTotal ? 20 : 10;
 
   return (
-    <div className="px-4 py-4 text-center">
+    <div className="flex flex-col items-center flex-1 min-w-0">
       <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 mb-2 select-none">
         {label}
       </p>
       <div
-        className="inline-block rounded-xl px-3 py-1.5 rating-number text-2xl font-black"
+        className={`w-full px-3 py-3 rounded-xl rating-number text-2xl sm:text-3xl font-black text-center transition-shadow ${isTotal ? 'border-2' : ''}`}
         style={{
           backgroundColor: bgColor,
           color: getTextColor(bgColor),
+          borderColor: isTotal ? `${bgColor}dd` : undefined,
+          boxShadow: isTotal ? `0 4px 16px ${bgColor}50` : `0 2px 10px ${bgColor}40`,
         }}
         role="meter"
         aria-label={`${label} rating`}
