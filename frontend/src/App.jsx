@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import AddVisitForm from './components/AddVisitForm';
 import VisitList from './components/VisitList';
-import VisitDetailModal from './components/VisitDetailModal';
-import VisitsMap from './components/VisitsMap';
 import FormModal from './components/FormModal';
-import VestTrackerDashboard from './components/VestTrackerDashboard';
+
+const VisitDetailModal = lazy(() => import('./components/VisitDetailModal'));
+const VisitsMap = lazy(() => import('./components/VisitsMap'));
+const VestTrackerDashboard = lazy(() => import('./components/VestTrackerDashboard'));
+import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
 import { getRatingColor, getCompositeColor } from './utils/colors';
 import { getTodayDateString } from './utils/dates';
@@ -33,6 +35,7 @@ export default function App() {
   const [viewingVisit, setViewingVisit] = useState(null);
   const [error, setError] = useState(null);
   const [showModeMenu, setShowModeMenu] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const searchRef = useRef(null);
 
   const [darkMode, toggleDarkMode] = useDarkMode();
@@ -46,13 +49,17 @@ export default function App() {
 
   // Destructure persisted preferences into local aliases for convenience
   const sortBy = viewPrefs.sortBy || 'date';
+  const sortAsc = viewPrefs.sortAsc || false;
   const searchQuery = viewPrefs.searchQuery || '';
   const sportFilter = viewPrefs.sportFilter || '';
   const appMode = (isLocalhost || isVestDomain)
     ? (viewPrefs.appMode || APP_MODES.VIBES)
     : (isVestDomain ? APP_MODES.VEST : APP_MODES.VIBES);
 
-  const setSortBy = (v) => setViewPrefs((p) => ({ ...p, sortBy: v }));
+  const setSortBy = (v) => setViewPrefs((p) => {
+    if (p.sortBy === v) return { ...p, sortAsc: !p.sortAsc };
+    return { ...p, sortBy: v, sortAsc: false };
+  });
   const setSearchQuery = (v) => setViewPrefs((p) => ({ ...p, searchQuery: v }));
   const setSportFilter = (v) => setViewPrefs((p) => ({ ...p, sportFilter: v }));
   const setAppMode = (v) => setViewPrefs((p) => ({ ...p, appMode: typeof v === 'function' ? v(p.appMode) : v }));
@@ -75,6 +82,8 @@ export default function App() {
       } else if (e.key === '/' && appMode === APP_MODES.VIBES) {
         e.preventDefault();
         searchRef.current?.focus();
+      } else if (e.key === '?') {
+        setShowShortcuts((prev) => !prev);
       }
     };
 
@@ -133,12 +142,24 @@ export default function App() {
   };
 
   const handleDeleteVisit = async (id) => {
+    const deletedVisit = visits.find((v) => v.id === id);
     try {
       setError(null);
       await deleteVisit(id);
       setVisits((prev) => prev.filter((v) => v.id !== id));
       setViewingVisit((prev) => (prev?.id === id ? null : prev));
-      toastBag.show('Visit deleted.');
+      toastBag.show('Visit deleted. Click to undo.', 'success', {
+        duration: 5000,
+        onUndo: async () => {
+          try {
+            const restored = await createVisit(deletedVisit);
+            setVisits((prev) => [restored, ...prev]);
+            toastBag.show('Visit restored.');
+          } catch {
+            toastBag.show('Could not restore visit.', 'error');
+          }
+        },
+      });
     } catch (err) {
       setError('Failed to delete visit. Please try again.');
       toastBag.show('Could not delete visit.', 'error');
@@ -205,15 +226,16 @@ export default function App() {
   });
 
   const sortedVisits = [...filteredVisits].sort((a, b) => {
+    const dir = sortAsc ? 1 : -1;
     switch (sortBy) {
       case 'date':
-        return new Date(b.date) - new Date(a.date);
+        return dir * (new Date(b.date) - new Date(a.date));
       case 'vibe':
-        return b.vibe_rating - a.vibe_rating;
+        return dir * (b.vibe_rating - a.vibe_rating);
       case 'coffee':
-        return b.coffee_rating - a.coffee_rating;
+        return dir * (b.coffee_rating - a.coffee_rating);
       case 'composite':
-        return b.composite_score - a.composite_score;
+        return dir * (b.composite_score - a.composite_score);
       default:
         return 0;
     }
@@ -344,7 +366,9 @@ export default function App() {
         </header>
 
         {appMode === APP_MODES.VEST ? (
-          <VestTrackerDashboard />
+          <Suspense fallback={<div className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading...</div>}>
+            <VestTrackerDashboard />
+          </Suspense>
         ) : (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {error && (
@@ -383,7 +407,9 @@ export default function App() {
             <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 rounded-2xl p-4 sm:p-5 transition-colors shadow-sm">
               <h3 className="text-[11px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-[0.08em] mb-3 select-none">Map</h3>
               <div className="h-96 rounded-xl overflow-hidden" style={{ isolation: 'isolate' }}>
-                <VisitsMap visits={visits} onVisitClick={setViewingVisit} />
+                <Suspense fallback={<div className="h-full flex items-center justify-center text-stone-400 dark:text-stone-500 text-sm animate-pulse">Loading map...</div>}>
+                  <VisitsMap visits={visits} onVisitClick={setViewingVisit} />
+                </Suspense>
               </div>
             </section>
           )}
@@ -448,7 +474,7 @@ export default function App() {
                     <button
                       key={option.value}
                       onClick={() => setSortBy(option.value)}
-                      className={`px-3 py-2 text-sm transition-colors border-r last:border-r-0 border-stone-300 dark:border-stone-600 ${
+                      className={`px-3 py-2 text-sm transition-colors border-r last:border-r-0 border-stone-300 dark:border-stone-600 flex items-center gap-1 ${
                         sortBy === option.value
                           ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
                           : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
@@ -456,6 +482,11 @@ export default function App() {
                       aria-pressed={sortBy === option.value}
                     >
                       {option.label}
+                      {sortBy === option.value && (
+                        <svg className={`w-3 h-3 transition-transform ${sortAsc ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -548,6 +579,7 @@ export default function App() {
         )}
 
         {viewingVisit && (
+          <Suspense fallback={null}>
           <VisitDetailModal
             visit={viewingVisit}
             visits={sortedVisits}
@@ -558,6 +590,7 @@ export default function App() {
             onDelete={handleDeleteVisit}
             onDuplicate={handleDuplicateVisit}
           />
+          </Suspense>
         )}
 
         {appMode === APP_MODES.VIBES && showForm && (
@@ -573,17 +606,34 @@ export default function App() {
         )}
 
         {toastBag.toast && (
-          <div className={`fixed top-4 right-4 z-[70] ${toastBag.exiting ? 'animate-toast-out' : 'animate-toast-in'}`}>
+          <div
+            className={`fixed top-4 right-4 z-[70] ${toastBag.exiting ? 'animate-toast-out' : 'animate-toast-in'}`}
+            onClick={() => {
+              if (toastBag.toast.onUndo) {
+                toastBag.toast.onUndo();
+                toastBag.dismiss();
+              } else {
+                toastBag.dismiss();
+              }
+            }}
+          >
             <div
-              className={`px-4 py-3 rounded-2xl shadow-lg border text-sm ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl shadow-lg border text-sm cursor-pointer select-none transition-opacity hover:opacity-80 ${
                 toastBag.toast.type === 'error'
                   ? 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/30 dark:border-red-700 dark:text-red-200'
                   : 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-200'
               }`}
             >
-              {toastBag.toast.message}
+              <span>{toastBag.toast.onUndo ? 'Visit deleted.' : toastBag.toast.message}</span>
+              {toastBag.toast.onUndo && (
+                <span className="font-semibold underline underline-offset-2">Undo</span>
+              )}
             </div>
           </div>
+        )}
+
+        {showShortcuts && (
+          <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />
         )}
 
       </div>
