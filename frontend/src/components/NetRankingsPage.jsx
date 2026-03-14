@@ -57,15 +57,15 @@ export default function NetRankingsPage({ netRankings, netStatus, onBack }) {
   };
 
   return (
-    <main className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6 flex items-center gap-4">
+    <main className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <div className="mb-5 sm:mb-6 flex items-center gap-3">
         <button
           onClick={onBack}
-          className="text-sm text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 transition-colors"
+          className="text-sm text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 transition-colors py-2 pr-2"
         >
           &larr; Dashboard
         </button>
-        <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-50">NET Rankings</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-stone-50">NET Rankings</h2>
       </div>
 
       {netStatus === 'loading' && (
@@ -147,13 +147,13 @@ export default function NetRankingsPage({ netRankings, netStatus, onBack }) {
                     key={entry.rank + entry.team}
                     className="border-b border-stone-100 dark:border-stone-700/50 even:bg-stone-50 dark:even:bg-stone-700/30 hover:bg-stone-100 dark:hover:bg-stone-700/50 transition-colors"
                   >
-                    <td className="px-3 py-2 tabular-nums font-medium text-stone-700 dark:text-stone-200">
+                    <td className="px-3 py-2.5 tabular-nums font-medium text-stone-700 dark:text-stone-200">
                       {entry.rank}
                     </td>
-                    <td className="px-3 py-2 text-stone-900 dark:text-stone-100 font-medium">
+                    <td className="px-3 py-2.5 text-stone-900 dark:text-stone-100 font-medium">
                       {entry.team}
                     </td>
-                    <td className="px-3 py-2 tabular-nums text-stone-600 dark:text-stone-300">
+                    <td className="px-3 py-2.5 tabular-nums text-stone-600 dark:text-stone-300">
                       {entry.record || '—'}
                     </td>
                   </tr>

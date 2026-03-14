@@ -213,10 +213,10 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
       aria-modal="true"
       aria-label={`Visit details for ${visit.coffee_shop_name}`}
     >
-      <div className="flex min-h-full items-center justify-center p-4">
+      <div className="flex min-h-full items-end sm:items-center justify-center sm:p-4">
         <div
           ref={modalRef}
-          className={`${closing ? 'animate-modal-out' : 'animate-modal-in'} relative w-full max-w-2xl bg-white dark:bg-stone-800 rounded-3xl shadow-2xl overflow-hidden border border-stone-200/60 dark:border-stone-600/60 transition-colors`}
+          className={`${closing ? 'animate-modal-out' : 'animate-modal-in'} relative w-full max-w-2xl bg-white dark:bg-stone-800 rounded-t-2xl sm:rounded-3xl shadow-2xl overflow-hidden border border-stone-200/60 dark:border-stone-600/60 transition-colors max-h-[92vh] sm:max-h-[85vh] overflow-y-auto`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Photo or decorative header */}
@@ -282,12 +282,12 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
           </div>
 
           {/* Body */}
-          <div className="p-6 sm:p-7">
+          <div className="p-4 sm:p-6 md:p-7">
             {/* Top-right controls */}
-            <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+            <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex items-center gap-1.5 z-10">
               <button
                 onClick={() => setShowMenu((prev) => !prev)}
-                className="bg-white/90 dark:bg-stone-800/90 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-50 p-2 rounded-full backdrop-blur-sm transition-all shadow-lg"
+                className="bg-white/90 dark:bg-stone-800/90 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-50 p-2.5 rounded-full backdrop-blur-sm transition-all shadow-lg"
                 aria-label="Visit actions"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -296,7 +296,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
               </button>
               <button
                 onClick={handleClose}
-                className="bg-white/90 dark:bg-stone-800/90 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-50 p-2 rounded-full backdrop-blur-sm transition-all shadow-lg"
+                className="bg-white/90 dark:bg-stone-800/90 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-50 p-2.5 rounded-full backdrop-blur-sm transition-all shadow-lg"
                 aria-label="Close"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -378,7 +378,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
             )}
 
             {/* Title */}
-            <h2 className="coffee-shop-name text-3xl sm:text-4xl pr-20 leading-tight">
+            <h2 className="coffee-shop-name text-2xl sm:text-3xl md:text-4xl pr-24 leading-tight">
               {visit.coffee_shop_name}
             </h2>
 
@@ -453,7 +453,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
             {/* Map */}
             {mapCenter && (
-              <div className="mt-5 relative rounded-2xl overflow-hidden border border-stone-200 dark:border-stone-700 h-44 sm:h-56 md:h-64 bg-stone-100 dark:bg-stone-700">
+              <div className="mt-5 relative rounded-2xl overflow-hidden border border-stone-200 dark:border-stone-700 h-40 sm:h-52 md:h-64 bg-stone-100 dark:bg-stone-700">
                 <div className="absolute inset-0 flex items-center justify-center z-0">
                   <div className="animate-pulse text-stone-300 dark:text-stone-600 text-sm">Loading map...</div>
                 </div>
@@ -522,7 +522,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
                     <div className="min-w-0">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">Previous</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">Previous</p>
                       <p className="text-sm font-medium text-stone-700 dark:text-stone-200 truncate">{prevVisit.coffee_shop_name}</p>
                     </div>
                   </button>
@@ -533,7 +533,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                     className="flex items-center justify-end gap-2.5 px-4 py-3 rounded-xl text-right bg-stone-50 dark:bg-stone-900/40 border border-stone-200/60 dark:border-stone-600/40 hover:border-stone-300 dark:hover:border-stone-500 hover:bg-stone-100 dark:hover:bg-stone-700/40 transition-all group"
                   >
                     <div className="min-w-0">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">Next</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">Next</p>
                       <p className="text-sm font-medium text-stone-700 dark:text-stone-200 truncate">{nextVisit.coffee_shop_name}</p>
                     </div>
                     <svg className="w-4 h-4 text-stone-400 dark:text-stone-500 group-hover:translate-x-0.5 transition-transform flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

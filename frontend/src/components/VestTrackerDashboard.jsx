@@ -864,9 +864,9 @@ export default function VestTrackerDashboard() {
   }
 
   return (
-    <main className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       {/* Tab navigation */}
-      <div className="mb-6 inline-flex rounded-xl border border-stone-300 dark:border-stone-600 overflow-hidden">
+      <div className="mb-5 sm:mb-6 flex rounded-xl border border-stone-300 dark:border-stone-600 overflow-hidden">
         {[
           { value: 'dashboard', label: 'Dashboard' },
           { value: 'rankings', label: 'NET Rankings' },
@@ -874,7 +874,7 @@ export default function VestTrackerDashboard() {
           <button
             key={tab.value}
             onClick={() => setVestTab(tab.value)}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-r last:border-r-0 border-stone-300 dark:border-stone-600 ${
+            className={`flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium transition-colors border-r last:border-r-0 border-stone-300 dark:border-stone-600 ${
               vestTab === tab.value
                 ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
                 : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
@@ -1193,7 +1193,7 @@ export default function VestTrackerDashboard() {
                     return next;
                   });
                 }}
-                className="rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-2 text-sm"
+                className="rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-2.5 text-sm w-full sm:w-auto"
               >
                 <option value="">Select outfit {slot + 1}</option>
                 {outfitStats.map((s) => (
@@ -1203,7 +1203,7 @@ export default function VestTrackerDashboard() {
             ))}
           </div>
           {comparisonData && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {[comparisonData.a, comparisonData.b].map((s) => (
                 <div key={s.outfit} className="rounded-xl border border-stone-200 dark:border-stone-600 p-4">
                   <h4 className="font-bold text-stone-900 dark:text-stone-100 mb-2">{s.outfit}</h4>

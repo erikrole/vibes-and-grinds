@@ -283,19 +283,19 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-900 transition-colors duration-200">
-        <header className="bg-white dark:bg-stone-800 border-b border-stone-200 dark:border-stone-700 transition-colors duration-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-            <div className="flex items-center justify-between gap-4">
-              <div className="relative">
+        <header className="bg-white dark:bg-stone-800 border-b border-stone-200 dark:border-stone-700 transition-colors duration-200 safe-top">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+            <div className="flex items-center justify-between gap-3">
+              <div className="relative min-w-0">
                 <button
                   onClick={() => setShowModeMenu((prev) => !prev)}
                   onBlur={() => window.setTimeout(() => setShowModeMenu(false), 120)}
-                  className="flex items-center gap-3 sm:gap-4 text-left hover:opacity-80 transition-opacity"
+                  className="flex items-center gap-2 sm:gap-4 text-left hover:opacity-80 transition-opacity min-w-0"
                   aria-label="Toggle app mode"
                 >
-                  <div className="text-3xl sm:text-4xl">{appMode === APP_MODES.VEST ? '👔' : '☕'}</div>
-                  <h1 className="coffee-shop-name text-3xl sm:text-4xl font-black tracking-tight">{modeLabel}</h1>
-                  <svg className="w-4 h-4 text-stone-500" viewBox="0 0 20 20" fill="currentColor">
+                  <div className="text-2xl sm:text-4xl shrink-0">{appMode === APP_MODES.VEST ? '👔' : '☕'}</div>
+                  <h1 className="coffee-shop-name text-xl sm:text-3xl lg:text-4xl font-black tracking-tight truncate">{modeLabel}</h1>
+                  <svg className="w-4 h-4 text-stone-500 shrink-0" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z" />
                   </svg>
                 </button>
@@ -307,7 +307,7 @@ export default function App() {
                         setShowModeMenu(false);
                         setAppMode(APP_MODES.VIBES);
                       }}
-                      className={`w-full text-left px-4 py-3 text-sm ${
+                      className={`w-full text-left px-4 py-3.5 text-sm ${
                         appMode === APP_MODES.VIBES
                           ? 'bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-stone-100'
                           : 'text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700'
@@ -320,7 +320,7 @@ export default function App() {
                         setShowModeMenu(false);
                         setAppMode(APP_MODES.VEST);
                       }}
-                      className={`w-full text-left px-4 py-3 text-sm ${
+                      className={`w-full text-left px-4 py-3.5 text-sm ${
                         appMode === APP_MODES.VEST
                           ? 'bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-stone-100'
                           : 'text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700'
@@ -332,10 +332,10 @@ export default function App() {
                 )}
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                 <button
                   onClick={toggleDarkMode}
-                  className="p-2 rounded-xl text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+                  className="p-2.5 rounded-xl text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
                   aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
                 >
                   {darkMode ? (
@@ -399,7 +399,7 @@ export default function App() {
           {visits.some((v) => v.coffee_shop_lat) && (
             <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 rounded-2xl p-4 sm:p-5 transition-colors shadow-sm">
               <h3 className="text-[11px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-[0.08em] mb-3 select-none">Map</h3>
-              <div className="h-96 rounded-xl overflow-hidden" style={{ isolation: 'isolate' }}>
+              <div className="h-64 sm:h-80 lg:h-96 rounded-xl overflow-hidden" style={{ isolation: 'isolate' }}>
                 <Suspense fallback={<div className="h-full flex items-center justify-center text-stone-400 dark:text-stone-500 text-sm animate-pulse">Loading map...</div>}>
                   <VisitsMap visits={visits} onVisitClick={setViewingVisit} />
                 </Suspense>
@@ -457,7 +457,7 @@ export default function App() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 sm:items-center lg:justify-end">
-                <div className="inline-flex rounded-xl border border-stone-300 dark:border-stone-600 overflow-hidden">
+                <div className="flex rounded-xl border border-stone-300 dark:border-stone-600 overflow-hidden">
                   {[
                     { value: 'date', label: 'Date' },
                     { value: 'vibe', label: 'Vibe' },
@@ -467,7 +467,7 @@ export default function App() {
                     <button
                       key={option.value}
                       onClick={() => setSortBy(option.value)}
-                      className={`px-3 py-2 text-sm transition-colors border-r last:border-r-0 border-stone-300 dark:border-stone-600 flex items-center gap-1 ${
+                      className={`flex-1 sm:flex-none px-3 py-2.5 text-sm transition-colors border-r last:border-r-0 border-stone-300 dark:border-stone-600 flex items-center justify-center gap-1 ${
                         sortBy === option.value
                           ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
                           : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
@@ -487,7 +487,7 @@ export default function App() {
                 <select
                   value={sportFilter}
                   onChange={(e) => setSportFilter(e.target.value)}
-                  className="px-3 py-2 text-sm rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 cursor-pointer transition-colors min-w-[180px]"
+                  className="w-full sm:w-auto px-3 py-2.5 text-sm rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 cursor-pointer transition-colors sm:min-w-[180px]"
                 >
                   <option value="">All sports</option>
                   <option value="Men's Basketball">Men's Basketball</option>
@@ -562,7 +562,8 @@ export default function App() {
         {appMode === APP_MODES.VIBES && !showForm && !editingVisit && (
           <button
             onClick={() => setShowForm(true)}
-            className="fixed bottom-5 right-5 md:bottom-6 md:right-6 w-16 h-16 md:w-14 md:h-14 bg-stone-800 dark:bg-stone-700 text-stone-50 rounded-full shadow-lg hover:bg-stone-900 dark:hover:bg-stone-600 transition-all flex items-center justify-center z-50 hover:scale-110 active:scale-95"
+            className="fixed right-5 md:right-6 w-14 h-14 bg-stone-800 dark:bg-stone-700 text-stone-50 rounded-full shadow-lg hover:bg-stone-900 dark:hover:bg-stone-600 transition-all flex items-center justify-center z-50 hover:scale-110 active:scale-95"
+            style={{ bottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
             aria-label="Add Visit"
           >
             <svg className="w-7 h-7 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

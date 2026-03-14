@@ -109,10 +109,10 @@ export default function PhotoCropper({ imageUrl, onComplete, onCancel }) {
       <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" />
 
       {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white dark:bg-stone-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto transition-colors">
-          <div className="p-6">
-            <h2 className="text-2xl font-bold mb-4 text-stone-900 dark:text-stone-50">Crop Photo</h2>
+      <div className="flex min-h-full items-end sm:items-center justify-center sm:p-4">
+        <div className="relative bg-white dark:bg-stone-800 rounded-t-2xl sm:rounded-2xl shadow-xl max-w-4xl w-full max-h-[85vh] overflow-y-auto transition-colors">
+          <div className="p-4 sm:p-6">
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 text-stone-900 dark:text-stone-50">Crop Photo</h2>
 
             <div className="mb-4">
               <ReactCrop
@@ -127,7 +127,7 @@ export default function PhotoCropper({ imageUrl, onComplete, onCancel }) {
                   alt="Crop preview"
                   crossOrigin="anonymous"
                   onLoad={onImageLoad}
-                  style={{ maxHeight: '60vh' }}
+                  style={{ maxHeight: '55vh' }}
                 />
               </ReactCrop>
             </div>
