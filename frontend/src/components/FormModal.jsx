@@ -21,19 +21,19 @@ export default function FormModal({ title, onClose, children }) {
       <div className="flex min-h-full items-center justify-center p-4">
         <div
           ref={modalRef}
-          className={`${closing ? 'animate-modal-out' : 'animate-modal-in'} relative bg-white dark:bg-stone-800 rounded-3xl shadow-2xl max-w-xl w-full max-h-[92vh] overflow-y-auto border border-stone-200/60 dark:border-stone-600/60`}
+          className={`${closing ? 'animate-modal-out' : 'animate-modal-in'} relative bg-white dark:bg-stone-800 rounded-2xl sm:rounded-3xl shadow-2xl max-w-xl w-full max-h-[85vh] overflow-y-auto border border-stone-200/60 dark:border-stone-600/60`}
           onClick={(e) => e.stopPropagation()}
         >
           <button
             onClick={handleClose}
-            className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-600 transition-all"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-600 transition-all"
             aria-label={`Close ${title}`}
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <div className="p-5 sm:p-7">{children}</div>
+          <div className="p-4 sm:p-5 md:p-7">{children}</div>
         </div>
       </div>
     </div>

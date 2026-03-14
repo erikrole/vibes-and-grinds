@@ -217,8 +217,8 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
   return (
     <div>
       {/* Header */}
-      <div className="mb-7 pr-10">
-        <h2 className="coffee-shop-name text-4xl">{isEditing ? 'Edit Visit' : 'New Visit'}</h2>
+      <div className="mb-5 sm:mb-7 pr-12">
+        <h2 className="coffee-shop-name text-2xl sm:text-4xl">{isEditing ? 'Edit Visit' : 'New Visit'}</h2>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
@@ -437,7 +437,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
         </FormSection>
 
         {/* ── ACTIONS ──────────────────────────────────── */}
-        <div className="sticky bottom-0 z-10 bg-white/95 dark:bg-stone-800/95 backdrop-blur-md pt-4 pb-2 border-t border-stone-100 dark:border-stone-600/60">
+        <div className="sticky bottom-0 z-10 bg-white/95 dark:bg-stone-800/95 backdrop-blur-md pt-4 border-t border-stone-100 dark:border-stone-600/60 safe-bottom" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))' }}>
           <button
             type="submit"
             disabled={uploading}

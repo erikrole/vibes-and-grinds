@@ -57,7 +57,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
               <h3
-                className="coffee-shop-name text-2xl md:text-3xl mb-2 leading-tight group-hover:text-stone-700 dark:group-hover:text-stone-300 transition-colors"
+                className="coffee-shop-name text-lg sm:text-2xl md:text-3xl mb-2 leading-tight group-hover:text-stone-700 dark:group-hover:text-stone-300 transition-colors"
               >
                 {visit.coffee_shop_name}
               </h3>
@@ -77,7 +77,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
             <div className="relative ml-4 flex-shrink-0" ref={menuRef}>
               <button
                 onClick={(e) => { e.stopPropagation(); setShowMenu((prev) => !prev); }}
-                className="text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 p-1 transition-colors"
+                className="text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 p-2.5 -m-1.5 rounded-xl transition-colors"
                 aria-label={`Open actions for ${visit.coffee_shop_name}`}
                 aria-expanded={showMenu}
                 aria-haspopup="menu"
