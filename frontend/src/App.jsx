@@ -20,12 +20,6 @@ const APP_MODES = {
 };
 
 const isVestDomain = window.location.hostname.startsWith('vests.');
-const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
-function navigateToMode(mode) {
-  // Subdomain navigation disabled - handle via state only
-  return false;
-}
 
 export default function App() {
   const [visits, setVisits] = useState([]);
@@ -52,9 +46,9 @@ export default function App() {
   const sortAsc = viewPrefs.sortAsc || false;
   const searchQuery = viewPrefs.searchQuery || '';
   const sportFilter = viewPrefs.sportFilter || '';
-  const appMode = (isLocalhost || isVestDomain)
-    ? (viewPrefs.appMode || APP_MODES.VIBES)
-    : (isVestDomain ? APP_MODES.VEST : APP_MODES.VIBES);
+  const appMode = isVestDomain
+    ? APP_MODES.VEST
+    : (viewPrefs.appMode || APP_MODES.VIBES);
 
   const setSortBy = (v) => setViewPrefs((p) => {
     if (p.sortBy === v) return { ...p, sortAsc: !p.sortAsc };
@@ -76,8 +70,7 @@ export default function App() {
 
       if (e.key.toLowerCase() === 'v') {
         setAppMode((prev) => {
-          const next = prev === APP_MODES.VIBES ? APP_MODES.VEST : APP_MODES.VIBES;
-          return navigateToMode(next) ? prev : next;
+          return prev === APP_MODES.VIBES ? APP_MODES.VEST : APP_MODES.VIBES;
         });
       } else if (e.key === '/' && appMode === APP_MODES.VIBES) {
         e.preventDefault();
@@ -312,7 +305,7 @@ export default function App() {
                     <button
                       onMouseDown={() => {
                         setShowModeMenu(false);
-                        if (!navigateToMode(APP_MODES.VIBES)) setAppMode(APP_MODES.VIBES);
+                        setAppMode(APP_MODES.VIBES);
                       }}
                       className={`w-full text-left px-4 py-3 text-sm ${
                         appMode === APP_MODES.VIBES
@@ -325,7 +318,7 @@ export default function App() {
                     <button
                       onMouseDown={() => {
                         setShowModeMenu(false);
-                        if (!navigateToMode(APP_MODES.VEST)) setAppMode(APP_MODES.VEST);
+                        setAppMode(APP_MODES.VEST);
                       }}
                       className={`w-full text-left px-4 py-3 text-sm ${
                         appMode === APP_MODES.VEST
