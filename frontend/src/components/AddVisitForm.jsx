@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import PhotoCropper from './PhotoCropper';
 import AutocompleteInput from './AutocompleteInput';
 import PlacesAutocomplete from './PlacesAutocomplete';
+import { getTodayDateString } from '../utils/dates';
 
 const BIG_TEN_TEAMS = {
   'minneapolis': 'Minnesota Golden Gophers',
@@ -50,14 +51,9 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
     orders: [...new Set(visits.map((v) => v.coffee_order).filter(Boolean))].sort(),
   }), [visits]);
 
-  const getLocalDate = () => {
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  };
-
   const [formData, setFormData] = useState(
     initialData || {
-      date: getLocalDate(),
+      date: getTodayDateString(),
       coffee_shop_name: '',
       city: '',
       opponent: '',

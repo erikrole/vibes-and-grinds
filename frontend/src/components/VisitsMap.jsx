@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -84,7 +84,12 @@ export default function VisitsMap({ visits, onVisitClick }) {
           position={[Number(visit.coffee_shop_lat), Number(visit.coffee_shop_lng)]}
           icon={coffeeIcon}
           eventHandlers={{ click: () => onVisitClick?.(visit) }}
-        />
+        >
+          <Tooltip direction="top" offset={[0, -30]} className="map-shop-label">
+            {visit.coffee_shop_name}
+            {visit.composite_score != null && ` · ${visit.composite_score.toFixed(1)}`}
+          </Tooltip>
+        </Marker>
       ))}
     </MapContainer>
   );

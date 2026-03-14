@@ -1,6 +1,6 @@
 import VisitCard from './VisitCard';
 
-export default function VisitList({ visits, loading, onEdit, onDelete, onViewDetails, hasActiveFilters = false, shopVisitCounts = {} }) {
+export default function VisitList({ visits, loading, onEdit, onDelete, onViewDetails, onAddVisit, hasActiveFilters = false, shopVisitCounts = {} }) {
   if (loading) {
     return (
       <div className="space-y-4">
@@ -31,14 +31,22 @@ export default function VisitList({ visits, loading, onEdit, onDelete, onViewDet
 
   if (visits.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="text-6xl mb-4">☕</div>
+      <div className="text-center py-16">
+        <div className="text-6xl mb-5">{hasActiveFilters ? '🔍' : '☕'}</div>
         <h3 className="text-xl font-semibold text-stone-700 dark:text-stone-300 mb-2">
           {hasActiveFilters ? 'No matching visits' : 'No visits yet'}
         </h3>
-        <p className="text-stone-500 dark:text-stone-400">
+        <p className="text-stone-500 dark:text-stone-400 mb-6">
           {hasActiveFilters ? 'Try a different search or remove filters.' : 'Start tracking your coffee shop adventures!'}
         </p>
+        {!hasActiveFilters && onAddVisit && (
+          <button onClick={onAddVisit} className="btn-primary inline-flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Your First Visit
+          </button>
+        )}
       </div>
     );
   }

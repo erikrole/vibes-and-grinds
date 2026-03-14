@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import useFocusTrap from '../hooks/useFocusTrap';
 
 export default function FormModal({ title, onClose, children }) {
   const modalRef = useRef(null);
@@ -9,55 +10,7 @@ export default function FormModal({ title, onClose, children }) {
     setTimeout(onClose, 200);
   }, [onClose]);
 
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        handleClose();
-        return;
-      }
-
-      if (e.key !== 'Tab') return;
-
-      const modal = modalRef.current;
-      if (!modal) return;
-
-      const focusable = modal.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      if (focusable.length === 0) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-
-      if (e.shiftKey) {
-        if (document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        }
-      } else {
-        if (document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-
-    const previouslyFocused = document.activeElement;
-    const timer = setTimeout(() => {
-      const firstFocusable = modalRef.current?.querySelector(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      firstFocusable?.focus();
-    }, 50);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      clearTimeout(timer);
-      previouslyFocused?.focus?.();
-    };
-  }, [handleClose]);
+  useFocusTrap(modalRef, { onEscape: handleClose });
 
   return (
     <div className="fixed inset-0 z-[1001] overflow-y-auto" role="dialog" aria-modal="true" aria-label={title}>

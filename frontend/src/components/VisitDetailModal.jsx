@@ -4,6 +4,8 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import PhotoCropper from './PhotoCropper';
 import { getRatingColor, getCompositeColor, getTextColor } from '../utils/colors';
+import { formatDate } from '../utils/dates';
+import useFocusTrap from '../hooks/useFocusTrap';
 
 const coffeeIcon = L.divIcon({
   html: '<span style="font-size:28px;line-height:1;display:block;">☕</span>',
@@ -12,7 +14,7 @@ const coffeeIcon = L.divIcon({
   iconAnchor: [16, 32],
 });
 
-export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onEdit, onDelete, onDuplicate }) {
+export default function VisitDetailModal({ visit, visits, onClose, onNavigate, onUpdate, onEdit, onDelete, onDuplicate }) {
   const modalRef = useRef(null);
   const [showMenu, setShowMenu] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -28,42 +30,33 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
     setTimeout(onClose, 200);
   }, [onClose]);
 
+  const handleEscape = useCallback(() => {
+    if (showMenu) {
+      setShowMenu(false);
+    } else {
+      handleClose();
+    }
+  }, [showMenu, handleClose]);
+
+  useFocusTrap(modalRef, { onEscape: handleEscape });
+
+  // Prev/next navigation
+  const currentIndex = useMemo(() => visits.findIndex((v) => v.id === visit.id), [visits, visit.id]);
+  const prevVisit = currentIndex > 0 ? visits[currentIndex - 1] : null;
+  const nextVisit = currentIndex < visits.length - 1 ? visits[currentIndex + 1] : null;
+
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        if (showMenu) {
-          setShowMenu(false);
-          return;
-        }
-        handleClose();
-        return;
-      }
-
-      if (e.key === 'Tab') {
-        const modal = modalRef.current;
-        if (!modal) return;
-        const focusable = modal.querySelectorAll(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey) {
-          if (document.activeElement === first) { e.preventDefault(); last.focus(); }
-        } else {
-          if (document.activeElement === last) { e.preventDefault(); first.focus(); }
-        }
+    const onArrow = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 'ArrowLeft' && prevVisit) {
+        onNavigate(prevVisit);
+      } else if (e.key === 'ArrowRight' && nextVisit) {
+        onNavigate(nextVisit);
       }
     };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    const previouslyFocused = document.activeElement;
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      previouslyFocused?.focus?.();
-    };
-  }, [handleClose, showMenu]);
+    window.addEventListener('keydown', onArrow);
+    return () => window.removeEventListener('keydown', onArrow);
+  }, [prevVisit, nextVisit, onNavigate]);
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -187,13 +180,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
     });
   };
 
-  const [year, month, day] = visit.date.split('-');
-  const formattedDate = new Date(year, month - 1, day).toLocaleDateString('en-US', {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  const formattedDate = formatDate(visit.date);
 
   const hasCoordinates = Number.isFinite(Number(visit.coffee_shop_lat)) && Number.isFinite(Number(visit.coffee_shop_lng));
 
@@ -456,6 +443,34 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
                 <p className="text-base text-stone-700 dark:text-stone-300 italic leading-relaxed">
                   "{visit.notes}"
                 </p>
+              </div>
+            )}
+
+            {/* Prev/Next navigation */}
+            {(prevVisit || nextVisit) && (
+              <div className="mt-6 pt-5 border-t border-stone-100 dark:border-stone-700/50 flex items-center justify-between">
+                {prevVisit ? (
+                  <button
+                    onClick={() => onNavigate(prevVisit)}
+                    className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 transition-colors group"
+                  >
+                    <svg className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    <span className="max-w-[140px] truncate">{prevVisit.coffee_shop_name}</span>
+                  </button>
+                ) : <div />}
+                {nextVisit ? (
+                  <button
+                    onClick={() => onNavigate(nextVisit)}
+                    className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 transition-colors group"
+                  >
+                    <span className="max-w-[140px] truncate">{nextVisit.coffee_shop_name}</span>
+                    <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                ) : <div />}
               </div>
             )}
           </div>
