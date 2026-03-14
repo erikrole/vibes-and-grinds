@@ -146,6 +146,11 @@ app.post('/api/visits', async (req, res) => {
       return res.status(400).json({ error: 'Ratings must be between 0 and 10' });
     }
 
+    const trimmedName = (coffee_shop_name || '').trim();
+    if (!trimmedName) {
+      return res.status(400).json({ error: 'Coffee shop name cannot be empty' });
+    }
+
     const result = await db.run(
       `INSERT INTO coffee_visits (
         date, coffee_shop_name, city, opponent, sport, coffee_shop_address, coffee_shop_place_id,
@@ -153,19 +158,19 @@ app.post('/api/visits', async (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         date,
-        coffee_shop_name,
-        city,
-        opponent,
-        sport,
-        coffee_shop_address,
-        coffee_shop_place_id,
+        trimmedName,
+        (city || '').trim() || null,
+        (opponent || '').trim() || null,
+        sport || null,
+        coffee_shop_address || null,
+        coffee_shop_place_id || null,
         coffee_shop_lat,
         coffee_shop_lng,
-        coffee_order,
+        (coffee_order || '').trim() || null,
         vibe_rating,
         coffee_rating,
-        notes,
-        photo_url
+        (notes || '').trim() || null,
+        photo_url || null
       ]
     );
 
@@ -184,6 +189,11 @@ app.post('/api/visits', async (req, res) => {
 // Update a visit
 app.put('/api/visits/:id', async (req, res) => {
   try {
+    const existing = await db.get('SELECT id FROM coffee_visits WHERE id = ?', [req.params.id]);
+    if (!existing) {
+      return res.status(404).json({ error: 'Visit not found' });
+    }
+
     const {
       date,
       coffee_shop_name,
@@ -202,8 +212,17 @@ app.put('/api/visits/:id', async (req, res) => {
     } = req.body;
 
     // Validation
+    if (!date || !coffee_shop_name || vibe_rating === undefined || coffee_rating === undefined) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
     if (vibe_rating < 0 || vibe_rating > 10 || coffee_rating < 0 || coffee_rating > 10) {
       return res.status(400).json({ error: 'Ratings must be between 0 and 10' });
+    }
+
+    const trimmedName = (coffee_shop_name || '').trim();
+    if (!trimmedName) {
+      return res.status(400).json({ error: 'Coffee shop name cannot be empty' });
     }
 
     await db.run(
@@ -214,19 +233,19 @@ app.put('/api/visits/:id', async (req, res) => {
       WHERE id = ?`,
       [
         date,
-        coffee_shop_name,
-        city,
-        opponent,
-        sport,
-        coffee_shop_address,
-        coffee_shop_place_id,
+        trimmedName,
+        (city || '').trim() || null,
+        (opponent || '').trim() || null,
+        sport || null,
+        coffee_shop_address || null,
+        coffee_shop_place_id || null,
         coffee_shop_lat,
         coffee_shop_lng,
-        coffee_order,
+        (coffee_order || '').trim() || null,
         vibe_rating,
         coffee_rating,
-        notes,
-        photo_url,
+        (notes || '').trim() || null,
+        photo_url || null,
         req.params.id
       ]
     );
@@ -246,6 +265,11 @@ app.put('/api/visits/:id', async (req, res) => {
 // Delete a visit
 app.delete('/api/visits/:id', async (req, res) => {
   try {
+    const existing = await db.get('SELECT id FROM coffee_visits WHERE id = ?', [req.params.id]);
+    if (!existing) {
+      return res.status(404).json({ error: 'Visit not found' });
+    }
+
     await db.run('DELETE FROM coffee_visits WHERE id = ?', [req.params.id]);
     res.status(204).send();
   } catch (error) {

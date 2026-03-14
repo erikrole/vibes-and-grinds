@@ -7,16 +7,10 @@ import FormModal from './components/FormModal';
 import VestTrackerDashboard from './components/VestTrackerDashboard';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
 import { getRatingColor, getCompositeColor } from './utils/colors';
-
-const VIEW_PREFERENCES_KEY = 'vibes-and-grinds:view-preferences';
-const DARK_MODE_KEY = 'vibes-and-grinds:dark-mode';
-
-function getInitialDarkMode() {
-  const stored = localStorage.getItem(DARK_MODE_KEY);
-  if (stored === 'true') return true;
-  if (stored === 'false') return false;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
+import { getTodayDateString } from './utils/dates';
+import useDarkMode from './hooks/useDarkMode';
+import useLocalStorage from './hooks/useLocalStorage';
+import useToast from './hooks/useToast';
 
 const APP_MODES = {
   VIBES: 'vibes',
@@ -31,14 +25,6 @@ function navigateToMode(mode) {
   return false;
 }
 
-const getTodayDateString = () => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
 export default function App() {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,108 +32,55 @@ export default function App() {
   const [editingVisit, setEditingVisit] = useState(null);
   const [viewingVisit, setViewingVisit] = useState(null);
   const [error, setError] = useState(null);
-  const [toast, setToast] = useState(null);
-  const [toastExiting, setToastExiting] = useState(false);
-
-  const [sortBy, setSortBy] = useState('date');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sportFilter, setSportFilter] = useState('');
-  const [appMode, setAppMode] = useState(isVestDomain ? APP_MODES.VEST : APP_MODES.VIBES);
   const [showModeMenu, setShowModeMenu] = useState(false);
-  const [darkMode, setDarkMode] = useState(getInitialDarkMode);
   const searchRef = useRef(null);
 
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', darkMode);
-    localStorage.setItem(DARK_MODE_KEY, String(darkMode));
-  }, [darkMode]);
+  const [darkMode, toggleDarkMode] = useDarkMode();
+  const toastBag = useToast();
+  const [viewPrefs, setViewPrefs] = useLocalStorage('vibes-and-grinds:view-preferences', {
+    sortBy: 'date',
+    searchQuery: '',
+    sportFilter: '',
+    appMode: isVestDomain ? APP_MODES.VEST : APP_MODES.VIBES,
+  });
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(VIEW_PREFERENCES_KEY);
-      if (!raw) return;
+  // Destructure persisted preferences into local aliases for convenience
+  const sortBy = viewPrefs.sortBy || 'date';
+  const searchQuery = viewPrefs.searchQuery || '';
+  const sportFilter = viewPrefs.sportFilter || '';
+  const appMode = (isLocalhost || isVestDomain)
+    ? (viewPrefs.appMode || APP_MODES.VIBES)
+    : (isVestDomain ? APP_MODES.VEST : APP_MODES.VIBES);
 
-      const parsed = JSON.parse(raw);
-      if (parsed.sortBy) setSortBy(parsed.sortBy);
-      if (typeof parsed.searchQuery === 'string') setSearchQuery(parsed.searchQuery);
-      if (typeof parsed.sportFilter === 'string') setSportFilter(parsed.sportFilter);
-      // Only restore saved mode on localhost; on production the subdomain determines the mode
-      if (isLocalhost && (parsed.appMode === APP_MODES.VEST || parsed.appMode === APP_MODES.VIBES)) {
-        setAppMode(parsed.appMode);
-      }
-    } catch (storageError) {
-      console.warn('Failed to restore view preferences', storageError);
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem(
-      VIEW_PREFERENCES_KEY,
-      JSON.stringify({
-        sortBy,
-        searchQuery,
-        sportFilter,
-        appMode,
-      })
-    );
-  }, [sortBy, searchQuery, sportFilter, appMode]);
+  const setSortBy = (v) => setViewPrefs((p) => ({ ...p, sortBy: v }));
+  const setSearchQuery = (v) => setViewPrefs((p) => ({ ...p, searchQuery: v }));
+  const setSportFilter = (v) => setViewPrefs((p) => ({ ...p, sportFilter: v }));
+  const setAppMode = (v) => setViewPrefs((p) => ({ ...p, appMode: typeof v === 'function' ? v(p.appMode) : v }));
 
   useEffect(() => {
     loadVisits();
   }, []);
 
+  // Consolidated keyboard shortcuts
   useEffect(() => {
-    if (!toast) return;
-    setToastExiting(false);
+    const onKeyDown = (e) => {
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
 
-    const exitTimeout = window.setTimeout(() => {
-      setToastExiting(true);
-    }, 2200);
-
-    const removeTimeout = window.setTimeout(() => {
-      setToast(null);
-      setToastExiting(false);
-    }, 2500);
-
-    return () => {
-      window.clearTimeout(exitTimeout);
-      window.clearTimeout(removeTimeout);
-    };
-  }, [toast]);
-
-  useEffect(() => {
-    const onKeyDown = (event) => {
-      if (event.key.toLowerCase() !== 'v') return;
-      // Don't fire when the user is typing in a form field
-      const tag = event.target.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || event.target.isContentEditable) return;
-      setAppMode((prevMode) => {
-        const nextMode = prevMode === APP_MODES.VIBES ? APP_MODES.VEST : APP_MODES.VIBES;
-        if (!navigateToMode(nextMode)) return nextMode;
-        return prevMode; // navigation in progress, keep current state
-      });
+      if (e.key.toLowerCase() === 'v') {
+        setAppMode((prev) => {
+          const next = prev === APP_MODES.VIBES ? APP_MODES.VEST : APP_MODES.VIBES;
+          return navigateToMode(next) ? prev : next;
+        });
+      } else if (e.key === '/' && appMode === APP_MODES.VIBES) {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
-
-  useEffect(() => {
-    const onSlash = (e) => {
-      if (e.key !== '/') return;
-      const tag = e.target.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
-      if (appMode !== APP_MODES.VIBES) return;
-      e.preventDefault();
-      searchRef.current?.focus();
-    };
-    window.addEventListener('keydown', onSlash);
-    return () => window.removeEventListener('keydown', onSlash);
   }, [appMode]);
-
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-  };
 
   const loadVisits = async () => {
     try {
@@ -169,10 +102,10 @@ export default function App() {
       const newVisit = await createVisit(visitData);
       setVisits((prev) => [newVisit, ...prev]);
       setShowForm(false);
-      showToast('Visit added.');
+      toastBag.show('Visit added.');
     } catch (err) {
       setError('Failed to add visit. Please try again.');
-      showToast('Could not add visit.', 'error');
+      toastBag.show('Could not add visit.', 'error');
       console.error(err);
     }
   };
@@ -189,10 +122,10 @@ export default function App() {
       const updatedVisit = await updateVisit(editingVisit.id, visitData);
       setVisits((prev) => prev.map((v) => (v.id === editingVisit.id ? updatedVisit : v)));
       setEditingVisit(null);
-      showToast('Visit updated.');
+      toastBag.show('Visit updated.');
     } catch (err) {
       setError('Failed to update visit. Please try again.');
-      showToast('Could not update visit.', 'error');
+      toastBag.show('Could not update visit.', 'error');
       console.error(err);
     }
   };
@@ -203,10 +136,10 @@ export default function App() {
       await deleteVisit(id);
       setVisits((prev) => prev.filter((v) => v.id !== id));
       setViewingVisit((prev) => (prev?.id === id ? null : prev));
-      showToast('Visit deleted.');
+      toastBag.show('Visit deleted.');
     } catch (err) {
       setError('Failed to delete visit. Please try again.');
-      showToast('Could not delete visit.', 'error');
+      toastBag.show('Could not delete visit.', 'error');
       console.error(err);
     }
   };
@@ -227,7 +160,7 @@ export default function App() {
       setEditingVisit(duplicated);
     } catch (err) {
       setError('Failed to duplicate visit. Please try again.');
-      showToast('Could not duplicate visit.', 'error');
+      toastBag.show('Could not duplicate visit.', 'error');
       console.error(err);
     }
   };
@@ -238,10 +171,10 @@ export default function App() {
       const updatedVisit = await updateVisit(id, updatedData);
       setVisits((prev) => prev.map((visit) => (visit.id === id ? updatedVisit : visit)));
       setViewingVisit(updatedVisit);
-      showToast('Visit updated.');
+      toastBag.show('Visit updated.');
     } catch (err) {
       setError('Failed to update visit. Please try again.');
-      showToast('Could not update visit.', 'error');
+      toastBag.show('Could not update visit.', 'error');
       console.error(err);
     }
   };
@@ -384,7 +317,7 @@ export default function App() {
 
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setDarkMode((prev) => !prev)}
+                  onClick={toggleDarkMode}
                   className="p-2 rounded-xl text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
                   aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
                 >
@@ -607,16 +540,16 @@ export default function App() {
           </FormModal>
         )}
 
-        {toast && (
-          <div className={`fixed top-4 right-4 z-[70] ${toastExiting ? 'animate-toast-out' : 'animate-toast-in'}`}>
+        {toastBag.toast && (
+          <div className={`fixed top-4 right-4 z-[70] ${toastBag.exiting ? 'animate-toast-out' : 'animate-toast-in'}`}>
             <div
               className={`px-4 py-3 rounded-2xl shadow-lg border text-sm ${
-                toast.type === 'error'
+                toastBag.toast.type === 'error'
                   ? 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/30 dark:border-red-700 dark:text-red-200'
                   : 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-200'
               }`}
             >
-              {toast.message}
+              {toastBag.toast.message}
             </div>
           </div>
         )}

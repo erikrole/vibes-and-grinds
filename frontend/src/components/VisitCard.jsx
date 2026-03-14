@@ -1,20 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import RatingBadge from './RatingBadge';
 import CompositeBadge from './CompositeBadge';
+import { formatDate } from '../utils/dates';
 
 export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visitCount = 1 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const menuRef = useRef(null);
 
-  // Format date - parse manually to avoid timezone issues
-  const [year, month, day] = visit.date.split('-');
-  const formattedDate = new Date(year, month - 1, day).toLocaleDateString('en-US', {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  const formattedDate = formatDate(visit.date);
 
   useEffect(() => {
     if (!showMenu) {

@@ -4,6 +4,8 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import PhotoCropper from './PhotoCropper';
 import { getRatingColor, getCompositeColor, getTextColor } from '../utils/colors';
+import { formatDate } from '../utils/dates';
+import useFocusTrap from '../hooks/useFocusTrap';
 
 const coffeeIcon = L.divIcon({
   html: '<span style="font-size:28px;line-height:1;display:block;">☕</span>',
@@ -28,42 +30,15 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
     setTimeout(onClose, 200);
   }, [onClose]);
 
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        if (showMenu) {
-          setShowMenu(false);
-          return;
-        }
-        handleClose();
-        return;
-      }
+  const handleEscape = useCallback(() => {
+    if (showMenu) {
+      setShowMenu(false);
+    } else {
+      handleClose();
+    }
+  }, [showMenu, handleClose]);
 
-      if (e.key === 'Tab') {
-        const modal = modalRef.current;
-        if (!modal) return;
-        const focusable = modal.querySelectorAll(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey) {
-          if (document.activeElement === first) { e.preventDefault(); last.focus(); }
-        } else {
-          if (document.activeElement === last) { e.preventDefault(); first.focus(); }
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    const previouslyFocused = document.activeElement;
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      previouslyFocused?.focus?.();
-    };
-  }, [handleClose, showMenu]);
+  useFocusTrap(modalRef, { onEscape: handleEscape });
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -187,13 +162,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
     });
   };
 
-  const [year, month, day] = visit.date.split('-');
-  const formattedDate = new Date(year, month - 1, day).toLocaleDateString('en-US', {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  const formattedDate = formatDate(visit.date);
 
   const hasCoordinates = Number.isFinite(Number(visit.coffee_shop_lat)) && Number.isFinite(Number(visit.coffee_shop_lng));
 
