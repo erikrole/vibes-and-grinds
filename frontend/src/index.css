@@ -186,5 +186,27 @@ input[type="number"] { -moz-appearance: textfield; }
   box-shadow: 0 0 0 3px rgba(168, 162, 158, 0.15);
 }
 
+/* Detail modal decorative header when no photo */
+.detail-header-accent {
+  background: linear-gradient(135deg, #f5f5f4 0%, #e7e5e4 50%, #d6d3d1 100%);
+}
+.dark .detail-header-accent {
+  background: linear-gradient(135deg, #292524 0%, #1c1917 50%, #0c0a09 100%);
+}
+
+/* Custom focus rings for accessibility */
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #78716c;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+.dark button:focus-visible,
+.dark a:focus-visible,
+.dark [tabindex]:focus-visible {
+  outline-color: #a8a29e;
+}
+
 /* Date picker calendar icon in dark mode */
 .dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
