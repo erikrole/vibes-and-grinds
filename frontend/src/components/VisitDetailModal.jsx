@@ -233,19 +233,22 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
               <div className="relative aspect-[16/9] bg-stone-100 dark:bg-stone-700 overflow-hidden">
                 <img src={visit.photo_url} alt={visit.coffee_shop_name} className="w-full h-full object-cover" />
                 {visit.notes && (
-                  <div
-                    className="absolute bottom-0 left-0 right-0 pt-32 pb-5 px-5 sm:pb-6 sm:px-7"
-                    style={{
-                      backdropFilter: 'blur(16px)',
-                      WebkitBackdropFilter: 'blur(16px)',
-                      background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.12)',
-                      maskImage: 'linear-gradient(to top, black 0%, black 35%, transparent 100%)',
-                      WebkitMaskImage: 'linear-gradient(to top, black 0%, black 35%, transparent 100%)',
-                    }}
-                  >
-                    <p className="text-white text-lg sm:text-xl font-semibold leading-relaxed tracking-wide" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}>
-                      &ldquo;{visit.notes}&rdquo;
-                    </p>
+                  <div className="absolute inset-0 flex items-end">
+                    <div
+                      className="w-full px-6 sm:px-7 pb-6 sm:pb-7 pt-20"
+                      style={{
+                        background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 40%, transparent 100%)',
+                      }}
+                    >
+                      <div className="flex items-start gap-3">
+                        <svg className="w-4 h-4 mt-1.5 text-white/40 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
+                        </svg>
+                        <p className="text-white/95 text-base sm:text-lg font-medium leading-relaxed tracking-wide italic">
+                          {visit.notes}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
