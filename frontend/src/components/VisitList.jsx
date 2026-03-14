@@ -45,15 +45,20 @@ export default function VisitList({ visits, loading, onEdit, onDelete, onViewDet
 
   return (
     <div className="space-y-4">
-      {visits.map((visit) => (
-        <VisitCard
+      {visits.map((visit, index) => (
+        <div
           key={visit.id}
-          visit={visit}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onViewDetails={onViewDetails}
-          visitCount={shopVisitCounts[visit.coffee_shop_name.toLowerCase()] || 1}
-        />
+          className="animate-card-in"
+          style={{ animationDelay: `${Math.min(index * 50, 400)}ms` }}
+        >
+          <VisitCard
+            visit={visit}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onViewDetails={onViewDetails}
+            visitCount={shopVisitCounts[visit.coffee_shop_name.toLowerCase()] || 1}
+          />
+        </div>
       ))}
     </div>
   );

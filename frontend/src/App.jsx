@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import AddVisitForm from './components/AddVisitForm';
 import VisitList from './components/VisitList';
 import VisitDetailModal from './components/VisitDetailModal';
@@ -6,6 +6,7 @@ import VisitsMap from './components/VisitsMap';
 import FormModal from './components/FormModal';
 import VestTrackerDashboard from './components/VestTrackerDashboard';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
+import { getRatingColor, getCompositeColor } from './utils/colors';
 
 const VIEW_PREFERENCES_KEY = 'vibes-and-grinds:view-preferences';
 const DARK_MODE_KEY = 'vibes-and-grinds:dark-mode';
@@ -54,6 +55,7 @@ export default function App() {
   const [appMode, setAppMode] = useState(isVestDomain ? APP_MODES.VEST : APP_MODES.VIBES);
   const [showModeMenu, setShowModeMenu] = useState(false);
   const [darkMode, setDarkMode] = useState(getInitialDarkMode);
+  const searchRef = useRef(null);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode);
@@ -129,6 +131,19 @@ export default function App() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
+
+  useEffect(() => {
+    const onSlash = (e) => {
+      if (e.key !== '/') return;
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
+      if (appMode !== APP_MODES.VIBES) return;
+      e.preventDefault();
+      searchRef.current?.focus();
+    };
+    window.addEventListener('keydown', onSlash);
+    return () => window.removeEventListener('keydown', onSlash);
+  }, [appMode]);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -404,10 +419,10 @@ export default function App() {
           )}
 
           <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            <SnapshotCard label="Total Visits" value={visits.length} />
-            <SnapshotCard label="Avg Vibe" value={avgVibe} />
-            <SnapshotCard label="Avg Coffee" value={avgCoffee} />
-            <SnapshotCard label="Avg Total" value={`${avgComposite} / 20`} />
+            <SnapshotCard label="Total Visits" value={visits.length} index={0} />
+            <SnapshotCard label="Avg Vibe" value={avgVibe} accentColor={getRatingColor(Number(avgVibe))} index={1} />
+            <SnapshotCard label="Avg Coffee" value={avgCoffee} accentColor={getRatingColor(Number(avgCoffee))} index={2} />
+            <SnapshotCard label="Avg Total" value={`${avgComposite} / 20`} accentColor={getCompositeColor(Number(avgComposite))} index={3} />
           </section>
 
           {topCoffeeOrders.length > 0 && (
@@ -496,13 +511,14 @@ export default function App() {
               </div>
             </div>
 
-            <div className="relative mt-4">
+            <div className="relative mt-4 search-glow rounded-xl transition-shadow">
               <input
+                ref={searchRef}
                 type="text"
                 placeholder="Search by shop name, city, opponent, or order..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3 pl-11 border border-stone-300 dark:border-stone-600 rounded-xl focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-100 transition-colors"
+                className="w-full px-4 py-3 pl-11 pr-16 border border-stone-300 dark:border-stone-600 rounded-xl focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-100 transition-colors"
               />
               <svg
                 className="absolute left-3.5 top-3.5 h-5 w-5 text-stone-400 dark:text-stone-500 transition-colors"
@@ -517,7 +533,7 @@ export default function App() {
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
-              {searchQuery && (
+              {searchQuery ? (
                 <button
                   onClick={() => setSearchQuery('')}
                   className="absolute right-3 top-3 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
@@ -531,6 +547,10 @@ export default function App() {
                     />
                   </svg>
                 </button>
+              ) : (
+                <kbd className="absolute right-3 top-3 hidden sm:inline-flex items-center px-2 py-1 text-xs font-medium text-stone-400 dark:text-stone-500 bg-stone-100 dark:bg-stone-700 border border-stone-200 dark:border-stone-600 rounded-md">
+                  /
+                </kbd>
               )}
             </div>
           </section>
@@ -605,11 +625,22 @@ export default function App() {
   );
 }
 
-function SnapshotCard({ label, value }) {
+function SnapshotCard({ label, value, accentColor, index = 0 }) {
   return (
-    <div className="bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 rounded-2xl p-4 sm:p-5 transition-colors shadow-sm">
+    <div className="relative bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 rounded-2xl p-4 sm:p-5 transition-all shadow-sm overflow-hidden group hover:shadow-md">
+      {accentColor && (
+        <div
+          className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
+          style={{ backgroundColor: accentColor }}
+        />
+      )}
       <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 select-none">{label}</p>
-      <p className="text-3xl font-black rating-number text-stone-900 dark:text-stone-50 mt-2">{value}</p>
+      <p
+        className="text-3xl font-black rating-number text-stone-900 dark:text-stone-50 mt-2 animate-stat-pop"
+        style={{ animationDelay: `${index * 80}ms` }}
+      >
+        {value}
+      </p>
     </div>
   );
 }
