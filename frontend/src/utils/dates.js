@@ -22,3 +22,20 @@ export function formatDate(dateStr, options) {
     day: 'numeric',
   });
 }
+
+/**
+ * Get a relative label for a YYYY-MM-DD date string.
+ * Returns "Today", "Yesterday", or null for older dates.
+ */
+export function getRelativeLabel(dateStr) {
+  const today = getTodayDateString();
+  if (dateStr === today) return 'Today';
+
+  const [y, m, d] = today.split('-').map(Number);
+  const yesterday = new Date(y, m - 1, d);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+  if (dateStr === yStr) return 'Yesterday';
+
+  return null;
+}

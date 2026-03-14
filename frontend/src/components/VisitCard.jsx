@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import RatingBadge from './RatingBadge';
 import CompositeBadge from './CompositeBadge';
-import { formatDate } from '../utils/dates';
+import { formatDate, getRelativeLabel } from '../utils/dates';
 
 export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visitCount = 1 }) {
   const [showMenu, setShowMenu] = useState(false);
@@ -9,6 +9,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
   const menuRef = useRef(null);
 
   const formattedDate = formatDate(visit.date);
+  const relativeLabel = getRelativeLabel(visit.date);
 
   useEffect(() => {
     if (!showMenu) {
@@ -136,7 +137,12 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
           <div className="space-y-2.5 mt-4 border-t border-stone-100 dark:border-stone-700 pt-4 transition-colors">
             <div className="flex items-center text-sm">
               <span className="text-stone-500 dark:text-stone-400 font-medium w-24 tracking-wide transition-colors">Date</span>
-              <span className="text-stone-900 dark:text-stone-50 transition-colors">{formattedDate}</span>
+              <span className="text-stone-900 dark:text-stone-50 transition-colors">
+                {relativeLabel && (
+                  <span className="font-semibold mr-1.5">{relativeLabel}</span>
+                )}
+                {formattedDate}
+              </span>
             </div>
 
             {visit.coffee_order && (

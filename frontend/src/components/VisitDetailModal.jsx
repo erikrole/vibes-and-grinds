@@ -14,7 +14,7 @@ const coffeeIcon = L.divIcon({
   iconAnchor: [16, 32],
 });
 
-export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onEdit, onDelete, onDuplicate }) {
+export default function VisitDetailModal({ visit, visits, onClose, onNavigate, onUpdate, onEdit, onDelete, onDuplicate }) {
   const modalRef = useRef(null);
   const [showMenu, setShowMenu] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -39,6 +39,24 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
   }, [showMenu, handleClose]);
 
   useFocusTrap(modalRef, { onEscape: handleEscape });
+
+  // Prev/next navigation
+  const currentIndex = useMemo(() => visits.findIndex((v) => v.id === visit.id), [visits, visit.id]);
+  const prevVisit = currentIndex > 0 ? visits[currentIndex - 1] : null;
+  const nextVisit = currentIndex < visits.length - 1 ? visits[currentIndex + 1] : null;
+
+  useEffect(() => {
+    const onArrow = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 'ArrowLeft' && prevVisit) {
+        onNavigate(prevVisit);
+      } else if (e.key === 'ArrowRight' && nextVisit) {
+        onNavigate(nextVisit);
+      }
+    };
+    window.addEventListener('keydown', onArrow);
+    return () => window.removeEventListener('keydown', onArrow);
+  }, [prevVisit, nextVisit, onNavigate]);
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -425,6 +443,34 @@ export default function VisitDetailModal({ visit, visits, onClose, onUpdate, onE
                 <p className="text-base text-stone-700 dark:text-stone-300 italic leading-relaxed">
                   "{visit.notes}"
                 </p>
+              </div>
+            )}
+
+            {/* Prev/Next navigation */}
+            {(prevVisit || nextVisit) && (
+              <div className="mt-6 pt-5 border-t border-stone-100 dark:border-stone-700/50 flex items-center justify-between">
+                {prevVisit ? (
+                  <button
+                    onClick={() => onNavigate(prevVisit)}
+                    className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 transition-colors group"
+                  >
+                    <svg className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    <span className="max-w-[140px] truncate">{prevVisit.coffee_shop_name}</span>
+                  </button>
+                ) : <div />}
+                {nextVisit ? (
+                  <button
+                    onClick={() => onNavigate(nextVisit)}
+                    className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 transition-colors group"
+                  >
+                    <span className="max-w-[140px] truncate">{nextVisit.coffee_shop_name}</span>
+                    <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                ) : <div />}
               </div>
             )}
           </div>

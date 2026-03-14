@@ -103,6 +103,7 @@ export default function App() {
       setVisits((prev) => [newVisit, ...prev]);
       setShowForm(false);
       toastBag.show('Visit added.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       setError('Failed to add visit. Please try again.');
       toastBag.show('Could not add visit.', 'error');
@@ -123,6 +124,7 @@ export default function App() {
       setVisits((prev) => prev.map((v) => (v.id === editingVisit.id ? updatedVisit : v)));
       setEditingVisit(null);
       toastBag.show('Visit updated.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       setError('Failed to update visit. Please try again.');
       toastBag.show('Could not update visit.', 'error');
@@ -390,20 +392,48 @@ export default function App() {
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
               <div>
                 <h2 className="text-3xl font-bold text-stone-900 dark:text-stone-50 mb-1 transition-colors">Visits</h2>
-                {hasActiveFilters ? (
-                  <p className="text-stone-500 dark:text-stone-400 text-sm tracking-wide transition-colors flex items-center gap-2">
-                    Showing {sortedVisits.length} of {visits.length} {visits.length === 1 ? 'visit' : 'visits'}
+                <p className="text-stone-500 dark:text-stone-400 text-sm tracking-wide transition-colors">
+                  {hasActiveFilters
+                    ? `Showing ${sortedVisits.length} of ${visits.length} ${visits.length === 1 ? 'visit' : 'visits'}`
+                    : `${visits.length} total ${visits.length === 1 ? 'visit' : 'visits'}`}
+                </p>
+                {hasActiveFilters && (
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                    {sportFilter && (
+                      <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200 border border-stone-200 dark:border-stone-600">
+                        {sportFilter}
+                        <button
+                          onClick={() => setSportFilter('')}
+                          className="ml-0.5 p-0.5 rounded-full hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors"
+                          aria-label={`Remove ${sportFilter} filter`}
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </span>
+                    )}
+                    {searchQuery && (
+                      <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200 border border-stone-200 dark:border-stone-600">
+                        "{searchQuery}"
+                        <button
+                          onClick={() => setSearchQuery('')}
+                          className="ml-0.5 p-0.5 rounded-full hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors"
+                          aria-label="Clear search"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </span>
+                    )}
                     <button
                       onClick={() => { setSearchQuery(''); setSportFilter(''); }}
-                      className="text-xs underline underline-offset-2 hover:text-stone-700 dark:hover:text-stone-300 transition-colors"
+                      className="text-xs text-stone-400 dark:text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 underline underline-offset-2 transition-colors"
                     >
-                      Clear
+                      Clear all
                     </button>
-                  </p>
-                ) : (
-                  <p className="text-stone-500 dark:text-stone-400 text-sm tracking-wide transition-colors">
-                    {visits.length} total {visits.length === 1 ? 'visit' : 'visits'}
-                  </p>
+                  </div>
                 )}
               </div>
 
@@ -494,6 +524,7 @@ export default function App() {
             onEdit={handleEditVisit}
             onDelete={handleDeleteVisit}
             onViewDetails={setViewingVisit}
+            onAddVisit={() => setShowForm(true)}
             hasActiveFilters={hasActiveFilters}
             shopVisitCounts={shopVisitCounts}
           />
@@ -519,8 +550,9 @@ export default function App() {
         {viewingVisit && (
           <VisitDetailModal
             visit={viewingVisit}
-            visits={visits}
+            visits={sortedVisits}
             onClose={() => setViewingVisit(null)}
+            onNavigate={setViewingVisit}
             onUpdate={handleModalUpdateVisit}
             onEdit={handleEditVisit}
             onDelete={handleDeleteVisit}
