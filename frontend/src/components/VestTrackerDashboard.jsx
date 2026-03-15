@@ -1125,7 +1125,7 @@ export default function VestTrackerDashboard() {
                   {stat.avgNet && netStatus === 'loaded' && ` · SoS #${stat.avgNet}`}
                 </p>
 
-                <div className="mt-2.5 grid grid-cols-4 gap-1 text-[10px] font-semibold text-stone-600 dark:text-stone-300">
+                <div className="mt-2.5 grid grid-cols-2 sm:grid-cols-4 gap-1 text-[10px] font-semibold text-stone-600 dark:text-stone-300">
                   {[1, 2, 3, 4].map((quad) => (
                     <div key={quad} className="rounded-lg bg-stone-50 dark:bg-stone-700/50 px-2 py-1.5 text-center">
                       <span className="text-stone-400 dark:text-stone-500">Q{quad}</span>{' '}

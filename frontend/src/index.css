@@ -211,10 +211,10 @@ a:focus-visible,
 /* Date picker calendar icon in dark mode */
 .dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
 
-/* iOS safe areas */
-@supports (padding: env(safe-area-inset-bottom)) {
-  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-  .safe-top { padding-top: env(safe-area-inset-top); }
+/* iOS safe areas — use max() so the inset never collapses below the element's existing padding */
+@supports (padding: max(0px)) {
+  .safe-bottom { padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px)) !important; }
+  .safe-top { padding-top: max(0.5rem, env(safe-area-inset-top, 0px)) !important; }
 }
 
 /* Mobile touch improvements */
