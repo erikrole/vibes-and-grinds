@@ -6,6 +6,7 @@ import FormModal from './components/FormModal';
 const VisitDetailModal = lazy(() => import('./components/VisitDetailModal'));
 const VisitsMap = lazy(() => import('./components/VisitsMap'));
 const VestTrackerDashboard = lazy(() => import('./components/VestTrackerDashboard'));
+const InsightsPanel = lazy(() => import('./components/InsightsPanel'));
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
 import { getRatingColor, getCompositeColor } from './utils/colors';
@@ -50,12 +51,15 @@ export default function App() {
     ? APP_MODES.VEST
     : (viewPrefs.appMode || APP_MODES.VIBES);
 
+  const viewTab = viewPrefs.viewTab || 'visits'; // 'visits' | 'insights'
+
   const setSortBy = (v) => setViewPrefs((p) => {
     if (p.sortBy === v) return { ...p, sortAsc: !p.sortAsc };
     return { ...p, sortBy: v, sortAsc: false };
   });
   const setSearchQuery = (v) => setViewPrefs((p) => ({ ...p, searchQuery: v }));
   const setSportFilter = (v) => setViewPrefs((p) => ({ ...p, sportFilter: v }));
+  const setViewTab = (v) => setViewPrefs((p) => ({ ...p, viewTab: v }));
   const setAppMode = (v) => setViewPrefs((p) => ({ ...p, appMode: typeof v === 'function' ? v(p.appMode) : v }));
 
   useEffect(() => {
@@ -377,6 +381,32 @@ export default function App() {
             <SnapshotCard label="Avg Total" value={`${avgComposite} / 20`} accentColor={getCompositeColor(Number(avgComposite))} index={3} />
           </section>
 
+          {/* Visits / Insights tab toggle */}
+          <div className="flex rounded-xl border border-stone-300 dark:border-stone-600 overflow-hidden mb-6">
+            {[
+              { id: 'visits', label: 'Visits' },
+              { id: 'insights', label: 'Insights' },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setViewTab(tab.id)}
+                className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors border-r last:border-r-0 border-stone-300 dark:border-stone-600 ${
+                  viewTab === tab.id
+                    ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
+                    : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {viewTab === 'insights' ? (
+            <Suspense fallback={<div className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading insights...</div>}>
+              <InsightsPanel visits={visits} />
+            </Suspense>
+          ) : (
+          <>
           {topCoffeeOrders.length > 0 && (
             <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 rounded-2xl p-4 sm:p-5 transition-colors shadow-sm">
               <h3 className="text-[11px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-[0.08em] mb-3 select-none">Top Orders</h3>
@@ -552,6 +582,8 @@ export default function App() {
             hasActiveFilters={hasActiveFilters}
             shopVisitCounts={shopVisitCounts}
           />
+          </>
+          )}
         </main>
         )}
 
