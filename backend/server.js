@@ -382,6 +382,75 @@ app.put('/api/vest/games', async (req, res) => {
   }
 });
 
+app.get('/api/vest/calendar', async (req, res) => {
+  try {
+    const rows = await db.all(`
+      SELECT game_id, date, location, opponent, ranking, outfit, result, overtime
+      FROM vest_games
+      ORDER BY date ASC, game_id ASC
+    `);
+
+    const DOMAIN = 'coffee.erikrole.com';
+
+    const escapeIcs = (text) =>
+      String(text || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+
+    const locationLabel = (loc) => (loc === '@' ? '@' : 'vs.');
+
+    const events = rows
+      .map((game) => {
+        const dtstart = (game.date || '').replace(/-/g, '');
+        if (!dtstart || dtstart.length !== 8) return null;
+
+        const startDate = new Date(game.date + 'T00:00:00');
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 1);
+        const dtend = endDate.toISOString().slice(0, 10).replace(/-/g, '');
+
+        const rankTag = game.ranking ? ` (#${game.ranking})` : '';
+        const summary = `Wisconsin ${locationLabel(game.location)} ${game.opponent}${rankTag}`;
+
+        const descParts = [];
+        if (game.outfit) descParts.push(`Outfit: ${game.outfit}`);
+        if (game.result) descParts.push(`Result: ${game.result}${game.overtime ? ' (OT)' : ''}`);
+        if (game.ranking) descParts.push(`Wisconsin ranking: #${game.ranking}`);
+        const description = descParts.join('\\n');
+
+        const status = game.result ? 'CONFIRMED' : 'TENTATIVE';
+
+        return [
+          'BEGIN:VEVENT',
+          `UID:vest-game-${game.game_id}@${DOMAIN}`,
+          `DTSTART;VALUE=DATE:${dtstart}`,
+          `DTEND;VALUE=DATE:${dtend}`,
+          `SUMMARY:${escapeIcs(summary)}`,
+          ...(description ? [`DESCRIPTION:${description}`] : []),
+          `STATUS:${status}`,
+          'END:VEVENT',
+        ].join('\r\n');
+      })
+      .filter(Boolean);
+
+    const ics =
+      [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Vibes & Grinds//Vest Tracker//EN',
+        'X-WR-CALNAME:Wisconsin Basketball (Vest Tracker)',
+        ...events,
+        'END:VCALENDAR',
+      ].join('\r\n') + '\r\n';
+
+    res.set('Content-Type', 'text/calendar; charset=utf-8');
+    res.set('Content-Disposition', 'attachment; filename="wisconsin-basketball.ics"');
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.send(ics);
+  } catch (error) {
+    console.error('Error generating calendar:', error);
+    res.status(500).send('Error generating calendar');
+  }
+});
+
 app.get('/api/vest/schedule', async (req, res) => {
   const season = String(req.query.season || '2025');
   const teamId = '275'; // Wisconsin

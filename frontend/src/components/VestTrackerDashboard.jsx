@@ -262,6 +262,8 @@ export default function VestTrackerDashboard({ showToast }) {
   const [addingOutfit, setAddingOutfit] = useState(false);
   const [syncReady, setSyncReady] = useState(false);
   const [vestTab, setVestTab] = useState('dashboard');
+  const [calendarPopover, setCalendarPopover] = useState(false);
+  const [calendarCopied, setCalendarCopied] = useState(false);
 
   // Warn if localStorage data was corrupted on load
   useEffect(() => {
@@ -878,23 +880,100 @@ export default function VestTrackerDashboard({ showToast }) {
   return (
     <main className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       {/* Tab navigation */}
-      <div className="mb-5 sm:mb-6 flex rounded-xl border border-stone-300 dark:border-stone-600 overflow-hidden">
-        {[
-          { value: 'dashboard', label: 'Dashboard' },
-          { value: 'rankings', label: 'NET Rankings' },
-        ].map((tab) => (
+      <div className="mb-5 sm:mb-6 flex items-center gap-3">
+        <div className="flex rounded-xl border border-stone-300 dark:border-stone-600 overflow-hidden">
+          {[
+            { value: 'dashboard', label: 'Dashboard' },
+            { value: 'rankings', label: 'NET Rankings' },
+          ].map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setVestTab(tab.value)}
+              className={`flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium transition-colors border-r last:border-r-0 border-stone-300 dark:border-stone-600 ${
+                vestTab === tab.value
+                  ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
+                  : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Calendar sync button */}
+        <div className="relative ml-auto">
           <button
-            key={tab.value}
-            onClick={() => setVestTab(tab.value)}
-            className={`flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium transition-colors border-r last:border-r-0 border-stone-300 dark:border-stone-600 ${
-              vestTab === tab.value
-                ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
-                : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
-            }`}
+            onClick={() => { setCalendarPopover((v) => !v); setCalendarCopied(false); }}
+            className="flex items-center gap-1.5 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 px-3 py-2.5 text-sm font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+            title="Sync to calendar"
           >
-            {tab.label}
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            <span className="hidden sm:inline">Calendar</span>
           </button>
-        ))}
+
+          {calendarPopover && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setCalendarPopover(false)} />
+              <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-2xl border border-stone-200 dark:border-stone-600 bg-white dark:bg-stone-800 shadow-xl p-4">
+                <h4 className="text-sm font-bold text-stone-900 dark:text-stone-100 mb-1">Sync to Calendar</h4>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mb-3">
+                  Subscribe to the Wisconsin basketball schedule. Updates automatically with outfits and results.
+                </p>
+
+                <div className="space-y-2">
+                  {/* Apple Calendar / webcal */}
+                  <a
+                    href={`webcal://${window.location.host}/api/vest/calendar`}
+                    className="flex items-center gap-2.5 w-full rounded-xl border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700/40 px-3 py-2.5 text-sm font-medium text-stone-800 dark:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+                  >
+                    <svg className="w-4 h-4 shrink-0 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                    Apple Calendar
+                  </a>
+
+                  {/* Google Calendar */}
+                  <a
+                    href={`https://calendar.google.com/calendar/r?cid=${encodeURIComponent(`webcal://${window.location.host}/api/vest/calendar`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2.5 w-full rounded-xl border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700/40 px-3 py-2.5 text-sm font-medium text-stone-800 dark:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+                  >
+                    <svg className="w-4 h-4 shrink-0 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    Google Calendar
+                  </a>
+
+                  {/* Copy URL */}
+                  <button
+                    onClick={() => {
+                      const url = `${window.location.origin}/api/vest/calendar`;
+                      navigator.clipboard.writeText(url).then(() => {
+                        setCalendarCopied(true);
+                        setTimeout(() => setCalendarCopied(false), 2000);
+                      });
+                    }}
+                    className="flex items-center gap-2.5 w-full rounded-xl border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700/40 px-3 py-2.5 text-sm font-medium text-stone-800 dark:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+                  >
+                    <svg className="w-4 h-4 shrink-0 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                    {calendarCopied ? 'Copied!' : 'Copy URL'}
+                  </button>
+
+                  {/* Download .ics */}
+                  <a
+                    href={`${window.location.origin}/api/vest/calendar`}
+                    download="wisconsin-basketball.ics"
+                    className="flex items-center gap-2.5 w-full rounded-xl border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700/40 px-3 py-2.5 text-sm font-medium text-stone-800 dark:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+                  >
+                    <svg className="w-4 h-4 shrink-0 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    Download .ics
+                  </a>
+                </div>
+
+                <p className="text-[10px] text-stone-400 dark:text-stone-500 mt-3">
+                  Subscribed calendars refresh automatically (usually every few hours).
+                </p>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Header */}
