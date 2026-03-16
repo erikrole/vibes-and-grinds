@@ -443,6 +443,305 @@ app.get('/api/vest/schedule', async (req, res) => {
 });
 
 
+// ── ESPN Scores: fetch schedule + scores and cache in vest_game_stats ──
+const WISCONSIN_TEAM_ID = '275';
+const ESPN_SCHEDULE_BASE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams';
+const ESPN_SUMMARY_BASE = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/summary';
+
+function parseFloat2(val) {
+  const n = parseFloat(val);
+  return Number.isFinite(n) ? Math.round(n * 10) / 10 : null;
+}
+
+function extractTeamStat(stats, label) {
+  if (!Array.isArray(stats)) return null;
+  const entry = stats.find((s) => s.label === label || s.abbreviation === label);
+  return entry?.displayValue || null;
+}
+
+function extractTeamStatNum(stats, label) {
+  const val = extractTeamStat(stats, label);
+  if (!val) return null;
+  const n = parseFloat(val);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseEspnEvent(event) {
+  const competition = event.competitions?.[0] || {};
+  const competitors = competition.competitors || [];
+  const badgers = competitors.find((c) => String(c.team?.id) === WISCONSIN_TEAM_ID);
+  const opponent = competitors.find((c) => String(c.team?.id) !== WISCONSIN_TEAM_ID);
+  if (!badgers || !opponent) return null;
+
+  const isCompleted = competition.status?.type?.completed;
+  const statusDesc = competition.status?.type?.description || '';
+
+  const wiScore = Number(badgers.score);
+  const oppScore = Number(opponent.score);
+
+  const wiLinescores = Array.isArray(badgers.linescores) ? badgers.linescores : [];
+  const oppLinescores = Array.isArray(opponent.linescores) ? opponent.linescores : [];
+
+  const otPeriods = Math.max(0, wiLinescores.length - 2);
+
+  const venue = competition.venue;
+  const broadcasts = competition.broadcasts || [];
+  const broadcastName = broadcasts[0]?.names?.[0] || broadcasts[0]?.name || null;
+
+  return {
+    espnEventId: String(event.id),
+    date: event.date,
+    opponentName: opponent.team?.displayName || 'TBD',
+    location: badgers.homeAway === 'away' ? '@' : (competition.neutralSite ? 'N' : 'vs'),
+    completed: Boolean(isCompleted),
+    overtime: statusDesc.toUpperCase().includes('OT'),
+    result: isCompleted && Number.isFinite(wiScore) && Number.isFinite(oppScore)
+      ? (wiScore > oppScore ? 'W' : 'L') : '',
+    wisconsinScore: Number.isFinite(wiScore) ? wiScore : null,
+    opponentScore: Number.isFinite(oppScore) ? oppScore : null,
+    wisconsinH1: wiLinescores[0]?.value ?? null,
+    wisconsinH2: wiLinescores[1]?.value ?? null,
+    opponentH1: oppLinescores[0]?.value ?? null,
+    opponentH2: oppLinescores[1]?.value ?? null,
+    otPeriods,
+    venue: venue?.fullName || null,
+    venueCity: venue?.address?.city || null,
+    broadcast: broadcastName,
+    attendance: competition.attendance || null,
+    oppRanking: opponent.curatedRank?.current ?? null,
+    wiRanking: badgers.curatedRank?.current ?? null,
+    wiRecord: badgers.records?.[0]?.summary || null,
+  };
+}
+
+app.get('/api/vest/scores', async (req, res) => {
+  const season = String(req.query.season || '2025');
+
+  try {
+    // First try to serve from cache
+    const cached = await db.all(`
+      SELECT s.*, v.outfit, v.game_id
+      FROM vest_game_stats s
+      LEFT JOIN vest_games v ON v.espn_event_id = s.espn_event_id
+      ORDER BY s.id ASC
+    `);
+
+    // Fetch fresh from ESPN
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    const response = await fetch(
+      `${ESPN_SCHEDULE_BASE}/${WISCONSIN_TEAM_ID}/schedule?season=${season}`,
+      { signal: controller.signal }
+    );
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      // Return cached if ESPN is down
+      if (cached.length) return res.json({ games: cached, source: 'cache' });
+      return res.status(502).json({ error: 'ESPN unavailable', status: response.status });
+    }
+
+    const data = await response.json();
+    const events = Array.isArray(data.events) ? data.events : [];
+    const parsed = events.map(parseEspnEvent).filter(Boolean);
+
+    // Upsert into vest_game_stats
+    for (const game of parsed) {
+      if (!game.completed) continue;
+
+      // Try to match to a vest_game by date
+      const vestGame = await db.get(
+        'SELECT game_id FROM vest_games WHERE date = ? LIMIT 1',
+        [game.date?.slice(0, 10)]
+      );
+
+      // Update vest_games espn_event_id if matched
+      if (vestGame) {
+        await db.run(
+          'UPDATE vest_games SET espn_event_id = ? WHERE game_id = ?',
+          [game.espnEventId, vestGame.game_id]
+        );
+      }
+
+      // Upsert stats
+      await db.run(`
+        INSERT INTO vest_game_stats (
+          espn_event_id, game_id, wisconsin_score, opponent_score,
+          wisconsin_h1, wisconsin_h2, opponent_h1, opponent_h2,
+          ot_periods, venue, venue_city, broadcast, attendance,
+          opp_ranking, wi_ranking, wi_record, fetched_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(espn_event_id) DO UPDATE SET
+          wisconsin_score = excluded.wisconsin_score,
+          opponent_score = excluded.opponent_score,
+          wisconsin_h1 = excluded.wisconsin_h1,
+          wisconsin_h2 = excluded.wisconsin_h2,
+          opponent_h1 = excluded.opponent_h1,
+          opponent_h2 = excluded.opponent_h2,
+          ot_periods = excluded.ot_periods,
+          venue = excluded.venue,
+          venue_city = excluded.venue_city,
+          broadcast = excluded.broadcast,
+          attendance = excluded.attendance,
+          opp_ranking = excluded.opp_ranking,
+          wi_ranking = excluded.wi_ranking,
+          wi_record = excluded.wi_record,
+          fetched_at = CURRENT_TIMESTAMP
+      `, [
+        game.espnEventId, vestGame?.game_id || null,
+        game.wisconsinScore, game.opponentScore,
+        game.wisconsinH1, game.wisconsinH2, game.opponentH1, game.opponentH2,
+        game.otPeriods, game.venue, game.venueCity, game.broadcast, game.attendance,
+        game.oppRanking, game.wiRanking, game.wiRecord,
+      ]);
+    }
+
+    // Re-fetch merged data
+    const merged = await db.all(`
+      SELECT s.*, v.outfit, v.game_id, v.opponent, v.date, v.location, v.result, v.overtime
+      FROM vest_game_stats s
+      LEFT JOIN vest_games v ON v.espn_event_id = s.espn_event_id
+      ORDER BY v.date ASC, s.id ASC
+    `);
+
+    res.json({ games: merged, source: 'espn' });
+  } catch (error) {
+    const timedOut = error?.name === 'AbortError';
+    console.error('Error fetching vest scores:', error);
+
+    // Fallback to cache
+    try {
+      const cached = await db.all(`
+        SELECT s.*, v.outfit, v.game_id, v.opponent, v.date, v.location, v.result, v.overtime
+        FROM vest_game_stats s
+        LEFT JOIN vest_games v ON v.espn_event_id = s.espn_event_id
+        ORDER BY v.date ASC, s.id ASC
+      `);
+      if (cached.length) return res.json({ games: cached, source: 'cache' });
+    } catch { /* ignore */ }
+
+    res.status(502).json({
+      error: timedOut ? 'ESPN request timed out' : 'Failed to fetch scores',
+      details: timedOut ? 'ESPN did not respond in time.' : error.message,
+    });
+  }
+});
+
+// ── ESPN Game Summary: box scores + player leaders for a single game ──
+app.get('/api/vest/game-stats/:eventId', async (req, res) => {
+  const eventId = req.params.eventId;
+
+  try {
+    // Check cache first
+    const cached = await db.get(
+      'SELECT * FROM vest_game_stats WHERE espn_event_id = ?',
+      [eventId]
+    );
+
+    // If we already have box score data, return it
+    if (cached?.wi_fg) {
+      return res.json({ stats: cached, source: 'cache' });
+    }
+
+    // Fetch from ESPN summary
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    const response = await fetch(
+      `${ESPN_SUMMARY_BASE}?event=${eventId}`,
+      { signal: controller.signal }
+    );
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      if (cached) return res.json({ stats: cached, source: 'cache-partial' });
+      return res.status(502).json({ error: 'ESPN summary unavailable' });
+    }
+
+    const summary = await response.json();
+
+    // Extract box score team stats
+    const boxTeams = summary.boxscore?.teams || [];
+    const wiBox = boxTeams.find((t) => String(t.team?.id) === WISCONSIN_TEAM_ID);
+    const oppBox = boxTeams.find((t) => String(t.team?.id) !== WISCONSIN_TEAM_ID);
+
+    const wiStats = wiBox?.statistics || [];
+    const oppStats = oppBox?.statistics || [];
+
+    // Extract player leaders
+    const competition = summary.header?.competitions?.[0] || {};
+    const competitors = competition.competitors || [];
+    const wiComp = competitors.find((c) => String(c.id) === WISCONSIN_TEAM_ID);
+    const wiLeaders = wiComp?.leaders || [];
+
+    const ptsLeader = wiLeaders.find((l) => l.name === 'points' || l.abbreviation === 'PTS');
+    const rebLeader = wiLeaders.find((l) => l.name === 'rebounds' || l.abbreviation === 'REB');
+    const astLeader = wiLeaders.find((l) => l.name === 'assists' || l.abbreviation === 'AST');
+
+    const updates = {
+      wi_fg: extractTeamStat(wiStats, 'FG'),
+      wi_3pt: extractTeamStat(wiStats, '3PT'),
+      wi_ft: extractTeamStat(wiStats, 'FT'),
+      wi_rebounds: extractTeamStatNum(wiStats, 'REB'),
+      wi_turnovers: extractTeamStatNum(wiStats, 'TO'),
+      wi_fg_pct: parseFloat2(extractTeamStat(wiStats, 'FG%')),
+      wi_3pt_pct: parseFloat2(extractTeamStat(wiStats, '3PT%')),
+      wi_ft_pct: parseFloat2(extractTeamStat(wiStats, 'FT%')),
+      opp_fg: extractTeamStat(oppStats, 'FG'),
+      opp_3pt: extractTeamStat(oppStats, '3PT'),
+      opp_ft: extractTeamStat(oppStats, 'FT'),
+      opp_rebounds: extractTeamStatNum(oppStats, 'REB'),
+      opp_turnovers: extractTeamStatNum(oppStats, 'TO'),
+      opp_fg_pct: parseFloat2(extractTeamStat(oppStats, 'FG%')),
+      opp_3pt_pct: parseFloat2(extractTeamStat(oppStats, '3PT%')),
+      opp_ft_pct: parseFloat2(extractTeamStat(oppStats, 'FT%')),
+      wi_leader_pts_name: ptsLeader?.leaders?.[0]?.athlete?.displayName || null,
+      wi_leader_pts_value: ptsLeader?.leaders?.[0]?.displayValue || null,
+      wi_leader_reb_name: rebLeader?.leaders?.[0]?.athlete?.displayName || null,
+      wi_leader_reb_value: rebLeader?.leaders?.[0]?.displayValue || null,
+      wi_leader_ast_name: astLeader?.leaders?.[0]?.athlete?.displayName || null,
+      wi_leader_ast_value: astLeader?.leaders?.[0]?.displayValue || null,
+    };
+
+    // Update the cached row
+    if (cached) {
+      await db.run(`
+        UPDATE vest_game_stats SET
+          wi_fg = ?, wi_3pt = ?, wi_ft = ?, wi_rebounds = ?, wi_turnovers = ?,
+          wi_fg_pct = ?, wi_3pt_pct = ?, wi_ft_pct = ?,
+          opp_fg = ?, opp_3pt = ?, opp_ft = ?, opp_rebounds = ?, opp_turnovers = ?,
+          opp_fg_pct = ?, opp_3pt_pct = ?, opp_ft_pct = ?,
+          wi_leader_pts_name = ?, wi_leader_pts_value = ?,
+          wi_leader_reb_name = ?, wi_leader_reb_value = ?,
+          wi_leader_ast_name = ?, wi_leader_ast_value = ?,
+          fetched_at = CURRENT_TIMESTAMP
+        WHERE espn_event_id = ?
+      `, [
+        updates.wi_fg, updates.wi_3pt, updates.wi_ft, updates.wi_rebounds, updates.wi_turnovers,
+        updates.wi_fg_pct, updates.wi_3pt_pct, updates.wi_ft_pct,
+        updates.opp_fg, updates.opp_3pt, updates.opp_ft, updates.opp_rebounds, updates.opp_turnovers,
+        updates.opp_fg_pct, updates.opp_3pt_pct, updates.opp_ft_pct,
+        updates.wi_leader_pts_name, updates.wi_leader_pts_value,
+        updates.wi_leader_reb_name, updates.wi_leader_reb_value,
+        updates.wi_leader_ast_name, updates.wi_leader_ast_value,
+        eventId,
+      ]);
+    }
+
+    const final = await db.get(
+      'SELECT * FROM vest_game_stats WHERE espn_event_id = ?',
+      [eventId]
+    );
+
+    res.json({ stats: final || { ...cached, ...updates }, source: 'espn' });
+  } catch (error) {
+    const timedOut = error?.name === 'AbortError';
+    console.error('Error fetching game stats:', error);
+    res.status(502).json({
+      error: timedOut ? 'ESPN summary timed out' : 'Failed to fetch game stats',
+    });
+  }
+});
+
 app.get('/api/vest/net-rankings', async (req, res) => {
   const netRankingsUrl = process.env.NET_RANKINGS_URL || DEFAULT_NET_RANKINGS_URL;
 
