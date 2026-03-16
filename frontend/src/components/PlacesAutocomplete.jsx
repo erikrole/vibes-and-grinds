@@ -21,7 +21,7 @@ async function parseApiError(response, fallbackMessage) {
   }
 }
 
-export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, disabled = false, inputClassName = 'input-field' }) {
+export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, onBlur, disabled = false, inputClassName = 'input-field' }) {
   const [suggestions, setSuggestions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
@@ -153,6 +153,7 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, d
         value={value}
         onChange={onChange}
         onFocus={() => setShowSuggestions(true)}
+        onBlur={(e) => { onBlur?.({ target: { name: 'coffee_shop_name', value: e.target.value } }); }}
         placeholder="Search for a coffee shop..."
         className={inputClassName}
         autoComplete="off"

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { vestGames as seedGames } from '../utils/vestTrackerData';
 import { fetchVestGames, syncVestGames, fetchVisits, fetchVestBlurb } from '../utils/api';
 import NetRankingsPage from './NetRankingsPage';
@@ -240,15 +240,20 @@ const countTrailingStreak = (results) => {
 const loadGames = () => {
   try {
     const raw = localStorage.getItem(VEST_GAMES_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) return { games: JSON.parse(raw), corrupted: false };
   } catch {
-    // ignore
+    return { games: seedGames, corrupted: true };
   }
-  return seedGames;
+  return { games: seedGames, corrupted: false };
 };
 
-export default function VestTrackerDashboard() {
-  const [games, setGames] = useState(loadGames);
+export default function VestTrackerDashboard({ showToast }) {
+  const corruptedRef = useRef(false);
+  const [games, setGames] = useState(() => {
+    const { games: loaded, corrupted } = loadGames();
+    if (corrupted) corruptedRef.current = true;
+    return loaded;
+  });
   const [netRankings, setNetRankings] = useState([]);
   const [netStatus, setNetStatus] = useState('idle');
   const [selectedOutfit, setSelectedOutfit] = useState('All outfits');
@@ -257,6 +262,13 @@ export default function VestTrackerDashboard() {
   const [addingOutfit, setAddingOutfit] = useState(false);
   const [syncReady, setSyncReady] = useState(false);
   const [vestTab, setVestTab] = useState('dashboard');
+
+  // Warn if localStorage data was corrupted on load
+  useEffect(() => {
+    if (corruptedRef.current && showToast) {
+      showToast('Local data was corrupted. Loaded default data.', 'error');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist any game changes to localStorage
   useEffect(() => {
@@ -1140,7 +1152,7 @@ export default function VestTrackerDashboard() {
         {netStatus !== 'loaded' && (
           <p className="text-xs text-stone-500 mt-3">
             {netStatus === 'missing-url' && 'Set NET_RANKINGS_URL on the API (or VITE_NET_RANKINGS_URL in frontend) to load live NET-based quadrant records. Big Ten standings worker payloads are supported.'}
-            {netStatus === 'loading' && 'Loading live NET rankings\u2026'}
+            {netStatus === 'loading' && <><span className="inline-block w-3 h-3 border-2 border-stone-400 border-t-transparent rounded-full animate-spin mr-1.5 align-middle" />Loading live NET rankings&hellip;</>}
             {netStatus === 'error' && 'Unable to load NET rankings. Quadrant stats are temporarily unavailable.'}
           </p>
         )}

@@ -56,11 +56,16 @@ export default function VisitsMap({ visits, onVisitClick }) {
 
   if (visitsWithCoords.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full bg-stone-100 dark:bg-stone-700 rounded-xl p-8">
-        <p className="text-stone-500 dark:text-stone-400 text-center">
+      <div className="flex flex-col items-center justify-center h-full bg-stone-100 dark:bg-stone-700 rounded-xl p-8">
+        <svg className="w-10 h-10 mb-3 text-stone-300 dark:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <p className="text-stone-500 dark:text-stone-400 text-center font-medium">
           No visits with location data yet.
-          <br />
-          <span className="text-sm">Add visits with Google Places autocomplete to see them on the map.</span>
+        </p>
+        <p className="text-stone-400 dark:text-stone-500 text-center text-sm mt-1">
+          Add visits with Google Places autocomplete to see them on the map.
         </p>
       </div>
     );
