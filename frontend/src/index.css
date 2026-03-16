@@ -203,6 +203,15 @@ input[type="number"] { -moz-appearance: textfield; }
   background: linear-gradient(135deg, #292524 0%, #1c1917 50%, #0c0a09 100%);
 }
 
+/* Year-in-Review slide animation */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* Custom focus rings for accessibility */
 button:focus-visible,
 a:focus-visible,

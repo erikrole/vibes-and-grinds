@@ -277,6 +277,113 @@ export function trendComparison(visits) {
   };
 }
 
+/**
+ * Coffee order profile — top orders, signature drink, diversity metrics.
+ */
+export function orderProfile(visits) {
+  const withOrders = visits.filter(v => v.coffee_order?.trim());
+  if (!withOrders.length) return null;
+
+  const groups = {};
+  const seenOrders = new Set();
+  let newOrderCount = 0;
+
+  const sorted = [...withOrders].sort((a, b) => new Date(a.date) - new Date(b.date));
+  for (const v of sorted) {
+    const order = v.coffee_order.trim();
+    if (!groups[order]) groups[order] = { order, count: 0, totalVibe: 0, totalCoffee: 0, totalComposite: 0 };
+    groups[order].count++;
+    groups[order].totalVibe += v.vibe_rating;
+    groups[order].totalCoffee += v.coffee_rating;
+    groups[order].totalComposite += v.composite_score;
+
+    if (!seenOrders.has(order)) {
+      newOrderCount++;
+      seenOrders.add(order);
+    }
+  }
+
+  const orderList = Object.values(groups)
+    .map(g => ({
+      order: g.order,
+      count: g.count,
+      avgVibe: +(g.totalVibe / g.count).toFixed(1),
+      avgCoffee: +(g.totalCoffee / g.count).toFixed(1),
+      avgComposite: +(g.totalComposite / g.count).toFixed(1),
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const topOrders = orderList.slice(0, 8);
+  const mostOrdered = orderList[0] || null;
+  const bestRated = [...orderList].filter(o => o.count >= 2).sort((a, b) => b.avgComposite - a.avgComposite)[0] || mostOrdered;
+  const signatureDrink = mostOrdered && mostOrdered.count >= 5 ? mostOrdered : null;
+  const uniqueOrders = seenOrders.size;
+  const diversityScore = +(uniqueOrders / withOrders.length * 100).toFixed(0);
+  const adventurousness = +(newOrderCount / withOrders.length * 100).toFixed(0);
+
+  return { topOrders, signatureDrink, mostOrdered, bestRated, uniqueOrders, diversityScore, adventurousness };
+}
+
+/**
+ * Repeat visit insights — shops visited 2+ times with trend and consistency.
+ */
+export function repeatShopInsights(visits) {
+  const shopMap = {};
+  for (const v of visits) {
+    const name = v.coffee_shop_name;
+    if (!shopMap[name]) shopMap[name] = [];
+    shopMap[name].push(v);
+  }
+
+  const repeatShops = Object.entries(shopMap)
+    .filter(([, vs]) => vs.length >= 2)
+    .map(([name, vs]) => {
+      const sorted = [...vs].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const composites = sorted.map(v => v.composite_score);
+      const avgComposite = +(composites.reduce((s, c) => s + c, 0) / composites.length).toFixed(1);
+      const avgVibe = +(sorted.reduce((s, v) => s + v.vibe_rating, 0) / sorted.length).toFixed(1);
+      const avgCoffee = +(sorted.reduce((s, v) => s + v.coffee_rating, 0) / sorted.length).toFixed(1);
+
+      // Linear regression slope for trend
+      const n = composites.length;
+      const xMean = (n - 1) / 2;
+      const yMean = composites.reduce((s, c) => s + c, 0) / n;
+      let num = 0, den = 0;
+      for (let i = 0; i < n; i++) {
+        num += (i - xMean) * (composites[i] - yMean);
+        den += (i - xMean) ** 2;
+      }
+      const slope = den ? num / den : 0;
+      const trend = slope > 0.3 ? 'improving' : slope < -0.3 ? 'declining' : 'stable';
+
+      // Consistency: 1 - normalized stddev (lower variance = higher score)
+      const variance = composites.reduce((s, c) => s + (c - yMean) ** 2, 0) / n;
+      const stddev = Math.sqrt(variance);
+      const consistency = Math.max(0, +(1 - stddev / 10).toFixed(2)); // max possible stddev ~10
+
+      const ratings = sorted.map(v => ({
+        date: v.date,
+        composite: v.composite_score,
+      }));
+
+      return { name, visitCount: n, avgVibe, avgCoffee, avgComposite, trend, slope: +slope.toFixed(2), consistency, ratings };
+    })
+    .sort((a, b) => b.visitCount - a.visitCount);
+
+  const repeatVisitCount = repeatShops.reduce((s, sh) => s + sh.visitCount, 0);
+  const loyaltyRate = visits.length ? +(repeatVisitCount / visits.length * 100).toFixed(0) : 0;
+
+  const improvingShops = repeatShops.filter(s => s.trend === 'improving').sort((a, b) => b.slope - a.slope);
+  const decliningShops = repeatShops.filter(s => s.trend === 'declining').sort((a, b) => a.slope - b.slope);
+
+  return {
+    shops: repeatShops,
+    loyaltyRate,
+    mostImproved: improvingShops[0] || null,
+    mostDeclining: decliningShops[0] || null,
+  };
+}
+
 function formatShortDate(dateStr) {
   const d = new Date(dateStr);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });

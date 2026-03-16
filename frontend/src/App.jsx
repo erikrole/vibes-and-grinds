@@ -7,11 +7,13 @@ const VisitDetailModal = lazy(() => import('./components/VisitDetailModal'));
 const VisitsMap = lazy(() => import('./components/VisitsMap'));
 const VestTrackerDashboard = lazy(() => import('./components/VestTrackerDashboard'));
 const InsightsPanel = lazy(() => import('./components/InsightsPanel'));
+const YearInReview = lazy(() => import('./components/YearInReview'));
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
 import { getRatingColor, getCompositeColor } from './utils/colors';
 import { getTodayDateString } from './utils/dates';
+import { computeBadges, detectNewBadges } from './utils/badges';
 import useDarkMode from './hooks/useDarkMode';
 import useLocalStorage from './hooks/useLocalStorage';
 import useToast from './hooks/useToast';
@@ -32,7 +34,9 @@ export default function App() {
   const [error, setError] = useState(null);
   const [showModeMenu, setShowModeMenu] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showYearReview, setShowYearReview] = useState(false);
   const searchRef = useRef(null);
+  const prevBadgesRef = useRef(null);
 
   const [darkMode, toggleDarkMode] = useDarkMode();
   const toastBag = useToast();
@@ -99,6 +103,19 @@ export default function App() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [appMode, viewingVisit, editingVisit, toggleDarkMode]);
+
+  // Badge unlock notifications
+  useEffect(() => {
+    if (!visits.length) return;
+    const newBadges = computeBadges(visits);
+    if (prevBadgesRef.current) {
+      const unlocked = detectNewBadges(prevBadgesRef.current, newBadges);
+      unlocked.forEach(b => {
+        toastBag.show(`${b.icon} Badge: ${b.name} (${b.tier})`);
+      });
+    }
+    prevBadgesRef.current = newBadges;
+  }, [visits]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadVisits = async () => {
     try {
@@ -394,6 +411,21 @@ export default function App() {
             <SnapshotCard label="Avg Total" value={`${avgComposite} / 20`} accentColor={getCompositeColor(Number(avgComposite))} index={3} />
           </section>
 
+          {visits.length >= 3 && (
+            <button
+              onClick={() => setShowYearReview(true)}
+              className="w-full mb-6 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-2xl p-4 sm:p-5 shadow-sm transition-all hover:shadow-md flex items-center justify-between group"
+            >
+              <div className="text-left">
+                <p className="text-xs font-semibold uppercase tracking-widest text-amber-100/70">Year in Review</p>
+                <p className="text-lg sm:text-xl font-bold mt-0.5">Your {new Date().getFullYear()} Coffee Wrapped</p>
+              </div>
+              <svg className="w-6 h-6 text-amber-100/70 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+
           {/* Visits / Insights tab toggle */}
           <div className="flex rounded-xl border border-stone-300 dark:border-stone-600 overflow-hidden mb-6">
             {[
@@ -673,6 +705,12 @@ export default function App() {
 
         {showShortcuts && (
           <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />
+        )}
+
+        {showYearReview && (
+          <Suspense fallback={null}>
+            <YearInReview visits={visits} onClose={() => setShowYearReview(false)} />
+          </Suspense>
         )}
 
       </div>

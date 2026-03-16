@@ -8,8 +8,10 @@ import {
   leaderboard, sportDayAnalysis,
   rollingAverage, monthlyFrequency, ratingDistribution,
   cityStats, dayOfWeekPatterns, trendComparison,
+  orderProfile, repeatShopInsights,
 } from '../utils/insights';
 import { getRatingColor, getCompositeColor } from '../utils/colors';
+import BadgesPanel from './BadgesPanel';
 
 // Chart colors that work in both light and dark mode
 const VIBE_COLOR = '#f59e0b';   // amber-500
@@ -47,6 +49,10 @@ export default function InsightsPanel({ visits }) {
   const dowPatterns = useMemo(() => dayOfWeekPatterns(visits), [visits]);
   const trend = useMemo(() => trendComparison(visits), [visits]);
 
+  // ── Order Profile & Repeat Visits ──
+  const orders = useMemo(() => orderProfile(visits), [visits]);
+  const repeats = useMemo(() => repeatShopInsights(visits), [visits]);
+
   if (!visits.length) {
     return (
       <div className="text-center py-16 text-stone-400 dark:text-stone-500">
@@ -64,6 +70,7 @@ export default function InsightsPanel({ visits }) {
     { id: 'leaders', label: 'Leaders' },
     { id: 'trends', label: 'Trends' },
     { id: 'dives', label: 'Deep Dives' },
+    { id: 'badges', label: 'Badges' },
   ];
 
   return (
@@ -118,7 +125,13 @@ export default function InsightsPanel({ visits }) {
           dowPatterns={dowPatterns}
           trend={trend}
           sportDay={sportDay}
+          orders={orders}
+          repeats={repeats}
         />
+      )}
+
+      {activeSection === 'badges' && (
+        <BadgesPanel visits={visits} />
       )}
     </div>
   );
@@ -305,9 +318,15 @@ function TrendsSection({ rolling, monthly, vibeDist, coffeeDist }) {
   );
 }
 
-function DeepDivesSection({ cities, dowPatterns, trend, sportDay }) {
+function DeepDivesSection({ cities, dowPatterns, trend, sportDay, orders, repeats }) {
   return (
     <div className="space-y-4">
+      {/* Order Profile */}
+      {orders && <OrderProfileSection orders={orders} />}
+
+      {/* Repeat Visits */}
+      {repeats && repeats.shops.length > 0 && <RepeatVisitsSection repeats={repeats} />}
+
       {/* Getting Pickier? */}
       {trend && (
         <SectionCard title="Getting Pickier?" subtitle="First half vs second half of visits">
@@ -388,6 +407,147 @@ function DeepDivesSection({ cities, dowPatterns, trend, sportDay }) {
         </SectionCard>
       )}
     </div>
+  );
+}
+
+// ── Order Profile & Repeat Visits ────────────────────────────────────────────
+
+function OrderProfileSection({ orders }) {
+  const maxCount = orders.topOrders[0]?.count || 1;
+
+  return (
+    <SectionCard title="Your Orders" subtitle="What you drink and how it rates">
+      {/* Top orders bar chart */}
+      <div className="space-y-2 mb-4">
+        {orders.topOrders.slice(0, 6).map(o => (
+          <div key={o.order} className="flex items-center gap-3">
+            <span className="text-sm text-stone-700 dark:text-stone-200 font-medium w-32 sm:w-40 truncate shrink-0">{o.order}</span>
+            <div className="flex-1 flex items-center gap-2">
+              <div className="flex-1 h-5 rounded-full bg-stone-100 dark:bg-stone-700 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${(o.count / maxCount) * 100}%`,
+                    backgroundColor: getCompositeColor(o.avgComposite),
+                  }}
+                />
+              </div>
+              <span className="text-xs text-stone-500 dark:text-stone-400 font-semibold shrink-0 w-6 text-right">{o.count}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Signature drink callout */}
+      {orders.signatureDrink && (
+        <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 p-3 mb-4">
+          <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wider mb-0.5">Signature Drink</p>
+          <p className="text-sm font-bold text-amber-900 dark:text-amber-100">{orders.signatureDrink.order} — ordered {orders.signatureDrink.count} times</p>
+        </div>
+      )}
+
+      {/* Metrics */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="rounded-xl bg-stone-50 dark:bg-stone-700/40 p-3">
+          <p className="text-[11px] uppercase tracking-wider text-stone-400 dark:text-stone-500 font-semibold">Unique Orders</p>
+          <p className="text-2xl font-black text-stone-900 dark:text-stone-100 mt-1">{orders.uniqueOrders}</p>
+        </div>
+        <div className="rounded-xl bg-stone-50 dark:bg-stone-700/40 p-3">
+          <p className="text-[11px] uppercase tracking-wider text-stone-400 dark:text-stone-500 font-semibold">Diversity</p>
+          <p className="text-2xl font-black text-stone-900 dark:text-stone-100 mt-1">{orders.diversityScore}%</p>
+          <p className="text-[10px] text-stone-400 dark:text-stone-500">unique / total</p>
+        </div>
+        {orders.bestRated && (
+          <div className="rounded-xl bg-stone-50 dark:bg-stone-700/40 p-3">
+            <p className="text-[11px] uppercase tracking-wider text-stone-400 dark:text-stone-500 font-semibold">Best Rated</p>
+            <p className="text-sm font-bold text-stone-900 dark:text-stone-100 mt-1 truncate">{orders.bestRated.order}</p>
+            <p className="text-[10px] text-stone-400 dark:text-stone-500">{orders.bestRated.avgComposite} avg composite</p>
+          </div>
+        )}
+      </div>
+    </SectionCard>
+  );
+}
+
+function RepeatVisitsSection({ repeats }) {
+  return (
+    <SectionCard title="Repeat Visits" subtitle={`${repeats.loyaltyRate}% of visits are to repeat shops`}>
+      <div className="space-y-3 mb-4">
+        {repeats.shops.slice(0, 8).map(shop => (
+          <div key={shop.name} className="rounded-xl border border-stone-200 dark:border-stone-600 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-sm font-bold text-stone-900 dark:text-stone-100 truncate">{shop.name}</span>
+                <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-stone-200 dark:bg-stone-600 text-stone-600 dark:text-stone-300">
+                  {shop.visitCount}x
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className={`text-xs font-semibold ${
+                  shop.trend === 'improving' ? 'text-emerald-600 dark:text-emerald-400' :
+                  shop.trend === 'declining' ? 'text-red-500 dark:text-red-400' :
+                  'text-stone-400 dark:text-stone-500'
+                }`}>
+                  {shop.trend === 'improving' ? '↑' : shop.trend === 'declining' ? '↓' : '→'}
+                </span>
+                <span className="text-sm font-black" style={{ color: getCompositeColor(shop.avgComposite) }}>
+                  {shop.avgComposite}
+                </span>
+              </div>
+            </div>
+
+            {/* Mini sparkline */}
+            <div className="flex items-end gap-0.5 h-6">
+              {shop.ratings.map((r, i) => (
+                <div
+                  key={i}
+                  className="flex-1 rounded-sm transition-all"
+                  style={{
+                    height: `${Math.max(4, (r.composite / 20) * 24)}px`,
+                    backgroundColor: getCompositeColor(r.composite),
+                    opacity: 0.7 + (i / shop.ratings.length) * 0.3,
+                  }}
+                  title={`${r.date}: ${r.composite}`}
+                />
+              ))}
+            </div>
+
+            {/* Consistency */}
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-[10px] text-stone-400 dark:text-stone-500">Consistency</span>
+              <div className="flex-1 h-1 rounded-full bg-stone-200 dark:bg-stone-600 overflow-hidden">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${shop.consistency * 100}%`,
+                    backgroundColor: shop.consistency > 0.8 ? '#22c55e' : shop.consistency > 0.5 ? '#f59e0b' : '#ef4444',
+                  }}
+                />
+              </div>
+              <span className="text-[10px] text-stone-400 dark:text-stone-500 font-semibold">{Math.round(shop.consistency * 100)}%</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Callouts */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {repeats.mostImproved && (
+          <div className="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 p-3">
+            <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider mb-0.5">Most Improved</p>
+            <p className="text-sm font-bold text-emerald-900 dark:text-emerald-100">{repeats.mostImproved.name}</p>
+            <p className="text-[10px] text-emerald-600 dark:text-emerald-400">+{repeats.mostImproved.slope} per visit</p>
+          </div>
+        )}
+        {repeats.mostDeclining && (
+          <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 p-3">
+            <p className="text-xs font-semibold text-red-700 dark:text-red-300 uppercase tracking-wider mb-0.5">Declining</p>
+            <p className="text-sm font-bold text-red-900 dark:text-red-100">{repeats.mostDeclining.name}</p>
+            <p className="text-[10px] text-red-600 dark:text-red-400">{repeats.mostDeclining.slope} per visit</p>
+          </div>
+        )}
+      </div>
+    </SectionCard>
   );
 }
 
