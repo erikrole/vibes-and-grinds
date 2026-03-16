@@ -68,6 +68,18 @@ export async function syncVestGames(games) {
   return response.json();
 }
 
+export async function fetchVestScores(season = '2025') {
+  const response = await fetch(`${API_URL}/api/vest/scores?season=${season}`);
+  if (!response.ok) throw new Error('Failed to fetch vest scores');
+  return response.json();
+}
+
+export async function fetchVestGameStats(eventId) {
+  const response = await fetch(`${API_URL}/api/vest/game-stats/${eventId}`);
+  if (!response.ok) throw new Error('Failed to fetch game stats');
+  return response.json();
+}
+
 export async function fetchVestBlurb(context) {
   const response = await fetch(`${API_URL}/api/vest/blurb`, {
     method: 'POST',

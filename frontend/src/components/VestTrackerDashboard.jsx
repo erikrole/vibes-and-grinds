@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { vestGames as seedGames } from '../utils/vestTrackerData';
 import { fetchVestGames, syncVestGames, fetchVisits, fetchVestBlurb } from '../utils/api';
 import NetRankingsPage from './NetRankingsPage';
+
+const GameStatsPanel = lazy(() => import('./GameStatsPanel'));
 
 const VEST_GAMES_KEY = 'vibes-and-grinds:vest-games';
 const NET_RANKINGS_URL = import.meta.env.VITE_NET_RANKINGS_URL || '';
@@ -875,12 +877,47 @@ export default function VestTrackerDashboard({ showToast }) {
     );
   }
 
+  if (vestTab === 'game-stats') {
+    return (
+      <main className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="mb-5 sm:mb-6 flex rounded-xl border border-stone-300 dark:border-stone-600 overflow-hidden">
+          {[
+            { value: 'dashboard', label: 'Dashboard' },
+            { value: 'game-stats', label: 'Game Stats' },
+            { value: 'rankings', label: 'NET Rankings' },
+          ].map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setVestTab(tab.value)}
+              className={`flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium transition-colors border-r last:border-r-0 border-stone-300 dark:border-stone-600 ${
+                vestTab === tab.value
+                  ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
+                  : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <Suspense fallback={
+          <div className="text-center py-12">
+            <span className="inline-block w-5 h-5 border-2 border-stone-400 border-t-transparent rounded-full animate-spin mr-2 align-middle" />
+            <span className="text-sm text-stone-500">Loading...</span>
+          </div>
+        }>
+          <GameStatsPanel games={games} />
+        </Suspense>
+      </main>
+    );
+  }
+
   return (
     <main className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       {/* Tab navigation */}
       <div className="mb-5 sm:mb-6 flex rounded-xl border border-stone-300 dark:border-stone-600 overflow-hidden">
         {[
           { value: 'dashboard', label: 'Dashboard' },
+          { value: 'game-stats', label: 'Game Stats' },
           { value: 'rankings', label: 'NET Rankings' },
         ].map((tab) => (
           <button
