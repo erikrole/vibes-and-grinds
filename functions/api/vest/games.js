@@ -45,14 +45,12 @@ export async function onRequestPut({ request, env }) {
       });
     }
 
-    await env.DB.prepare('DELETE FROM vest_games').run();
-
     const stmt = env.DB.prepare(`
       INSERT INTO vest_games (game_id, date, location, opponent, ranking, outfit, result, overtime, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     `);
 
-    const ops = [];
+    const ops = [env.DB.prepare('DELETE FROM vest_games')];
     for (const game of incoming) {
       const gameId = Number.parseInt(game.id, 10);
       const ranking = game.ranking === null || game.ranking === '' || game.ranking === undefined
@@ -75,9 +73,7 @@ export async function onRequestPut({ request, env }) {
       );
     }
 
-    if (ops.length > 0) {
-      await env.DB.batch(ops);
-    }
+    await env.DB.batch(ops);
 
     return new Response(JSON.stringify({ success: true, saved: incoming.length }), {
       headers: { 'Content-Type': 'application/json' },

@@ -104,7 +104,7 @@ export default function PhotoCropper({ imageUrl, onComplete, onCancel }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-[1003] overflow-y-auto">
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" />
 

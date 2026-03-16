@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Z-index hierarchy:
+ *   z-50      — FAB (floating action button)
+ *   z-[1001]  — Base modals (FormModal, VisitDetailModal)
+ *   z-[1002]  — Help overlays (KeyboardShortcutsModal)
+ *   z-[1003]  — Nested modals (PhotoCropper)
+ *   z-[1004]  — Toasts (always on top)
+ */
+
 @layer base {
   :root {
     --rating-low-r: 220;

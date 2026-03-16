@@ -169,19 +169,34 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
     setFormData({ ...formData, photo_url: '' });
   };
 
+  const validateField = (name, value) => {
+    if (name === 'date' && !value) return 'Date is required';
+    if (name === 'coffee_shop_name' && !value) return 'Coffee shop is required';
+    if (name === 'vibe_rating') {
+      if (!value) return 'Vibe rating is required';
+      const num = parseFloat(value);
+      if (isNaN(num) || num < 0 || num > 10) return 'Must be 0–10';
+    }
+    if (name === 'coffee_rating') {
+      if (!value) return 'Coffee rating is required';
+      const num = parseFloat(value);
+      if (isNaN(num) || num < 0 || num > 10) return 'Must be 0–10';
+    }
+    return '';
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    const error = validateField(name, value);
+    if (error) setErrors((prev) => ({ ...prev, [name]: error }));
+  };
+
   const validate = () => {
     const newErrors = {};
-    if (!formData.date) newErrors.date = 'Date is required';
-    if (!formData.coffee_shop_name) newErrors.coffee_shop_name = 'Coffee shop is required';
-    if (!formData.vibe_rating) newErrors.vibe_rating = 'Vibe rating is required';
-    if (!formData.coffee_rating) newErrors.coffee_rating = 'Coffee rating is required';
-
-    const vibeRating = parseFloat(formData.vibe_rating);
-    if (isNaN(vibeRating) || vibeRating < 0 || vibeRating > 10) newErrors.vibe_rating = 'Must be 0–10';
-
-    const coffeeRating = parseFloat(formData.coffee_rating);
-    if (isNaN(coffeeRating) || coffeeRating < 0 || coffeeRating > 10) newErrors.coffee_rating = 'Must be 0–10';
-
+    for (const name of ['date', 'coffee_shop_name', 'vibe_rating', 'coffee_rating']) {
+      const error = validateField(name, formData[name]);
+      if (error) newErrors[name] = error;
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -200,15 +215,15 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
         const { url } = await response.json();
         photoUrl = url;
       }
-      onSubmit({
+      await onSubmit({
         ...formData,
         vibe_rating: parseFloat(formData.vibe_rating),
         coffee_rating: parseFloat(formData.coffee_rating),
         photo_url: photoUrl,
       });
     } catch (error) {
-      console.error('Error uploading photo:', error);
-      setErrors({ ...errors, photo: 'Failed to upload photo. Please try again.' });
+      console.error('Error submitting visit:', error);
+      setErrors({ ...errors, photo: 'Failed to save visit. Please try again.' });
     } finally {
       setUploading(false);
     }
@@ -232,6 +247,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
                 name="date"
                 value={formData.date}
                 onChange={handleInputChange}
+                onBlur={handleBlur}
                 className={FI}
               />
             </Field>
@@ -273,6 +289,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
                 }));
                 if (errors.coffee_shop_name) setErrors((prev) => ({ ...prev, coffee_shop_name: '' }));
               }}
+              onBlur={handleBlur}
               onPlaceSelected={handlePlaceSelected}
               inputClassName={FI}
             />
@@ -331,6 +348,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
                   name="vibe_rating"
                   value={formData.vibe_rating}
                   onChange={handleInputChange}
+                  onBlur={handleBlur}
                   step="0.1"
                   min="0"
                   max="10"
@@ -349,6 +367,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
                   name="coffee_rating"
                   value={formData.coffee_rating}
                   onChange={handleInputChange}
+                  onBlur={handleBlur}
                   step="0.1"
                   min="0"
                   max="10"

@@ -8,6 +8,7 @@ const VisitsMap = lazy(() => import('./components/VisitsMap'));
 const VestTrackerDashboard = lazy(() => import('./components/VestTrackerDashboard'));
 const InsightsPanel = lazy(() => import('./components/InsightsPanel'));
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
+import ErrorBoundary from './components/ErrorBoundary';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
 import { getRatingColor, getCompositeColor } from './utils/colors';
 import { getTodayDateString } from './utils/dates';
@@ -69,6 +70,13 @@ export default function App() {
   // Consolidated keyboard shortcuts
   useEffect(() => {
     const onKeyDown = (e) => {
+      // Ctrl+K / Cmd+K: focus search (works even from input fields)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        if (appMode === APP_MODES.VIBES) searchRef.current?.focus();
+        return;
+      }
+
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
 
@@ -81,12 +89,16 @@ export default function App() {
         searchRef.current?.focus();
       } else if (e.key === '?') {
         setShowShortcuts((prev) => !prev);
+      } else if (e.key.toLowerCase() === 'n' && appMode === APP_MODES.VIBES && !viewingVisit && !editingVisit) {
+        setShowForm(true);
+      } else if (e.key.toLowerCase() === 'd') {
+        toggleDarkMode();
       }
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [appMode]);
+  }, [appMode, viewingVisit, editingVisit, toggleDarkMode]);
 
   const loadVisits = async () => {
     try {
@@ -286,6 +298,7 @@ export default function App() {
   }, [visits]);
 
   return (
+    <ErrorBoundary>
     <div className="min-h-screen bg-stone-50 dark:bg-stone-900 transition-colors duration-200">
         <header className="bg-white dark:bg-stone-800 border-b border-stone-200 dark:border-stone-700 transition-colors duration-200 safe-top">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
@@ -364,7 +377,7 @@ export default function App() {
 
         {appMode === APP_MODES.VEST ? (
           <Suspense fallback={<div className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading...</div>}>
-            <VestTrackerDashboard />
+            <VestTrackerDashboard showToast={toastBag.show} />
           </Suspense>
         ) : (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -633,7 +646,7 @@ export default function App() {
 
         {toastBag.toast && (
           <div
-            className={`fixed top-4 right-4 z-[70] ${toastBag.exiting ? 'animate-toast-out' : 'animate-toast-in'}`}
+            className={`fixed top-4 right-4 z-[1004] ${toastBag.exiting ? 'animate-toast-out' : 'animate-toast-in'}`}
             onClick={() => {
               if (toastBag.toast.onUndo) {
                 toastBag.toast.onUndo();
@@ -663,6 +676,7 @@ export default function App() {
         )}
 
       </div>
+    </ErrorBoundary>
   );
 }
 
