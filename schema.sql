@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS coffee_visits (
 
 CREATE INDEX IF NOT EXISTS idx_date ON coffee_visits(date DESC);
 CREATE INDEX IF NOT EXISTS idx_composite ON coffee_visits(composite_score DESC);
+CREATE INDEX IF NOT EXISTS idx_sport ON coffee_visits(sport);
+CREATE INDEX IF NOT EXISTS idx_shop_name ON coffee_visits(coffee_shop_name);
 
 
 CREATE TABLE IF NOT EXISTS vest_games (

@@ -161,7 +161,7 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, o
       />
 
       {showSuggestions && hasSuggestions && (
-        <ul className="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-stone-200 bg-white py-1 shadow-xl dark:border-stone-700 dark:bg-stone-900">
+        <ul className="absolute z-[1010] mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-stone-200 bg-white py-1 shadow-xl dark:border-stone-700 dark:bg-stone-900">
           {suggestions.map((suggestion) => (
             <li key={suggestion.placeId}>
               <button

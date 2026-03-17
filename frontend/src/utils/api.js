@@ -2,10 +2,15 @@
 // Use full URL in development
 const API_URL = import.meta.env.VITE_API_URL || '';
 
+async function parseErrorResponse(response, fallbackMessage) {
+  const errorData = await response.json().catch(() => ({}));
+  throw new Error(errorData.error || fallbackMessage);
+}
+
 export async function fetchVisits() {
   const response = await fetch(`${API_URL}/api/visits`);
   if (!response.ok) {
-    throw new Error('Failed to fetch visits');
+    await parseErrorResponse(response, 'Failed to fetch visits');
   }
   return response.json();
 }
@@ -19,9 +24,7 @@ export async function createVisit(visitData) {
     body: JSON.stringify(visitData),
   });
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    console.error('Create visit error:', errorData);
-    throw new Error(errorData.error || 'Failed to create visit');
+    await parseErrorResponse(response, 'Failed to create visit');
   }
   return response.json();
 }
@@ -35,7 +38,7 @@ export async function updateVisit(id, visitData) {
     body: JSON.stringify(visitData),
   });
   if (!response.ok) {
-    throw new Error('Failed to update visit');
+    await parseErrorResponse(response, 'Failed to update visit');
   }
   return response.json();
 }
@@ -45,7 +48,7 @@ export async function deleteVisit(id) {
     method: 'DELETE',
   });
   if (!response.ok) {
-    throw new Error('Failed to delete visit');
+    await parseErrorResponse(response, 'Failed to delete visit');
   }
 }
 

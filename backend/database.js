@@ -49,6 +49,7 @@ async function initDatabase() {
       outfit TEXT,
       result TEXT,
       overtime INTEGER DEFAULT 0,
+      espn_event_id TEXT,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 

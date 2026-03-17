@@ -6,6 +6,10 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 const DEFAULT_NET_RANKINGS_URL = 'https://www.warrennolan.com/basketball/2026/net';
+const WISCONSIN_TEAM_ID = '275';
+const ESPN_SCHEDULE_BASE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams';
+const ESPN_SUMMARY_BASE = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/summary';
+const FETCH_TIMEOUT_MS = 10000;
 
 // Middleware
 app.use(cors());
@@ -87,6 +91,35 @@ function parseNetRankingsHtml(html = '') {
   return rankings;
 }
 
+// ── Shared helpers ──
+
+/**
+ * Validate the required fields for a coffee visit.
+ * Returns an error string if invalid, or null if valid.
+ */
+function validateVisit({ date, coffee_shop_name, vibe_rating, coffee_rating }) {
+  if (!date || !coffee_shop_name || vibe_rating === undefined || coffee_rating === undefined) {
+    return 'Missing required fields';
+  }
+  if (vibe_rating < 0 || vibe_rating > 10 || coffee_rating < 0 || coffee_rating > 10) {
+    return 'Ratings must be between 0 and 10';
+  }
+  if (!(coffee_shop_name || '').trim()) {
+    return 'Coffee shop name cannot be empty';
+  }
+  return null;
+}
+
+/**
+ * Fetch a URL with an AbortController timeout.
+ * Returns the fetch Response. Caller is responsible for checking response.ok.
+ */
+function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 // Get all coffee visits
 app.get('/api/visits', async (req, res) => {
   try {
@@ -137,19 +170,12 @@ app.post('/api/visits', async (req, res) => {
       photo_url
     } = req.body;
 
-    // Validation
-    if (!date || !coffee_shop_name || vibe_rating === undefined || coffee_rating === undefined) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    const validationError = validateVisit({ date, coffee_shop_name, vibe_rating, coffee_rating });
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
     }
 
-    if (vibe_rating < 0 || vibe_rating > 10 || coffee_rating < 0 || coffee_rating > 10) {
-      return res.status(400).json({ error: 'Ratings must be between 0 and 10' });
-    }
-
-    const trimmedName = (coffee_shop_name || '').trim();
-    if (!trimmedName) {
-      return res.status(400).json({ error: 'Coffee shop name cannot be empty' });
-    }
+    const trimmedName = coffee_shop_name.trim();
 
     const result = await db.run(
       `INSERT INTO coffee_visits (
@@ -189,11 +215,6 @@ app.post('/api/visits', async (req, res) => {
 // Update a visit
 app.put('/api/visits/:id', async (req, res) => {
   try {
-    const existing = await db.get('SELECT id FROM coffee_visits WHERE id = ?', [req.params.id]);
-    if (!existing) {
-      return res.status(404).json({ error: 'Visit not found' });
-    }
-
     const {
       date,
       coffee_shop_name,
@@ -211,21 +232,14 @@ app.put('/api/visits/:id', async (req, res) => {
       photo_url
     } = req.body;
 
-    // Validation
-    if (!date || !coffee_shop_name || vibe_rating === undefined || coffee_rating === undefined) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    const validationError = validateVisit({ date, coffee_shop_name, vibe_rating, coffee_rating });
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
     }
 
-    if (vibe_rating < 0 || vibe_rating > 10 || coffee_rating < 0 || coffee_rating > 10) {
-      return res.status(400).json({ error: 'Ratings must be between 0 and 10' });
-    }
+    const trimmedName = coffee_shop_name.trim();
 
-    const trimmedName = (coffee_shop_name || '').trim();
-    if (!trimmedName) {
-      return res.status(400).json({ error: 'Coffee shop name cannot be empty' });
-    }
-
-    await db.run(
+    const updateResult = await db.run(
       `UPDATE coffee_visits SET
         date = ?, coffee_shop_name = ?, city = ?, opponent = ?, sport = ?, coffee_shop_address = ?,
         coffee_shop_place_id = ?, coffee_shop_lat = ?, coffee_shop_lng = ?,
@@ -250,6 +264,10 @@ app.put('/api/visits/:id', async (req, res) => {
       ]
     );
 
+    if (updateResult.changes === 0) {
+      return res.status(404).json({ error: 'Visit not found' });
+    }
+
     const updatedVisit = await db.get(
       'SELECT * FROM coffee_visits WHERE id = ?',
       [req.params.id]
@@ -265,12 +283,10 @@ app.put('/api/visits/:id', async (req, res) => {
 // Delete a visit
 app.delete('/api/visits/:id', async (req, res) => {
   try {
-    const existing = await db.get('SELECT id FROM coffee_visits WHERE id = ?', [req.params.id]);
-    if (!existing) {
+    const result = await db.run('DELETE FROM coffee_visits WHERE id = ?', [req.params.id]);
+    if (result.changes === 0) {
       return res.status(404).json({ error: 'Visit not found' });
     }
-
-    await db.run('DELETE FROM coffee_visits WHERE id = ?', [req.params.id]);
     res.status(204).send();
   } catch (error) {
     console.error('Error deleting visit:', error);
@@ -352,29 +368,36 @@ app.put('/api/vest/games', async (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     `);
 
-    for (const game of incoming) {
-      const gameId = Number.parseInt(game.id, 10);
-      const ranking = game.ranking === null || game.ranking === '' || game.ranking === undefined
-        ? null
-        : Number.parseInt(game.ranking, 10);
+    let skipped = 0;
+    try {
+      for (const game of incoming) {
+        const gameId = Number.parseInt(game.id, 10);
+        const ranking = game.ranking === null || game.ranking === '' || game.ranking === undefined
+          ? null
+          : Number.parseInt(game.ranking, 10);
 
-      if (!Number.isFinite(gameId) || !`${game.opponent || ''}`.trim()) continue;
+        if (!Number.isFinite(gameId) || !`${game.opponent || ''}`.trim()) {
+          skipped++;
+          continue;
+        }
 
-      await stmt.run([
-        gameId,
-        game.date || null,
-        game.location || 'vs',
-        `${game.opponent}`.trim(),
-        Number.isFinite(ranking) ? ranking : null,
-        `${game.outfit || ''}`.trim(),
-        game.result || '',
-        game.overtime ? 1 : 0,
-      ]);
+        await stmt.run([
+          gameId,
+          game.date || null,
+          game.location || 'vs',
+          `${game.opponent}`.trim(),
+          Number.isFinite(ranking) ? ranking : null,
+          `${game.outfit || ''}`.trim(),
+          game.result || '',
+          game.overtime ? 1 : 0,
+        ]);
+      }
+    } finally {
+      await stmt.finalize();
     }
 
-    await stmt.finalize();
     await db.exec('COMMIT');
-    return res.json({ success: true, saved: incoming.length });
+    return res.json({ success: true, saved: incoming.length - skipped, skipped });
   } catch (error) {
     await db.exec('ROLLBACK');
     console.error('Error syncing vest games:', error);
@@ -387,13 +410,9 @@ app.get('/api/vest/schedule', async (req, res) => {
   const teamId = '275'; // Wisconsin
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-    const response = await fetch(
-      `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/${teamId}/schedule?season=${season}`,
-      { signal: controller.signal }
+    const response = await fetchWithTimeout(
+      `${ESPN_SCHEDULE_BASE}/${teamId}/schedule?season=${season}`
     );
-    clearTimeout(timeout);
 
     if (!response.ok) {
       return res.status(502).json({ error: 'Failed to fetch schedule from ESPN', status: response.status });
@@ -444,9 +463,6 @@ app.get('/api/vest/schedule', async (req, res) => {
 
 
 // ── ESPN Scores: fetch schedule + scores and cache in vest_game_stats ──
-const WISCONSIN_TEAM_ID = '275';
-const ESPN_SCHEDULE_BASE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams';
-const ESPN_SUMMARY_BASE = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/summary';
 
 function parseFloat2(val) {
   const n = parseFloat(val);
@@ -517,26 +533,22 @@ function parseEspnEvent(event) {
 app.get('/api/vest/scores', async (req, res) => {
   const season = String(req.query.season || '2025');
 
-  try {
-    // First try to serve from cache
-    const cached = await db.all(`
-      SELECT s.*, v.outfit, v.game_id
-      FROM vest_game_stats s
-      LEFT JOIN vest_games v ON v.espn_event_id = s.espn_event_id
-      ORDER BY s.id ASC
-    `);
+  const cacheQuery = `
+    SELECT s.*, v.outfit, v.game_id
+    FROM vest_game_stats s
+    LEFT JOIN vest_games v ON v.espn_event_id = s.espn_event_id
+    ORDER BY s.id ASC
+  `;
 
+  try {
     // Fetch fresh from ESPN
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-    const response = await fetch(
-      `${ESPN_SCHEDULE_BASE}/${WISCONSIN_TEAM_ID}/schedule?season=${season}`,
-      { signal: controller.signal }
+    const response = await fetchWithTimeout(
+      `${ESPN_SCHEDULE_BASE}/${WISCONSIN_TEAM_ID}/schedule?season=${season}`
     );
-    clearTimeout(timeout);
 
     if (!response.ok) {
       // Return cached if ESPN is down
+      const cached = await db.all(cacheQuery);
       if (cached.length) return res.json({ games: cached, source: 'cache' });
       return res.status(502).json({ error: 'ESPN unavailable', status: response.status });
     }
@@ -618,7 +630,9 @@ app.get('/api/vest/scores', async (req, res) => {
         ORDER BY v.date ASC, s.id ASC
       `);
       if (cached.length) return res.json({ games: cached, source: 'cache' });
-    } catch { /* ignore */ }
+    } catch (cacheErr) {
+      console.error('Error reading score cache fallback:', cacheErr);
+    }
 
     res.status(502).json({
       error: timedOut ? 'ESPN request timed out' : 'Failed to fetch scores',
@@ -644,13 +658,9 @@ app.get('/api/vest/game-stats/:eventId', async (req, res) => {
     }
 
     // Fetch from ESPN summary
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-    const response = await fetch(
-      `${ESPN_SUMMARY_BASE}?event=${eventId}`,
-      { signal: controller.signal }
+    const response = await fetchWithTimeout(
+      `${ESPN_SUMMARY_BASE}?event=${eventId}`
     );
-    clearTimeout(timeout);
 
     if (!response.ok) {
       if (cached) return res.json({ stats: cached, source: 'cache-partial' });
@@ -746,15 +756,11 @@ app.get('/api/vest/net-rankings', async (req, res) => {
   const netRankingsUrl = process.env.NET_RANKINGS_URL || DEFAULT_NET_RANKINGS_URL;
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-    const response = await fetch(netRankingsUrl, {
-      signal: controller.signal,
+    const response = await fetchWithTimeout(netRankingsUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; vibes-and-grinds/1.0)',
       },
     });
-    clearTimeout(timeout);
 
     if (!response.ok) {
       return res.status(502).json({

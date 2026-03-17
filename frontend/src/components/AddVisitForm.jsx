@@ -387,7 +387,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
           {/* Photo */}
           {photoPreview ? (
             <>
-              <div className="relative aspect-video rounded-t-2xl overflow-hidden">
+              <div className="relative aspect-[4/5] rounded-t-2xl overflow-hidden">
                 <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                 <div className="absolute bottom-3 right-3 flex gap-2">
