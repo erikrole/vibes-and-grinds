@@ -24,12 +24,12 @@ function StatCard({ label, value, sub, highlight }) {
   );
 }
 
-function BarStat({ label, wi, opp, format = 'pct' }) {
+function BarStat({ label, wi, opp, format = 'pct', lowerIsBetter = false }) {
   const wiVal = typeof wi === 'number' ? wi : 0;
   const oppVal = typeof opp === 'number' ? opp : 0;
   const total = wiVal + oppVal || 1;
   const wiPct = (wiVal / total) * 100;
-  const wiWins = format === 'pct' ? wiVal > oppVal : wiVal > oppVal;
+  const wiWins = lowerIsBetter ? wiVal < oppVal : wiVal > oppVal;
 
   return (
     <div className="space-y-1">
@@ -255,7 +255,8 @@ export default function GameStatsPanel({ games: vestGames }) {
           setScoreStatus('loaded');
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('Failed to fetch ESPN scores:', err);
         if (!cancelled) setScoreStatus('error');
       });
 
@@ -282,7 +283,8 @@ export default function GameStatsPanel({ games: vestGames }) {
     try {
       const { stats } = await fetchVestGameStats(game.espn_event_id);
       setGameDetail(stats);
-    } catch {
+    } catch (err) {
+      console.error('Failed to fetch game stats:', err);
       setGameDetail(null);
     } finally {
       setDetailLoading(false);
@@ -301,7 +303,24 @@ export default function GameStatsPanel({ games: vestGames }) {
   if (scoreStatus === 'error') {
     return (
       <div className="text-center py-12">
-        <p className="text-sm text-stone-500 dark:text-stone-400">Unable to load ESPN scores. Try again later.</p>
+        <p className="text-sm text-stone-500 dark:text-stone-400 mb-3">Unable to load ESPN scores.</p>
+        <button
+          onClick={() => {
+            setScoreStatus('loading');
+            fetchVestScores()
+              .then((data) => {
+                setScoreData(Array.isArray(data.games) ? data.games : []);
+                setScoreStatus('loaded');
+              })
+              .catch((err) => {
+                console.error('Retry failed:', err);
+                setScoreStatus('error');
+              });
+          }}
+          className="px-4 py-2 text-sm font-medium rounded-lg bg-stone-800 dark:bg-stone-700 text-stone-50 hover:bg-stone-700 dark:hover:bg-stone-600 transition-colors"
+        >
+          Try Again
+        </button>
       </div>
     );
   }
@@ -501,6 +520,8 @@ export default function GameStatsPanel({ games: vestGames }) {
               <div key={game.espn_event_id || game.id}>
                 <button
                   onClick={() => handleExpandGame(game)}
+                  aria-expanded={isExpanded}
+                  aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${game.opponent} game details`}
                   className={`w-full text-left rounded-xl border px-4 py-3 transition-all hover:shadow-md ${
                     isWin
                       ? 'bg-emerald-50/50 border-emerald-200/80 dark:bg-emerald-900/10 dark:border-emerald-800/40'
@@ -561,7 +582,7 @@ export default function GameStatsPanel({ games: vestGames }) {
                         <BarStat label="3PT%" wi={gameDetail.wi_3pt_pct} opp={gameDetail.opp_3pt_pct} />
                         <BarStat label="FT%" wi={gameDetail.wi_ft_pct} opp={gameDetail.opp_ft_pct} />
                         <BarStat label="REB" wi={gameDetail.wi_rebounds} opp={gameDetail.opp_rebounds} format="num" />
-                        <BarStat label="TO" wi={gameDetail.opp_turnovers} opp={gameDetail.wi_turnovers} format="num" />
+                        <BarStat label="TO" wi={gameDetail.wi_turnovers} opp={gameDetail.opp_turnovers} format="num" lowerIsBetter />
 
                         {(gameDetail.wi_leader_pts_name || gameDetail.wi_leader_reb_name || gameDetail.wi_leader_ast_name) && (
                           <div className="border-t border-stone-200 dark:border-stone-600 pt-3 mt-3">

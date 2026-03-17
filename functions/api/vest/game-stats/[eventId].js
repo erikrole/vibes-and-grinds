@@ -132,7 +132,7 @@ export async function onRequestGet({ env, params }) {
 
     const final = cached
       ? await env.DB.prepare('SELECT * FROM vest_game_stats WHERE espn_event_id = ?').bind(eventId).first()
-      : { ...cached, ...updates };
+      : updates;
 
     return json({ stats: final, source: 'espn' });
   } catch (error) {
