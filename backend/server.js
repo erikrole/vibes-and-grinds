@@ -215,11 +215,6 @@ app.post('/api/visits', async (req, res) => {
 // Update a visit
 app.put('/api/visits/:id', async (req, res) => {
   try {
-    const existing = await db.get('SELECT id FROM coffee_visits WHERE id = ?', [req.params.id]);
-    if (!existing) {
-      return res.status(404).json({ error: 'Visit not found' });
-    }
-
     const {
       date,
       coffee_shop_name,
@@ -244,7 +239,7 @@ app.put('/api/visits/:id', async (req, res) => {
 
     const trimmedName = coffee_shop_name.trim();
 
-    await db.run(
+    const updateResult = await db.run(
       `UPDATE coffee_visits SET
         date = ?, coffee_shop_name = ?, city = ?, opponent = ?, sport = ?, coffee_shop_address = ?,
         coffee_shop_place_id = ?, coffee_shop_lat = ?, coffee_shop_lng = ?,
@@ -269,6 +264,10 @@ app.put('/api/visits/:id', async (req, res) => {
       ]
     );
 
+    if (updateResult.changes === 0) {
+      return res.status(404).json({ error: 'Visit not found' });
+    }
+
     const updatedVisit = await db.get(
       'SELECT * FROM coffee_visits WHERE id = ?',
       [req.params.id]
@@ -284,12 +283,10 @@ app.put('/api/visits/:id', async (req, res) => {
 // Delete a visit
 app.delete('/api/visits/:id', async (req, res) => {
   try {
-    const existing = await db.get('SELECT id FROM coffee_visits WHERE id = ?', [req.params.id]);
-    if (!existing) {
+    const result = await db.run('DELETE FROM coffee_visits WHERE id = ?', [req.params.id]);
+    if (result.changes === 0) {
       return res.status(404).json({ error: 'Visit not found' });
     }
-
-    await db.run('DELETE FROM coffee_visits WHERE id = ?', [req.params.id]);
     res.status(204).send();
   } catch (error) {
     console.error('Error deleting visit:', error);
@@ -371,29 +368,36 @@ app.put('/api/vest/games', async (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     `);
 
-    for (const game of incoming) {
-      const gameId = Number.parseInt(game.id, 10);
-      const ranking = game.ranking === null || game.ranking === '' || game.ranking === undefined
-        ? null
-        : Number.parseInt(game.ranking, 10);
+    let skipped = 0;
+    try {
+      for (const game of incoming) {
+        const gameId = Number.parseInt(game.id, 10);
+        const ranking = game.ranking === null || game.ranking === '' || game.ranking === undefined
+          ? null
+          : Number.parseInt(game.ranking, 10);
 
-      if (!Number.isFinite(gameId) || !`${game.opponent || ''}`.trim()) continue;
+        if (!Number.isFinite(gameId) || !`${game.opponent || ''}`.trim()) {
+          skipped++;
+          continue;
+        }
 
-      await stmt.run([
-        gameId,
-        game.date || null,
-        game.location || 'vs',
-        `${game.opponent}`.trim(),
-        Number.isFinite(ranking) ? ranking : null,
-        `${game.outfit || ''}`.trim(),
-        game.result || '',
-        game.overtime ? 1 : 0,
-      ]);
+        await stmt.run([
+          gameId,
+          game.date || null,
+          game.location || 'vs',
+          `${game.opponent}`.trim(),
+          Number.isFinite(ranking) ? ranking : null,
+          `${game.outfit || ''}`.trim(),
+          game.result || '',
+          game.overtime ? 1 : 0,
+        ]);
+      }
+    } finally {
+      await stmt.finalize();
     }
 
-    await stmt.finalize();
     await db.exec('COMMIT');
-    return res.json({ success: true, saved: incoming.length });
+    return res.json({ success: true, saved: incoming.length - skipped, skipped });
   } catch (error) {
     await db.exec('ROLLBACK');
     console.error('Error syncing vest games:', error);
@@ -529,15 +533,14 @@ function parseEspnEvent(event) {
 app.get('/api/vest/scores', async (req, res) => {
   const season = String(req.query.season || '2025');
 
-  try {
-    // First try to serve from cache
-    const cached = await db.all(`
-      SELECT s.*, v.outfit, v.game_id
-      FROM vest_game_stats s
-      LEFT JOIN vest_games v ON v.espn_event_id = s.espn_event_id
-      ORDER BY s.id ASC
-    `);
+  const cacheQuery = `
+    SELECT s.*, v.outfit, v.game_id
+    FROM vest_game_stats s
+    LEFT JOIN vest_games v ON v.espn_event_id = s.espn_event_id
+    ORDER BY s.id ASC
+  `;
 
+  try {
     // Fetch fresh from ESPN
     const response = await fetchWithTimeout(
       `${ESPN_SCHEDULE_BASE}/${WISCONSIN_TEAM_ID}/schedule?season=${season}`
@@ -545,6 +548,7 @@ app.get('/api/vest/scores', async (req, res) => {
 
     if (!response.ok) {
       // Return cached if ESPN is down
+      const cached = await db.all(cacheQuery);
       if (cached.length) return res.json({ games: cached, source: 'cache' });
       return res.status(502).json({ error: 'ESPN unavailable', status: response.status });
     }

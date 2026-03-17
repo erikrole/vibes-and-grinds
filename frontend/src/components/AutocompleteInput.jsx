@@ -88,7 +88,7 @@ export default function AutocompleteInput({
       {shouldShowSuggestions && (
         <div
           ref={dropdownRef}
-          className="absolute z-30 w-full mt-1.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl shadow-xl overflow-hidden max-h-56 overflow-y-auto"
+          className="absolute z-[1010] w-full mt-1.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl shadow-xl overflow-hidden max-h-56 overflow-y-auto"
         >
           {filteredSuggestions.map((suggestion) => (
             <button

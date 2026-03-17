@@ -77,7 +77,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
             <div className="relative ml-4 flex-shrink-0" ref={menuRef}>
               <button
                 onClick={(e) => { e.stopPropagation(); setShowMenu((prev) => !prev); }}
-                className="text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 p-2.5 -m-1.5 rounded-xl transition-colors"
+                className="text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 p-3 -m-2 rounded-xl transition-colors"
                 aria-label={`Open actions for ${visit.coffee_shop_name}`}
                 aria-expanded={showMenu}
                 aria-haspopup="menu"

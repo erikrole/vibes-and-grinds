@@ -632,7 +632,7 @@ export default function App() {
         </main>
         )}
 
-        <footer className="mt-20 py-8 text-center text-stone-400 dark:text-stone-400 text-sm tracking-wide border-t border-stone-200 dark:border-stone-600 transition-colors">
+        <footer className="mt-20 py-8 text-center text-stone-500 dark:text-stone-400 text-sm tracking-wide border-t border-stone-200 dark:border-stone-600 transition-colors">
           <p>{appMode === APP_MODES.VEST ? "Built for charting AJ's sideline fits and results" : "Built for logging AJ Harrison's road coffee orders"}</p>
         </footer>
 

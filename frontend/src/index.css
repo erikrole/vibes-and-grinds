@@ -111,7 +111,7 @@
   to   { opacity: 1; transform: scale(1)    translateY(0); }
 }
 .animate-modal-in {
-  animation: modal-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: modal-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Modal exit */
@@ -133,7 +133,7 @@
   to   { opacity: 0; }
 }
 .animate-backdrop-in {
-  animation: backdrop-in 0.2s ease-out forwards;
+  animation: backdrop-in 0.25s ease-out forwards;
 }
 .animate-backdrop-out {
   animation: backdrop-out 0.2s ease-in forwards;

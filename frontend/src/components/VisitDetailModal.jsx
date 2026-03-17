@@ -304,7 +304,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
             <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex items-center gap-1.5 z-10">
               <button
                 onClick={() => setShowMenu((prev) => !prev)}
-                className="bg-white/90 dark:bg-stone-800/90 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-50 p-2.5 rounded-full backdrop-blur-sm transition-all shadow-lg"
+                className="bg-white/90 dark:bg-stone-800/90 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-50 p-3 rounded-full backdrop-blur-sm transition-all shadow-lg"
                 aria-label="Visit actions"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -313,7 +313,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
               </button>
               <button
                 onClick={handleClose}
-                className="bg-white/90 dark:bg-stone-800/90 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-50 p-2.5 rounded-full backdrop-blur-sm transition-all shadow-lg"
+                className="bg-white/90 dark:bg-stone-800/90 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-50 p-3 rounded-full backdrop-blur-sm transition-all shadow-lg"
                 aria-label="Close"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
