@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { computeYearReview, getAvailableYears } from '../utils/yearReview';
+import { computeSeasonReview, getAvailableSeasons } from '../utils/yearReview';
 import { getCompositeColor, getRatingColor } from '../utils/colors';
 
 // Gradient palettes per slide for visual variety
@@ -17,9 +17,9 @@ const SLIDE_GRADIENTS = [
 ];
 
 export default function YearInReview({ visits, onClose }) {
-  const years = useMemo(() => getAvailableYears(visits), [visits]);
-  const [selectedYear, setSelectedYear] = useState(years[0] || new Date().getFullYear());
-  const review = useMemo(() => computeYearReview(visits, selectedYear), [visits, selectedYear]);
+  const seasons = useMemo(() => getAvailableSeasons(visits), [visits]);
+  const [selectedSeason, setSelectedSeason] = useState(seasons[0] || null);
+  const review = useMemo(() => selectedSeason ? computeSeasonReview(visits, selectedSeason) : null, [visits, selectedSeason]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -80,7 +80,7 @@ export default function YearInReview({ visits, onClose }) {
     return (
       <div className="fixed inset-0 z-[1005] bg-stone-900 flex items-center justify-center">
         <div className="text-center text-stone-400">
-          <p className="text-xl font-bold mb-2">No visits in {selectedYear}</p>
+          <p className="text-xl font-bold mb-2">{selectedSeason ? `No visits in the ${selectedSeason} season` : 'No season data available'}</p>
           <button onClick={onClose} className="text-sm underline">Close</button>
         </div>
       </div>
@@ -111,15 +111,15 @@ export default function YearInReview({ visits, onClose }) {
       {/* Close + year selector */}
       <div className="flex items-center justify-between px-4 pt-3 pb-2">
         <div className="flex gap-2">
-          {years.map(y => (
+          {seasons.map(s => (
             <button
-              key={y}
-              onClick={() => { setSelectedYear(y); setCurrentSlide(0); }}
+              key={s}
+              onClick={() => { setSelectedSeason(s); setCurrentSlide(0); }}
               className={`px-3 py-1 text-xs font-bold rounded-full transition-colors ${
-                y === selectedYear ? 'bg-white/20 text-white' : 'text-white/40 hover:text-white/60'
+                s === selectedSeason ? 'bg-white/20 text-white' : 'text-white/40 hover:text-white/60'
               }`}
             >
-              {y}
+              {s}
             </button>
           ))}
         </div>
@@ -168,8 +168,8 @@ export default function YearInReview({ visits, onClose }) {
 function TitleSlide({ review }) {
   return (
     <div className="text-center">
-      <p className="text-white/50 text-sm font-semibold uppercase tracking-widest mb-4">Your Year in Coffee</p>
-      <p className="text-8xl sm:text-9xl font-black text-white mb-6">{review.year}</p>
+      <p className="text-white/50 text-sm font-semibold uppercase tracking-widest mb-4">Your Season in Coffee</p>
+      <p className="text-6xl sm:text-8xl font-black text-white mb-6">{review.season}</p>
       <p className="text-2xl text-white/80 font-medium">
         {review.totalVisits} visit{review.totalVisits !== 1 ? 's' : ''} logged
       </p>
@@ -330,7 +330,7 @@ function ClosingSlide({ review }) {
     <div className="text-center">
       <p className="text-6xl mb-6">☕</p>
       <p className="text-3xl sm:text-4xl font-black text-white mb-4">
-        Here's to {review.year + 1}
+        Here's to next season
       </p>
       <p className="text-lg text-white/60 leading-relaxed">
         {review.totalVisits} visits, {review.uniqueShops} shops, countless vibes.

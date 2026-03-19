@@ -1,4 +1,5 @@
-// Computes all data needed for the Year-in-Review / Wrapped experience.
+// Computes all data needed for the Season-in-Review / Wrapped experience.
+// Seasons roll over July 1: the "2025-26" season = Jul 1 2025 – Jun 30 2026.
 
 import { computeBadges } from './badges';
 import { detectStreak } from './insights';
@@ -14,54 +15,83 @@ const PERSONAS = [
   { id: 'casual', name: 'The Casual', emoji: '😎', description: 'You take it easy — no rush, just enjoying the ride.', test: () => true }, // fallback
 ];
 
+// Month indices in season order (Jul through Jun)
+const SEASON_MONTH_INDICES = [6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5];
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 /**
- * Compute year-in-review data for a specific year.
+ * Map a date to its season label. Seasons roll over July 1.
+ * e.g. Sep 2025 → "2025-26", Feb 2026 → "2025-26"
  */
-export function computeYearReview(visits, year) {
-  const yearVisits = visits.filter(v => new Date(v.date).getFullYear() === year);
-  if (!yearVisits.length) return null;
+function getSeasonForDate(date) {
+  const d = new Date(date);
+  const month = d.getMonth(); // 0-indexed: 0=Jan, 6=Jul
+  const year = d.getFullYear();
+  const startYear = month >= 6 ? year : year - 1;
+  return `${startYear}-${String(startYear + 1).slice(-2)}`;
+}
 
-  const sorted = [...yearVisits].sort((a, b) => new Date(a.date) - new Date(b.date));
+/**
+ * Get the current season label.
+ */
+export function getCurrentSeason() {
+  return getSeasonForDate(new Date());
+}
 
-  const totalVisits = yearVisits.length;
-  const uniqueShops = new Set(yearVisits.map(v => v.coffee_shop_name)).size;
-  const uniqueCities = new Set(yearVisits.map(v => v.city).filter(Boolean)).size;
-  const uniqueOrders = new Set(yearVisits.map(v => v.coffee_order).filter(Boolean)).size;
+/**
+ * Get available seasons from visits, sorted most recent first.
+ */
+export function getAvailableSeasons(visits) {
+  const seasons = new Set(visits.map(v => getSeasonForDate(v.date)));
+  return [...seasons].sort((a, b) => b.localeCompare(a));
+}
 
-  const avgVibe = +(yearVisits.reduce((s, v) => s + v.vibe_rating, 0) / totalVisits).toFixed(1);
-  const avgCoffee = +(yearVisits.reduce((s, v) => s + v.coffee_rating, 0) / totalVisits).toFixed(1);
-  const avgComposite = +(yearVisits.reduce((s, v) => s + v.composite_score, 0) / totalVisits).toFixed(1);
+/**
+ * Compute season-in-review data for a specific season (e.g. "2025-26").
+ */
+export function computeSeasonReview(visits, season) {
+  const seasonVisits = visits.filter(v => getSeasonForDate(v.date) === season);
+  if (!seasonVisits.length) return null;
 
-  const bestVisit = yearVisits.reduce((a, b) => a.composite_score >= b.composite_score ? a : b);
-  const worstVisit = yearVisits.reduce((a, b) => a.composite_score <= b.composite_score ? a : b);
+  const sorted = [...seasonVisits].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const totalVisits = seasonVisits.length;
+  const uniqueShops = new Set(seasonVisits.map(v => v.coffee_shop_name)).size;
+  const uniqueCities = new Set(seasonVisits.map(v => v.city).filter(Boolean)).size;
+  const uniqueOrders = new Set(seasonVisits.map(v => v.coffee_order).filter(Boolean)).size;
+
+  const avgVibe = +(seasonVisits.reduce((s, v) => s + v.vibe_rating, 0) / totalVisits).toFixed(1);
+  const avgCoffee = +(seasonVisits.reduce((s, v) => s + v.coffee_rating, 0) / totalVisits).toFixed(1);
+  const avgComposite = +(seasonVisits.reduce((s, v) => s + v.composite_score, 0) / totalVisits).toFixed(1);
+
+  const bestVisit = seasonVisits.reduce((a, b) => a.composite_score >= b.composite_score ? a : b);
+  const worstVisit = seasonVisits.reduce((a, b) => a.composite_score <= b.composite_score ? a : b);
 
   // Most visited shop
   const shopCounts = {};
-  yearVisits.forEach(v => { shopCounts[v.coffee_shop_name] = (shopCounts[v.coffee_shop_name] || 0) + 1; });
+  seasonVisits.forEach(v => { shopCounts[v.coffee_shop_name] = (shopCounts[v.coffee_shop_name] || 0) + 1; });
   const [topShopName, topShopCount] = Object.entries(shopCounts).sort(([, a], [, b]) => b - a)[0];
   const mostVisitedShop = { name: topShopName, count: topShopCount };
 
   // Top order
   const orderCounts = {};
-  yearVisits.forEach(v => { if (v.coffee_order) orderCounts[v.coffee_order] = (orderCounts[v.coffee_order] || 0) + 1; });
+  seasonVisits.forEach(v => { if (v.coffee_order) orderCounts[v.coffee_order] = (orderCounts[v.coffee_order] || 0) + 1; });
   const topOrderEntry = Object.entries(orderCounts).sort(([, a], [, b]) => b - a)[0];
   const topOrder = topOrderEntry ? { order: topOrderEntry[0], count: topOrderEntry[1] } : null;
 
-  // Monthly breakdown
+  // Monthly breakdown (season order: Jul → Jun)
   const months = {};
-  for (let m = 0; m < 12; m++) months[m] = { count: 0, totalComposite: 0 };
-  yearVisits.forEach(v => {
+  for (const m of SEASON_MONTH_INDICES) months[m] = { count: 0, totalComposite: 0 };
+  seasonVisits.forEach(v => {
     const m = new Date(v.date).getMonth();
     months[m].count++;
     months[m].totalComposite += v.composite_score;
   });
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const monthlyBreakdown = Object.entries(months)
-    .map(([m, d]) => ({
-      month: monthNames[m],
-      count: d.count,
-      avgComposite: d.count ? +(d.totalComposite / d.count).toFixed(1) : 0,
-    }));
+  const monthlyBreakdown = SEASON_MONTH_INDICES.map(m => ({
+    month: MONTH_NAMES[m],
+    count: months[m].count,
+    avgComposite: months[m].count ? +(months[m].totalComposite / months[m].count).toFixed(1) : 0,
+  }));
 
   // Busiest month
   const busiestMonth = monthlyBreakdown.reduce((a, b) => a.count >= b.count ? a : b);
@@ -70,22 +100,22 @@ export function computeYearReview(visits, year) {
   const reviewData = { totalVisits, uniqueShops, uniqueCities, avgVibe, avgCoffee, avgComposite, mostVisitedShop };
   const persona = PERSONAS.find(p => p.test(reviewData));
 
-  // Longest streak this year
+  // Longest streak this season
   const vibeStreak = detectStreak(sorted, v => v.vibe_rating, 8);
   const longestStreak = Math.max(vibeStreak.current.length, vibeStreak.longest.length);
 
-  // Badges earned with this year's data
-  const yearBadges = computeBadges(yearVisits).filter(b => b.level > 0);
+  // Badges earned with this season's data
+  const seasonBadges = computeBadges(seasonVisits).filter(b => b.level > 0);
 
   // Total photos
-  const totalPhotos = yearVisits.filter(v => v.photo_url).length;
+  const totalPhotos = seasonVisits.filter(v => v.photo_url).length;
 
   // First and last visit
   const firstVisit = sorted[0];
   const lastVisit = sorted[sorted.length - 1];
 
   return {
-    year,
+    season,
     totalVisits,
     uniqueShops,
     uniqueCities,
@@ -101,17 +131,9 @@ export function computeYearReview(visits, year) {
     busiestMonth,
     persona,
     longestStreak,
-    yearBadges,
+    seasonBadges,
     totalPhotos,
     firstVisit,
     lastVisit,
   };
-}
-
-/**
- * Get available years from visits.
- */
-export function getAvailableYears(visits) {
-  const years = new Set(visits.map(v => new Date(v.date).getFullYear()));
-  return [...years].sort((a, b) => b - a);
 }

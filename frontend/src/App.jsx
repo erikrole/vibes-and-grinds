@@ -13,6 +13,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
 import { getRatingColor, getCompositeColor } from './utils/colors';
 import { getTodayDateString } from './utils/dates';
+import { getCurrentSeason } from './utils/yearReview';
 import { computeBadges, detectNewBadges } from './utils/badges';
 import useDarkMode from './hooks/useDarkMode';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -417,8 +418,8 @@ export default function App() {
               className="w-full mb-6 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-2xl p-4 sm:p-5 shadow-sm transition-all hover:shadow-md flex items-center justify-between group"
             >
               <div className="text-left">
-                <p className="text-xs font-semibold uppercase tracking-widest text-amber-100/70">Year in Review</p>
-                <p className="text-lg sm:text-xl font-bold mt-0.5">Your {new Date().getFullYear()} Coffee Wrapped</p>
+                <p className="text-xs font-semibold uppercase tracking-widest text-amber-100/70">Season in Review</p>
+                <p className="text-lg sm:text-xl font-bold mt-0.5">Your {getCurrentSeason()} Season Wrapped</p>
               </div>
               <svg className="w-6 h-6 text-amber-100/70 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
