@@ -71,6 +71,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
   );
 
   const [errors, setErrors] = useState({});
+  const [showCustomSport, setShowCustomSport] = useState(false);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(initialData?.photo_url || null);
   const [uploading, setUploading] = useState(false);
@@ -86,6 +87,13 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
     if ((name === 'vibe_rating' || name === 'coffee_rating') && value !== '' && !value.endsWith('.')) {
       const num = parseFloat(value);
       if (!isNaN(num)) value = String(Math.min(10, Math.max(0, num)));
+    }
+
+    if (name === 'sport' && value === '__custom__') {
+      setShowCustomSport(true);
+      setFormData({ ...formData, sport: '' });
+      if (errors.sport) setErrors({ ...errors, sport: '' });
+      return;
     }
 
     const updates = { [name]: value };
@@ -253,21 +261,37 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
             </Field>
             <Field label="Sport">
               <div className="relative">
-                <select
-                  name="sport"
-                  value={formData.sport}
-                  onChange={handleInputChange}
-                  className={FS}
-                >
-                  <option value="">None</option>
-                  <option value="Men's Basketball">Men's Basketball</option>
-                  <option value="Football">Football</option>
-                  <option value="Track & Field">Track & Field</option>
-                  <option value="Cross Country">Cross Country</option>
-                </select>
-                <svg className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-300 dark:text-stone-600 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                </svg>
+                {showCustomSport ? (
+                  <input
+                    name="sport"
+                    type="text"
+                    value={formData.sport}
+                    onChange={handleInputChange}
+                    placeholder="Enter sport name"
+                    className={FI}
+                    autoFocus
+                  />
+                ) : (
+                  <>
+                    <select
+                      name="sport"
+                      value={formData.sport}
+                      onChange={handleInputChange}
+                      className={FS}
+                    >
+                      <option value="">None</option>
+                      <option value="Men's Basketball">Men's Basketball</option>
+                      <option value="Men's Hockey">Men's Hockey</option>
+                      <option value="Football">Football</option>
+                      <option value="Track & Field">Track & Field</option>
+                      <option value="Cross Country">Cross Country</option>
+                      <option value="__custom__">+ Add Sport</option>
+                    </select>
+                    <svg className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-300 dark:text-stone-600 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </>
+                )}
               </div>
             </Field>
           </FieldRow>

@@ -567,6 +567,7 @@ export default function App() {
                 >
                   <option value="">All sports</option>
                   <option value="Men's Basketball">Men's Basketball</option>
+                  <option value="Men's Hockey">Men's Hockey</option>
                   <option value="Football">Football</option>
                   <option value="Track & Field">Track & Field</option>
                   <option value="Cross Country">Cross Country</option>
