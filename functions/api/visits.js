@@ -2,6 +2,7 @@
 // POST /api/visits - Create a new visit
 
 import { json, jsonError } from '../../shared/http.js';
+import { validateVisit } from '../../shared/visit-validation.js';
 
 export async function onRequestGet({ env }) {
   try {
@@ -36,12 +37,9 @@ export async function onRequestPost({ request, env }) {
       photo_url,
     } = body;
 
-    if (!date || !coffee_shop_name || vibe_rating === undefined || coffee_rating === undefined) {
-      return jsonError('Missing required fields', 400);
-    }
-
-    if (vibe_rating < 0 || vibe_rating > 10 || coffee_rating < 0 || coffee_rating > 10) {
-      return jsonError('Ratings must be between 0 and 10', 400);
+    const validationError = validateVisit(body);
+    if (validationError) {
+      return jsonError(validationError, 400);
     }
 
     const result = await env.DB.prepare(

@@ -3,6 +3,7 @@
 // DELETE /api/visits/:id - Delete a visit
 
 import { json, jsonError } from '../../../shared/http.js';
+import { validateVisit } from '../../../shared/visit-validation.js';
 
 export async function onRequestGet({ params, env }) {
   try {
@@ -41,8 +42,9 @@ export async function onRequestPut({ params, request, env }) {
       photo_url,
     } = body;
 
-    if (vibe_rating < 0 || vibe_rating > 10 || coffee_rating < 0 || coffee_rating > 10) {
-      return jsonError('Ratings must be between 0 and 10', 400);
+    const validationError = validateVisit(body);
+    if (validationError) {
+      return jsonError(validationError, 400);
     }
 
     await env.DB.prepare(
