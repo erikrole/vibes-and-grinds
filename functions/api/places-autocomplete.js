@@ -39,7 +39,7 @@ function buildPlacesErrorResponse(prefix, upstreamStatus, payloadText) {
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const input = (url.searchParams.get('input') || '').trim();
-  const apiKey = env.GOOGLE_MAPS_API_KEY || env.VITE_GOOGLE_MAPS_API_KEY;
+  const apiKey = env.GOOGLE_MAPS_API_KEY;
 
   if (!apiKey) {
     return new Response(JSON.stringify({ error: 'Google Places is not configured on the server.' }), {

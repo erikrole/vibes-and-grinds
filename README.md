@@ -196,7 +196,7 @@ npm run preview # Preview production build
 
 ### Frontend (Vercel)
 1. Connect your GitHub repo to Vercel
-2. Set environment variable: `GOOGLE_MAPS_API_KEY` (and optionally `VITE_GOOGLE_MAPS_API_KEY` for legacy frontend usage)
+2. Set environment variable: `GOOGLE_MAPS_API_KEY`
 3. Build command: `cd frontend && npm install && npm run build`
 4. Output directory: `frontend/dist`
 

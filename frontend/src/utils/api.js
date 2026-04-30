@@ -56,7 +56,9 @@ export async function deleteVisit(id) {
 
 export async function fetchVestGames() {
   const response = await fetch(`${API_URL}/api/vest/games`);
-  if (!response.ok) throw new Error('Failed to fetch vest games');
+  if (!response.ok) {
+    await parseErrorResponse(response, 'Failed to fetch vest games');
+  }
   return response.json();
 }
 
@@ -66,20 +68,25 @@ export async function syncVestGames(games) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ games }),
   });
-
-  if (!response.ok) throw new Error('Failed to sync vest games');
+  if (!response.ok) {
+    await parseErrorResponse(response, 'Failed to sync vest games');
+  }
   return response.json();
 }
 
 export async function fetchVestScores(season = '2025') {
   const response = await fetch(`${API_URL}/api/vest/scores?season=${season}`);
-  if (!response.ok) throw new Error('Failed to fetch vest scores');
+  if (!response.ok) {
+    await parseErrorResponse(response, 'Failed to fetch vest scores');
+  }
   return response.json();
 }
 
 export async function fetchVestGameStats(eventId) {
   const response = await fetch(`${API_URL}/api/vest/game-stats/${eventId}`);
-  if (!response.ok) throw new Error('Failed to fetch game stats');
+  if (!response.ok) {
+    await parseErrorResponse(response, 'Failed to fetch game stats');
+  }
   return response.json();
 }
 
@@ -89,6 +96,8 @@ export async function fetchVestBlurb(context) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ context }),
   });
-  if (!response.ok) throw new Error('Failed to generate blurb');
+  if (!response.ok) {
+    await parseErrorResponse(response, 'Failed to generate blurb');
+  }
   return response.json();
 }
