@@ -1,7 +1,9 @@
 // /api/vest/game-stats/:eventId — Fetch ESPN game summary (box score + leaders)
 
-const TEAM_ID = '275';
-const ESPN_SUMMARY = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/summary';
+import { WISCONSIN_TEAM_ID, ESPN_SUMMARY_BASE } from '../../../../shared/ncaa.js';
+
+const TEAM_ID = WISCONSIN_TEAM_ID;
+const ESPN_SUMMARY = ESPN_SUMMARY_BASE;
 
 function extractStat(stats, label) {
   if (!Array.isArray(stats)) return null;

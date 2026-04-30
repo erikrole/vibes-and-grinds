@@ -1,7 +1,9 @@
 // /api/vest/scores — Fetch ESPN schedule+scores, cache in D1, return merged with vest data
 
-const TEAM_ID = '275';
-const ESPN_URL = `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/${TEAM_ID}/schedule`;
+import { WISCONSIN_TEAM_ID, ESPN_SCHEDULE_BASE } from '../../../shared/ncaa.js';
+
+const TEAM_ID = WISCONSIN_TEAM_ID;
+const ESPN_URL = `${ESPN_SCHEDULE_BASE}/${TEAM_ID}/schedule`;
 
 function parseEspnEvent(event) {
   const competition = event.competitions?.[0] || {};
