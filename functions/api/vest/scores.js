@@ -1,6 +1,7 @@
 // /api/vest/scores — Fetch ESPN schedule+scores, cache in D1, return merged with vest data
 
 import { WISCONSIN_TEAM_ID, ESPN_SCHEDULE_BASE } from '../../../shared/ncaa.js';
+import { json, jsonError } from '../../../shared/http.js';
 
 const TEAM_ID = WISCONSIN_TEAM_ID;
 const ESPN_URL = `${ESPN_SCHEDULE_BASE}/${TEAM_ID}/schedule`;
@@ -91,7 +92,7 @@ export async function onRequestGet({ env, request }) {
     if (!espnRes.ok) {
       const cached = await getCached(env.DB);
       if (cached.length) return json({ games: cached, source: 'cache' });
-      return json({ error: 'ESPN unavailable' }, 502);
+      return jsonError('ESPN unavailable', 502);
     }
 
     const data = await espnRes.json();
@@ -152,7 +153,7 @@ export async function onRequestGet({ env, request }) {
       const cached = await getCached(env.DB);
       if (cached.length) return json({ games: cached, source: 'cache' });
     } catch { /* ignore */ }
-    return json({ error: 'Failed to fetch scores' }, 502);
+    return jsonError('Failed to fetch scores', 502);
   }
 }
 
@@ -164,11 +165,4 @@ async function getCached(db) {
     ORDER BY v.date ASC, s.id ASC
   `).all();
   return results;
-}
-
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
 }

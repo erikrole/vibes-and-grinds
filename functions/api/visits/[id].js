@@ -2,6 +2,8 @@
 // PUT /api/visits/:id - Update a visit
 // DELETE /api/visits/:id - Delete a visit
 
+import { json, jsonError } from '../../../shared/http.js';
+
 export async function onRequestGet({ params, env }) {
   try {
     const { results } = await env.DB.prepare(
@@ -9,21 +11,13 @@ export async function onRequestGet({ params, env }) {
     ).bind(params.id).all();
 
     if (results.length === 0) {
-      return new Response(JSON.stringify({ error: 'Visit not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError('Visit not found', 404);
     }
 
-    return new Response(JSON.stringify(results[0]), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return json(results[0]);
   } catch (error) {
     console.error('Error fetching visit:', error);
-    return new Response(JSON.stringify({ error: 'Failed to fetch visit' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Failed to fetch visit');
   }
 }
 
@@ -47,15 +41,10 @@ export async function onRequestPut({ params, request, env }) {
       photo_url,
     } = body;
 
-    // Validation
     if (vibe_rating < 0 || vibe_rating > 10 || coffee_rating < 0 || coffee_rating > 10) {
-      return new Response(JSON.stringify({ error: 'Ratings must be between 0 and 10' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError('Ratings must be between 0 and 10', 400);
     }
 
-    // Update the visit (convert undefined to null for optional fields)
     await env.DB.prepare(
       `UPDATE coffee_visits SET
         date = ?, coffee_shop_name = ?, city = ?, opponent = ?, sport = ?, coffee_shop_address = ?,
@@ -80,33 +69,23 @@ export async function onRequestPut({ params, request, env }) {
       params.id
     ).run();
 
-    // Fetch updated visit
     const { results } = await env.DB.prepare(
       'SELECT * FROM coffee_visits WHERE id = ?'
     ).bind(params.id).all();
 
-    return new Response(JSON.stringify(results[0]), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return json(results[0]);
   } catch (error) {
     console.error('Error updating visit:', error);
-    return new Response(JSON.stringify({ error: 'Failed to update visit' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Failed to update visit');
   }
 }
 
 export async function onRequestDelete({ params, env }) {
   try {
     await env.DB.prepare('DELETE FROM coffee_visits WHERE id = ?').bind(params.id).run();
-
     return new Response(null, { status: 204 });
   } catch (error) {
     console.error('Error deleting visit:', error);
-    return new Response(JSON.stringify({ error: 'Failed to delete visit' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Failed to delete visit');
   }
 }

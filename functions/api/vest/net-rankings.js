@@ -7,6 +7,7 @@
 //   3. WarrenNolan /net page (fallback)
 
 import { fetchAllNetRankings } from '../../../shared/ncaa.js';
+import { json, jsonError } from '../../../shared/http.js';
 
 export async function onRequestGet({ env }) {
   try {
@@ -15,24 +16,13 @@ export async function onRequestGet({ env }) {
     });
 
     if (rankings.length === 0) {
-      return new Response(JSON.stringify({
-        error: 'All NET ranking sources failed.',
-        details: errors,
-      }), {
-        status: 502,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError('All NET ranking sources failed.', 502, { details: errors });
     }
 
-    return new Response(JSON.stringify({ rankings, netRankings, source }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return json({ rankings, netRankings, source });
   } catch (error) {
     console.error('Error fetching vest NET rankings:', error);
-    return new Response(JSON.stringify({ error: 'Failed to fetch vest NET rankings' }), {
-      status: 502,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Failed to fetch vest NET rankings', 502);
   }
 }
 

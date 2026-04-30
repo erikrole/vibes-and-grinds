@@ -1,5 +1,7 @@
 // /api/vest/games - synced vest tracker storage in D1
 
+import { json, jsonError } from '../../../shared/http.js';
+
 function mapRowToGame(row) {
   return {
     id: row.game_id,
@@ -21,15 +23,10 @@ export async function onRequestGet({ env }) {
       ORDER BY date ASC, game_id ASC
     `).all();
 
-    return new Response(JSON.stringify({ games: results.map(mapRowToGame) }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return json({ games: results.map(mapRowToGame) });
   } catch (error) {
     console.error('Error fetching vest games:', error);
-    return new Response(JSON.stringify({ error: 'Failed to fetch vest games' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Failed to fetch vest games');
   }
 }
 
@@ -39,10 +36,7 @@ export async function onRequestPut({ request, env }) {
     const incoming = Array.isArray(payload?.games) ? payload.games : null;
 
     if (!incoming) {
-      return new Response(JSON.stringify({ error: 'Invalid payload. Expected { games: [] }' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError('Invalid payload. Expected { games: [] }', 400);
     }
 
     const stmt = env.DB.prepare(`
@@ -75,14 +69,9 @@ export async function onRequestPut({ request, env }) {
 
     await env.DB.batch(ops);
 
-    return new Response(JSON.stringify({ success: true, saved: incoming.length }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return json({ success: true, saved: incoming.length });
   } catch (error) {
     console.error('Error syncing vest games:', error);
-    return new Response(JSON.stringify({ error: 'Failed to sync vest games' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Failed to sync vest games');
   }
 }
