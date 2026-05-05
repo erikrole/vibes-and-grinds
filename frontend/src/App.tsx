@@ -140,7 +140,7 @@ export default function App() {
       const data = await fetchVisits();
       setVisits(data);
     } catch (err) {
-      setError('Failed to load visits. Make sure the backend server is running.');
+      setError('Failed to load visits.');
       console.error(err);
     } finally {
       setLoading(false);
