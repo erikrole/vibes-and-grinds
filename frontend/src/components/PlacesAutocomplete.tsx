@@ -3,7 +3,38 @@ import { apiFetch } from '../utils/api';
 
 const MIN_QUERY_LENGTH = 2;
 
-async function parseApiError(response, fallbackMessage) {
+interface ParsedApiError {
+  message: string;
+  details: string;
+  googleStatus: string;
+  upstreamStatus: string;
+}
+
+interface DebugInfo {
+  details: string;
+  googleStatus: string;
+  upstreamStatus: string;
+}
+
+interface PlaceSuggestion {
+  placeId: string;
+  mainText: string;
+  secondaryText?: string;
+}
+
+interface Props {
+  onPlaceSelected?: (place: any) => void;
+  value: string;
+  // onChange/onBlur use `any` because parents pass generic input/select/textarea
+  // handlers, while this component synthesizes minimal { target: { name, value } }
+  // objects. The dual contract isn't expressible without contravariance pain.
+  onChange: (event: any) => void;
+  onBlur?: (event: any) => void;
+  disabled?: boolean;
+  inputClassName?: string;
+}
+
+async function parseApiError(response: Response, fallbackMessage: string): Promise<ParsedApiError> {
   try {
     const data = await response.json();
     return {
@@ -22,18 +53,18 @@ async function parseApiError(response, fallbackMessage) {
   }
 }
 
-export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, onBlur, disabled = false, inputClassName = 'input-field' }) {
-  const [suggestions, setSuggestions] = useState([]);
+export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, onBlur, disabled = false, inputClassName = 'input-field' }: Props) {
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [debugInfo, setDebugInfo] = useState(null);
-  const containerRef = useRef(null);
+  const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const requestIdRef = useRef(0);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
       }
     };
@@ -85,7 +116,7 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, o
         if (!nextSuggestions.length) {
           setStatusMessage('No Google Places matches yet. Keep typing or enter manually.');
         }
-      } catch (error) {
+      } catch (error: any) {
         if (error.name === 'AbortError') return;
         if (requestIdRef.current !== currentRequestId) return;
 
@@ -119,7 +150,7 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, o
     return statusMessage;
   }, [isLoading, statusMessage]);
 
-  const handleSelectSuggestion = async (suggestion) => {
+  const handleSelectSuggestion = async (suggestion: PlaceSuggestion) => {
     setShowSuggestions(false);
     setStatusMessage('');
     setDebugInfo(null);
@@ -137,7 +168,7 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, o
 
       const data = await response.json();
       onPlaceSelected?.(data.place);
-    } catch (error) {
+    } catch (error: any) {
       setStatusMessage(error.message || 'Could not load full place details. You can still save manually.');
       setDebugInfo({
         details: error.details || '',

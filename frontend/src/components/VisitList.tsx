@@ -1,6 +1,18 @@
 import VisitCard from './VisitCard';
+import type { Visit } from '../types';
 
-export default function VisitList({ visits, loading, onEdit, onDelete, onViewDetails, onAddVisit, hasActiveFilters = false, shopVisitCounts = {} }) {
+interface Props {
+  visits: Visit[];
+  loading: boolean;
+  onEdit: (visit: Visit) => void;
+  onDelete: (id: number) => void;
+  onViewDetails: (visit: Visit) => void;
+  onAddVisit?: () => void;
+  hasActiveFilters?: boolean;
+  shopVisitCounts?: Record<string, number>;
+}
+
+export default function VisitList({ visits, loading, onEdit, onDelete, onViewDetails, onAddVisit, hasActiveFilters = false, shopVisitCounts = {} }: Props) {
   if (loading) {
     return (
       <div className="space-y-4">

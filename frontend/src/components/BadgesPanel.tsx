@@ -1,15 +1,20 @@
 import { useMemo, useState } from 'react';
 import { computeBadges, badgesByCategory, TIERS, TIER_COLORS } from '../utils/badges';
+import type { Visit } from '../types';
 
-export default function BadgesPanel({ visits }) {
+interface Props {
+  visits: Visit[];
+}
+
+export default function BadgesPanel({ visits }: Props) {
   const badges = useMemo(() => computeBadges(visits), [visits]);
   const grouped = useMemo(() => badgesByCategory(badges), [badges]);
-  const earned = badges.filter(b => b.level > 0).length;
+  const earned = badges.filter((b: any) => b.level > 0).length;
   const total = badges.length;
 
-  const [expandedCategory, setExpandedCategory] = useState(null);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
-  const toggleCategory = (cat) => {
+  const toggleCategory = (cat: string) => {
     setExpandedCategory(prev => prev === cat ? null : cat);
   };
 
@@ -47,8 +52,8 @@ export default function BadgesPanel({ visits }) {
       </div>
 
       {/* Badge categories */}
-      {Object.entries(grouped).map(([category, categoryBadges]) => {
-        const categoryEarned = categoryBadges.filter(b => b.level > 0).length;
+      {Object.entries(grouped).map(([category, categoryBadges]: [string, any[]]) => {
+        const categoryEarned = categoryBadges.filter((b: any) => b.level > 0).length;
         const isExpanded = expandedCategory === category || expandedCategory === null;
 
         return (
@@ -73,7 +78,7 @@ export default function BadgesPanel({ visits }) {
 
             {isExpanded && (
               <div className="px-4 sm:px-5 pb-4 sm:pb-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {categoryBadges.map(badge => (
+                {categoryBadges.map((badge: any) => (
                   <BadgeCard key={badge.id} badge={badge} />
                 ))}
               </div>
@@ -85,7 +90,7 @@ export default function BadgesPanel({ visits }) {
   );
 }
 
-function BadgeCard({ badge }) {
+function BadgeCard({ badge }: { badge: any }) {
   const isEarned = badge.level > 0;
 
   return (

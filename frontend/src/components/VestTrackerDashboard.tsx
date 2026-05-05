@@ -252,7 +252,7 @@ const loadGames = () => {
 };
 
 interface Props {
-  showToast?: (message: string, kind?: string) => void;
+  showToast?: (message: string, kind?: any, options?: any) => void;
 }
 
 export default function VestTrackerDashboard({ showToast }: Props) {

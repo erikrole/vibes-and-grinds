@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { computeSeasonReview, getAvailableSeasons } from '../utils/yearReview';
 import { getCompositeColor, getRatingColor } from '../utils/colors';
+import type { Visit } from '../types';
+
+interface Props {
+  visits: Visit[];
+  onClose: () => void;
+}
+
+type Slide = { id: string; type: string };
 
 // Gradient palettes per slide for visual variety
 const SLIDE_GRADIENTS = [
@@ -16,16 +24,16 @@ const SLIDE_GRADIENTS = [
   ['#1c1917', '#0c0a09'], // dark stone
 ];
 
-export default function YearInReview({ visits, onClose }) {
-  const seasons = useMemo(() => getAvailableSeasons(visits), [visits]);
-  const [selectedSeason, setSelectedSeason] = useState(seasons[0] || null);
-  const review = useMemo(() => selectedSeason ? computeSeasonReview(visits, selectedSeason) : null, [visits, selectedSeason]);
+export default function YearInReview({ visits, onClose }: Props) {
+  const seasons = useMemo<string[]>(() => getAvailableSeasons(visits), [visits]);
+  const [selectedSeason, setSelectedSeason] = useState<string | null>(seasons[0] || null);
+  const review = useMemo<any>(() => selectedSeason ? computeSeasonReview(visits, selectedSeason) : null, [visits, selectedSeason]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  const slides = useMemo(() => {
+  const slides = useMemo<Slide[]>(() => {
     if (!review) return [];
-    const s = [];
+    const s: Slide[] = [];
 
     // 1. Title
     s.push({ id: 'title', type: 'title' });
@@ -67,7 +75,7 @@ export default function YearInReview({ visits, onClose }) {
 
   // Keyboard navigation
   useEffect(() => {
-    const onKey = (e) => {
+    const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
       if (e.key === 'ArrowRight' || e.key === ' ') goNext();
       if (e.key === 'ArrowLeft') goPrev();
@@ -165,7 +173,7 @@ export default function YearInReview({ visits, onClose }) {
 
 // ── Slide Components ─────────────────────────────────────────────────────────
 
-function TitleSlide({ review }) {
+function TitleSlide({ review }: { review: any }) {
   return (
     <div className="text-center">
       <p className="text-white/50 text-sm font-semibold uppercase tracking-widest mb-4">Your Season in Coffee</p>
@@ -178,7 +186,7 @@ function TitleSlide({ review }) {
   );
 }
 
-function TopShopSlide({ review }) {
+function TopShopSlide({ review }: { review: any }) {
   return (
     <div className="text-center">
       <p className="text-white/50 text-sm font-semibold uppercase tracking-widest mb-6">Your Top Spot</p>
@@ -194,7 +202,7 @@ function TopShopSlide({ review }) {
   );
 }
 
-function BestMomentSlide({ review }) {
+function BestMomentSlide({ review }: { review: any }) {
   const v = review.bestVisit;
   return (
     <div className="text-center">
@@ -218,7 +226,7 @@ function BestMomentSlide({ review }) {
   );
 }
 
-function PersonaSlide({ review }) {
+function PersonaSlide({ review }: { review: any }) {
   return (
     <div className="text-center">
       <p className="text-white/50 text-sm font-semibold uppercase tracking-widest mb-6">Your Coffee Persona</p>
@@ -229,7 +237,7 @@ function PersonaSlide({ review }) {
   );
 }
 
-function NumbersSlide({ review }) {
+function NumbersSlide({ review }: { review: any }) {
   const stats = [
     { label: 'Visits', value: review.totalVisits },
     { label: 'Shops', value: review.uniqueShops },
@@ -255,7 +263,7 @@ function NumbersSlide({ review }) {
   );
 }
 
-function RatingsSlide({ review }) {
+function RatingsSlide({ review }: { review: any }) {
   return (
     <div className="text-center">
       <p className="text-white/50 text-sm font-semibold uppercase tracking-widest mb-8">Your Ratings</p>
@@ -276,14 +284,14 @@ function RatingsSlide({ review }) {
   );
 }
 
-function MonthlySlide({ review }) {
-  const maxCount = Math.max(...review.monthlyBreakdown.map(m => m.count), 1);
+function MonthlySlide({ review }: { review: any }) {
+  const maxCount = Math.max(...review.monthlyBreakdown.map((m: any) => m.count), 1);
 
   return (
     <div>
       <p className="text-white/50 text-sm font-semibold uppercase tracking-widest mb-6 text-center">Month by Month</p>
       <div className="flex items-end gap-1.5 h-40 justify-center">
-        {review.monthlyBreakdown.map(m => (
+        {review.monthlyBreakdown.map((m: any) => (
           <div key={m.month} className="flex flex-col items-center gap-1 flex-1 max-w-[60px]">
             {m.count > 0 && (
               <span className="text-white text-[10px] font-bold">{m.count}</span>
@@ -308,7 +316,7 @@ function MonthlySlide({ review }) {
   );
 }
 
-function TopOrderSlide({ review }) {
+function TopOrderSlide({ review }: { review: any }) {
   return (
     <div className="text-center">
       <p className="text-white/50 text-sm font-semibold uppercase tracking-widest mb-6">Your Go-To Order</p>
@@ -325,7 +333,7 @@ function TopOrderSlide({ review }) {
   );
 }
 
-function ClosingSlide({ review }) {
+function ClosingSlide({ review }: { review: any }) {
   return (
     <div className="text-center">
       <p className="text-6xl mb-6">☕</p>
@@ -342,7 +350,15 @@ function ClosingSlide({ review }) {
 
 // ── Shared ───────────────────────────────────────────────────────────────────
 
-function RatingBubble({ label, value, color, large = false, isComposite = false }) {
+interface RatingBubbleProps {
+  label: string;
+  value: number;
+  color: string;
+  large?: boolean;
+  isComposite?: boolean;
+}
+
+function RatingBubble({ label, value, color, large = false, isComposite = false }: RatingBubbleProps) {
   const size = large ? 'w-20 h-20' : 'w-14 h-14';
   const textSize = large ? 'text-2xl' : 'text-lg';
 

@@ -1,15 +1,21 @@
-import { useState, useRef, useEffect } from 'react';
-import ReactCrop from 'react-image-crop';
+import { useState, useRef } from 'react';
+import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 
-export default function PhotoCropper({ imageUrl, onComplete, onCancel }) {
-  const [crop, setCrop] = useState();
-  const [completedCrop, setCompletedCrop] = useState(null);
-  const imgRef = useRef(null);
-  const canvasRef = useRef(null);
+interface Props {
+  imageUrl: string;
+  onComplete: (file: File) => void;
+  onCancel: () => void;
+}
+
+export default function PhotoCropper({ imageUrl, onComplete, onCancel }: Props) {
+  const [crop, setCrop] = useState<Crop | undefined>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop | Crop | null>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Initialize crop when image loads
-  const onImageLoad = (e) => {
+  const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;
     const aspect = 4 / 5;
 
@@ -29,7 +35,7 @@ export default function PhotoCropper({ imageUrl, onComplete, onCancel }) {
     const x = (width - cropWidth) / 2;
     const y = (height - cropHeight) / 2;
 
-    const initialCrop = {
+    const initialCrop: Crop = {
       unit: 'px',
       x,
       y,
@@ -50,7 +56,7 @@ export default function PhotoCropper({ imageUrl, onComplete, onCancel }) {
     }
 
     // Use completedCrop if available, otherwise fall back to current crop
-    const cropToUse = completedCrop || crop;
+    const cropToUse: any = completedCrop || crop;
 
     if (!cropToUse || !cropToUse.width || !cropToUse.height) {
       console.error('Invalid crop dimensions');
@@ -60,6 +66,10 @@ export default function PhotoCropper({ imageUrl, onComplete, onCancel }) {
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
     const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      return;
+    }
 
     // Calculate pixel crop dimensions
     const pixelCrop = {

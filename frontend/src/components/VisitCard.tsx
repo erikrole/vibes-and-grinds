@@ -2,11 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import RatingBadge from './RatingBadge';
 import CompositeBadge from './CompositeBadge';
 import { formatDate, getRelativeLabel } from '../utils/dates';
+import type { Visit } from '../types';
 
-export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visitCount = 1 }) {
+interface Props {
+  visit: Visit;
+  onEdit: (visit: Visit) => void;
+  onDelete: (id: number) => void;
+  onViewDetails: (visit: Visit) => void;
+  visitCount?: number;
+}
+
+export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visitCount = 1 }: Props) {
   const [showMenu, setShowMenu] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const menuRef = useRef(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const formattedDate = formatDate(visit.date);
   const relativeLabel = getRelativeLabel(visit.date);
@@ -17,14 +26,14 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
       return;
     }
 
-    const onKeyDown = (event) => {
+    const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setShowMenu(false);
       }
     };
 
-    const onPointerDown = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
+    const onPointerDown = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowMenu(false);
       }
     };

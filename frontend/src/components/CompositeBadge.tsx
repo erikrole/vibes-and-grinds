@@ -1,6 +1,10 @@
 import { getCompositeColor, getTextColor } from '../utils/colors';
 
-export default function CompositeBadge({ composite }) {
+interface Props {
+  composite: number;
+}
+
+export default function CompositeBadge({ composite }: Props) {
   const bgColor = getCompositeColor(composite);
   const textColor = getTextColor(bgColor);
 

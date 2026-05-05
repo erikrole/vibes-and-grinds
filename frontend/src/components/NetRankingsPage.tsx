@@ -1,23 +1,32 @@
 import { useMemo, useState } from 'react';
+import type { NetRankingEntry } from '../types';
 
-const SORT_FIELDS = {
+type SortField = 'rank' | 'team' | 'record';
+
+const SORT_FIELDS: { RANK: SortField; TEAM: SortField; RECORD: SortField } = {
   RANK: 'rank',
   TEAM: 'team',
   RECORD: 'record',
 };
 
-const parseRecord = (record) => {
+interface Props {
+  netRankings: NetRankingEntry[];
+  netStatus: 'loading' | 'loaded' | 'error' | string;
+  onBack: () => void;
+}
+
+const parseRecord = (record: string | null | undefined) => {
   if (!record) return { wins: -1, losses: -1 };
   const [w, l] = record.split('-').map(Number);
   return { wins: Number.isFinite(w) ? w : -1, losses: Number.isFinite(l) ? l : -1 };
 };
 
-export default function NetRankingsPage({ netRankings, netStatus, onBack }) {
+export default function NetRankingsPage({ netRankings, netStatus, onBack }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortField, setSortField] = useState(SORT_FIELDS.RANK);
+  const [sortField, setSortField] = useState<SortField>(SORT_FIELDS.RANK);
   const [sortAsc, setSortAsc] = useState(true);
 
-  const handleSort = (field) => {
+  const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortAsc((prev) => !prev);
     } else {
@@ -51,7 +60,7 @@ export default function NetRankingsPage({ netRankings, netStatus, onBack }) {
     return arr;
   }, [filtered, sortField, sortAsc]);
 
-  const sortIcon = (field) => {
+  const sortIcon = (field: SortField) => {
     if (sortField !== field) return '';
     return sortAsc ? ' \u25B2' : ' \u25BC';
   };

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import type { Visit } from '../types';
 
 const coffeeIcon = L.divIcon({
   html: '<span style="font-size:32px;line-height:1;display:block;">☕</span>',
@@ -10,7 +11,12 @@ const coffeeIcon = L.divIcon({
   iconAnchor: [18, 36],
 });
 
-export default function VisitsMap({ visits, onVisitClick }) {
+interface Props {
+  visits: Visit[];
+  onVisitClick?: (visit: Visit) => void;
+}
+
+export default function VisitsMap({ visits, onVisitClick }: Props) {
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
 
   useEffect(() => {
@@ -33,7 +39,7 @@ export default function VisitsMap({ visits, onVisitClick }) {
     );
   }, [visits]);
 
-  const center = useMemo(() => {
+  const center = useMemo<[number, number]>(() => {
     if (visitsWithCoords.length === 0) return [39.8283, -98.5795];
     const avgLat = visitsWithCoords.reduce((sum, v) => sum + Number(v.coffee_shop_lat), 0) / visitsWithCoords.length;
     const avgLng = visitsWithCoords.reduce((sum, v) => sum + Number(v.coffee_shop_lng), 0) / visitsWithCoords.length;

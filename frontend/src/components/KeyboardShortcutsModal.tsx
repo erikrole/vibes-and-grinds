@@ -1,20 +1,24 @@
 import { useEffect, useRef } from 'react';
 
 const SHORTCUTS = [
-  { keys: ['/', '\u2318K'], label: 'Focus search' },
+  { keys: ['/', '⌘K'], label: 'Focus search' },
   { keys: ['N'], label: 'New visit' },
   { keys: ['V'], label: 'Toggle Vibes / Vest mode' },
   { keys: ['D'], label: 'Toggle dark mode' },
-  { keys: ['\u2190', '\u2192'], label: 'Navigate between visits (in detail view)' },
+  { keys: ['←', '→'], label: 'Navigate between visits (in detail view)' },
   { keys: ['Esc'], label: 'Close modal or menu' },
   { keys: ['?'], label: 'Show this help' },
 ];
 
-export default function KeyboardShortcutsModal({ onClose }) {
-  const ref = useRef(null);
+interface Props {
+  onClose: () => void;
+}
+
+export default function KeyboardShortcutsModal({ onClose }: Props) {
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const onKey = (e) => {
+    const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' || e.key === '?') {
         e.preventDefault();
         onClose();

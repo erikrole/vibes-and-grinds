@@ -1,8 +1,14 @@
-import { useCallback, useRef, useState } from 'react';
+import { ReactNode, useCallback, useRef, useState } from 'react';
 import useFocusTrap from '../hooks/useFocusTrap';
 
-export default function FormModal({ title, onClose, children }) {
-  const modalRef = useRef(null);
+interface Props {
+  title: string;
+  onClose: () => void;
+  children?: ReactNode;
+}
+
+export default function FormModal({ title, onClose, children }: Props) {
+  const modalRef = useRef<HTMLDivElement>(null);
   const [closing, setClosing] = useState(false);
 
   const handleClose = useCallback(() => {

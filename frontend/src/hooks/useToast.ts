@@ -6,6 +6,7 @@ export interface Toast {
   message: string;
   type: ToastType;
   duration?: number;
+  onUndo?: () => void | Promise<void>;
 }
 
 interface UseToastResult {

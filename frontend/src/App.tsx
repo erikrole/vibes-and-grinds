@@ -2,12 +2,6 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import AddVisitForm from './components/AddVisitForm';
 import VisitList from './components/VisitList';
 import FormModal from './components/FormModal';
-
-const VisitDetailModal = lazy(() => import('./components/VisitDetailModal'));
-const VisitsMap = lazy(() => import('./components/VisitsMap'));
-const VestTrackerDashboard = lazy(() => import('./components/VestTrackerDashboard'));
-const InsightsPanel = lazy(() => import('./components/InsightsPanel'));
-const YearInReview = lazy(() => import('./components/YearInReview'));
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
@@ -18,55 +12,75 @@ import { computeBadges, detectNewBadges } from './utils/badges';
 import useDarkMode from './hooks/useDarkMode';
 import useLocalStorage from './hooks/useLocalStorage';
 import useToast from './hooks/useToast';
+import type { Visit, VisitInput } from './types';
+
+const VisitDetailModal = lazy(() => import('./components/VisitDetailModal'));
+const VisitsMap = lazy(() => import('./components/VisitsMap'));
+const VestTrackerDashboard = lazy(() => import('./components/VestTrackerDashboard'));
+const InsightsPanel = lazy(() => import('./components/InsightsPanel'));
+const YearInReview = lazy(() => import('./components/YearInReview'));
 
 const APP_MODES = {
   VIBES: 'vibes',
   VEST: 'vest',
-};
+} as const;
+
+type AppMode = (typeof APP_MODES)[keyof typeof APP_MODES];
+type SortBy = 'date' | 'vibe' | 'coffee' | 'composite';
+type ViewTab = 'visits' | 'insights';
+
+interface ViewPrefs {
+  sortBy: SortBy;
+  sortAsc?: boolean;
+  searchQuery: string;
+  sportFilter: string;
+  appMode: AppMode;
+  viewTab?: ViewTab;
+}
 
 const isVestDomain = window.location.hostname.startsWith('vests.');
 
 export default function App() {
-  const [visits, setVisits] = useState([]);
+  const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingVisit, setEditingVisit] = useState(null);
-  const [viewingVisit, setViewingVisit] = useState(null);
-  const [error, setError] = useState(null);
+  const [editingVisit, setEditingVisit] = useState<Visit | null>(null);
+  const [viewingVisit, setViewingVisit] = useState<Visit | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [showModeMenu, setShowModeMenu] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showYearReview, setShowYearReview] = useState(false);
-  const searchRef = useRef(null);
-  const prevBadgesRef = useRef(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const prevBadgesRef = useRef<any[] | null>(null);
 
   const [darkMode, toggleDarkMode] = useDarkMode();
   const toastBag = useToast();
-  const [viewPrefs, setViewPrefs] = useLocalStorage('vibes-and-grinds:view-preferences', {
+  const [viewPrefs, setViewPrefs] = useLocalStorage<ViewPrefs>('vibes-and-grinds:view-preferences', {
     sortBy: 'date',
     searchQuery: '',
     sportFilter: '',
     appMode: isVestDomain ? APP_MODES.VEST : APP_MODES.VIBES,
   });
 
-  // Destructure persisted preferences into local aliases for convenience
-  const sortBy = viewPrefs.sortBy || 'date';
+  const sortBy: SortBy = viewPrefs.sortBy || 'date';
   const sortAsc = viewPrefs.sortAsc || false;
   const searchQuery = viewPrefs.searchQuery || '';
   const sportFilter = viewPrefs.sportFilter || '';
-  const appMode = isVestDomain
+  const appMode: AppMode = isVestDomain
     ? APP_MODES.VEST
     : (viewPrefs.appMode || APP_MODES.VIBES);
 
-  const viewTab = viewPrefs.viewTab || 'visits'; // 'visits' | 'insights'
+  const viewTab: ViewTab = viewPrefs.viewTab || 'visits';
 
-  const setSortBy = (v) => setViewPrefs((p) => {
+  const setSortBy = (v: SortBy) => setViewPrefs((p) => {
     if (p.sortBy === v) return { ...p, sortAsc: !p.sortAsc };
     return { ...p, sortBy: v, sortAsc: false };
   });
-  const setSearchQuery = (v) => setViewPrefs((p) => ({ ...p, searchQuery: v }));
-  const setSportFilter = (v) => setViewPrefs((p) => ({ ...p, sportFilter: v }));
-  const setViewTab = (v) => setViewPrefs((p) => ({ ...p, viewTab: v }));
-  const setAppMode = (v) => setViewPrefs((p) => ({ ...p, appMode: typeof v === 'function' ? v(p.appMode) : v }));
+  const setSearchQuery = (v: string) => setViewPrefs((p) => ({ ...p, searchQuery: v }));
+  const setSportFilter = (v: string) => setViewPrefs((p) => ({ ...p, sportFilter: v }));
+  const setViewTab = (v: ViewTab) => setViewPrefs((p) => ({ ...p, viewTab: v }));
+  const setAppMode = (v: AppMode | ((prev: AppMode) => AppMode)) =>
+    setViewPrefs((p) => ({ ...p, appMode: typeof v === 'function' ? v(p.appMode) : v }));
 
   useEffect(() => {
     loadVisits();
@@ -74,7 +88,7 @@ export default function App() {
 
   // Consolidated keyboard shortcuts
   useEffect(() => {
-    const onKeyDown = (e) => {
+    const onKeyDown = (e: KeyboardEvent) => {
       // Ctrl+K / Cmd+K: focus search (works even from input fields)
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
@@ -82,8 +96,9 @@ export default function App() {
         return;
       }
 
-      const tag = e.target.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) return;
 
       if (e.key.toLowerCase() === 'v') {
         setAppMode((prev) => {
@@ -132,7 +147,7 @@ export default function App() {
     }
   };
 
-  const handleAddVisit = async (visitData) => {
+  const handleAddVisit = async (visitData: VisitInput) => {
     try {
       setError(null);
       const newVisit = await createVisit(visitData);
@@ -147,13 +162,14 @@ export default function App() {
     }
   };
 
-  const handleEditVisit = (visit) => {
+  const handleEditVisit = (visit: Visit) => {
     setEditingVisit(visit);
     setShowForm(false);
     setViewingVisit(null);
   };
 
-  const handleUpdateVisit = async (visitData) => {
+  const handleUpdateVisit = async (visitData: VisitInput) => {
+    if (!editingVisit) return;
     try {
       setError(null);
       const updatedVisit = await updateVisit(editingVisit.id, visitData);
@@ -168,7 +184,7 @@ export default function App() {
     }
   };
 
-  const handleDeleteVisit = async (id) => {
+  const handleDeleteVisit = async (id: number) => {
     const deletedVisit = visits.find((v) => v.id === id);
     try {
       setError(null);
@@ -178,8 +194,10 @@ export default function App() {
       toastBag.show('Visit deleted. Click to undo.', 'success', {
         duration: 5000,
         onUndo: async () => {
+          if (!deletedVisit) return;
           try {
-            const restored = await createVisit(deletedVisit);
+            const { id: _id, composite_score: _cs, created_at: _ca, ...payload } = deletedVisit;
+            const restored = await createVisit(payload);
             setVisits((prev) => [restored, ...prev]);
             toastBag.show('Visit restored.');
           } catch {
@@ -194,10 +212,10 @@ export default function App() {
     }
   };
 
-  const handleDuplicateVisit = async (visit) => {
-    const duplicatedPayload = {
-      ...visit,
-      id: undefined,
+  const handleDuplicateVisit = async (visit: Visit) => {
+    const { id: _id, composite_score: _cs, created_at: _ca, ...rest } = visit;
+    const duplicatedPayload: VisitInput = {
+      ...rest,
       date: getTodayDateString(),
       notes: visit.notes ? `${visit.notes} (dup)` : '',
     };
@@ -215,7 +233,7 @@ export default function App() {
     }
   };
 
-  const handleModalUpdateVisit = async (id, updatedData) => {
+  const handleModalUpdateVisit = async (id: number, updatedData: VisitInput) => {
     try {
       setError(null);
       const updatedVisit = await updateVisit(id, updatedData);
@@ -256,7 +274,7 @@ export default function App() {
     const dir = sortAsc ? 1 : -1;
     switch (sortBy) {
       case 'date':
-        return dir * (new Date(b.date) - new Date(a.date));
+        return dir * (new Date(b.date).getTime() - new Date(a.date).getTime());
       case 'vibe':
         return dir * (b.vibe_rating - a.vibe_rating);
       case 'coffee':
@@ -292,7 +310,7 @@ export default function App() {
   );
 
   const topCoffeeOrders = useMemo(() => {
-    const orderCounts = {};
+    const orderCounts: Record<string, number> = {};
     visits.forEach((visit) => {
       const order = visit.coffee_order?.trim();
       if (order) {
@@ -307,7 +325,7 @@ export default function App() {
   }, [visits]);
 
   const shopVisitCounts = useMemo(() => {
-    const counts = {};
+    const counts: Record<string, number> = {};
     visits.forEach((v) => {
       const key = v.coffee_shop_name.toLowerCase();
       counts[key] = (counts[key] || 0) + 1;
@@ -429,10 +447,10 @@ export default function App() {
 
           {/* Visits / Insights tab toggle */}
           <div className="flex rounded-xl border border-stone-300 dark:border-stone-600 overflow-hidden mb-6">
-            {[
+            {([
               { id: 'visits', label: 'Visits' },
               { id: 'insights', label: 'Insights' },
-            ].map(tab => (
+            ] as const).map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setViewTab(tab.id)}
@@ -534,12 +552,12 @@ export default function App() {
 
               <div className="flex flex-col sm:flex-row gap-3 sm:items-center lg:justify-end">
                 <div className="flex rounded-xl border border-stone-300 dark:border-stone-600 overflow-hidden">
-                  {[
+                  {([
                     { value: 'date', label: 'Date' },
                     { value: 'vibe', label: 'Vibe' },
                     { value: 'coffee', label: 'Coffee' },
                     { value: 'composite', label: 'Total' },
-                  ].map((option) => (
+                  ] as const).map((option) => (
                     <button
                       key={option.value}
                       onClick={() => setSortBy(option.value)}
@@ -682,8 +700,9 @@ export default function App() {
           <div
             className={`fixed top-4 right-4 z-[1004] ${toastBag.exiting ? 'animate-toast-out' : 'animate-toast-in'}`}
             onClick={() => {
-              if (toastBag.toast.onUndo) {
-                toastBag.toast.onUndo();
+              const t = toastBag.toast;
+              if (t?.onUndo) {
+                t.onUndo();
                 toastBag.dismiss();
               } else {
                 toastBag.dismiss();
@@ -720,7 +739,14 @@ export default function App() {
   );
 }
 
-function SnapshotCard({ label, value, accentColor, index = 0 }) {
+interface SnapshotCardProps {
+  label: string;
+  value: string | number;
+  accentColor?: string;
+  index?: number;
+}
+
+function SnapshotCard({ label, value, accentColor, index = 0 }: SnapshotCardProps) {
   return (
     <div className="relative bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 rounded-2xl p-4 sm:p-5 transition-all shadow-sm overflow-hidden group hover:shadow-md">
       {accentColor && (

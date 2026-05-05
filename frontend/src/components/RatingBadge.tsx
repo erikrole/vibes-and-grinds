@@ -1,6 +1,12 @@
 import { getRatingColor, getTextColor } from '../utils/colors';
 
-export default function RatingBadge({ rating, label, maxRating = 10 }) {
+interface Props {
+  rating: number;
+  label: string;
+  maxRating?: number;
+}
+
+export default function RatingBadge({ rating, label, maxRating = 10 }: Props) {
   const bgColor = getRatingColor(rating);
   const textColor = getTextColor(bgColor);
 
