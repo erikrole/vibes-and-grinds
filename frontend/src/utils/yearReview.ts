@@ -1,10 +1,11 @@
 // Computes all data needed for the Season-in-Review / Wrapped experience.
 // Seasons roll over July 1: the "2025-26" season = Jul 1 2025 – Jun 30 2026.
 
+import type { Visit } from '../types';
 import { computeBadges } from './badges';
 import { detectStreak } from './insights';
 
-const PERSONAS = [
+const PERSONAS: Array<{ id: string; name: string; emoji: string; description: string; test: (d: any) => any }> = [
   { id: 'explorer', name: 'The Explorer', emoji: '🧭', description: 'You chase the new — always discovering a different shop.', test: (d) => d.uniqueShops / d.totalVisits > 0.7 },
   { id: 'regular', name: 'The Regular', emoji: '🏠', description: 'You found your spot and you\'re sticking to it.', test: (d) => d.mostVisitedShop && d.mostVisitedShop.count / d.totalVisits > 0.4 },
   { id: 'road-warrior', name: 'The Road Warrior', emoji: '✈️', description: 'Coffee in every city — you\'re always on the move.', test: (d) => d.uniqueCities >= 8 },
@@ -23,7 +24,7 @@ const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
  * Map a date to its season label. Seasons roll over July 1.
  * e.g. Sep 2025 → "2025-26", Feb 2026 → "2025-26"
  */
-function getSeasonForDate(date) {
+function getSeasonForDate(date: string | Date): string {
   const d = new Date(date);
   const month = d.getMonth(); // 0-indexed: 0=Jan, 6=Jul
   const year = d.getFullYear();
@@ -34,14 +35,14 @@ function getSeasonForDate(date) {
 /**
  * Get the current season label.
  */
-export function getCurrentSeason() {
+export function getCurrentSeason(): string {
   return getSeasonForDate(new Date());
 }
 
 /**
  * Get available seasons from visits, sorted most recent first.
  */
-export function getAvailableSeasons(visits) {
+export function getAvailableSeasons(visits: Visit[]): string[] {
   const seasons = new Set(visits.map(v => getSeasonForDate(v.date)));
   return [...seasons].sort((a, b) => b.localeCompare(a));
 }
@@ -49,11 +50,11 @@ export function getAvailableSeasons(visits) {
 /**
  * Compute season-in-review data for a specific season (e.g. "2025-26").
  */
-export function computeSeasonReview(visits, season) {
+export function computeSeasonReview(visits: Visit[], season: string): any {
   const seasonVisits = visits.filter(v => getSeasonForDate(v.date) === season);
   if (!seasonVisits.length) return null;
 
-  const sorted = [...seasonVisits].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const sorted = [...seasonVisits].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   const totalVisits = seasonVisits.length;
   const uniqueShops = new Set(seasonVisits.map(v => v.coffee_shop_name)).size;
@@ -68,19 +69,19 @@ export function computeSeasonReview(visits, season) {
   const worstVisit = seasonVisits.reduce((a, b) => a.composite_score <= b.composite_score ? a : b);
 
   // Most visited shop
-  const shopCounts = {};
+  const shopCounts: Record<string, number> = {};
   seasonVisits.forEach(v => { shopCounts[v.coffee_shop_name] = (shopCounts[v.coffee_shop_name] || 0) + 1; });
-  const [topShopName, topShopCount] = Object.entries(shopCounts).sort(([, a], [, b]) => b - a)[0];
+  const [topShopName, topShopCount] = Object.entries(shopCounts).sort(([, a]: [string, number], [, b]: [string, number]) => b - a)[0];
   const mostVisitedShop = { name: topShopName, count: topShopCount };
 
   // Top order
-  const orderCounts = {};
+  const orderCounts: Record<string, number> = {};
   seasonVisits.forEach(v => { if (v.coffee_order) orderCounts[v.coffee_order] = (orderCounts[v.coffee_order] || 0) + 1; });
-  const topOrderEntry = Object.entries(orderCounts).sort(([, a], [, b]) => b - a)[0];
+  const topOrderEntry = Object.entries(orderCounts).sort(([, a]: [string, number], [, b]: [string, number]) => b - a)[0];
   const topOrder = topOrderEntry ? { order: topOrderEntry[0], count: topOrderEntry[1] } : null;
 
   // Monthly breakdown (season order: Jul → Jun)
-  const months = {};
+  const months: Record<number, { count: number; totalComposite: number }> = {};
   for (const m of SEASON_MONTH_INDICES) months[m] = { count: 0, totalComposite: 0 };
   seasonVisits.forEach(v => {
     const m = new Date(v.date).getMonth();

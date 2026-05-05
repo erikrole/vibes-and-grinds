@@ -1,14 +1,16 @@
 // Pure computation functions for the Insights panel.
 // All functions take a sorted-by-date visits array and return derived data.
 
+import type { Visit } from '../types';
+
 /**
  * Detect streaks where a rating field stays above a threshold.
  * Returns { current, longest } each with { count, visits }.
  */
-export function detectStreak(visits, ratingFn, threshold) {
-  let current = [];
-  let longest = [];
-  let run = [];
+export function detectStreak(visits: Visit[], ratingFn: (v: Visit) => number, threshold: number): any {
+  let current: Visit[] = [];
+  let longest: Visit[] = [];
+  let run: Visit[] = [];
 
   for (const v of visits) {
     if (ratingFn(v) >= threshold) {
@@ -28,7 +30,7 @@ export function detectStreak(visits, ratingFn, threshold) {
 /**
  * Personal bests — highest and lowest for each rating dimension.
  */
-export function personalBests(visits) {
+export function personalBests(visits: Visit[]): any {
   if (!visits.length) return null;
 
   let bestVibe = visits[0], bestCoffee = visits[0], bestComposite = visits[0];
@@ -47,8 +49,8 @@ export function personalBests(visits) {
 /**
  * Milestone badges the user has earned.
  */
-export function milestones(visits) {
-  const badges = [];
+export function milestones(visits: Visit[]): any {
+  const badges: Array<{ icon: string; text: string }> = [];
   const count = visits.length;
 
   if (count >= 10) badges.push({ icon: '🔟', text: '10 visits logged' });
@@ -71,8 +73,8 @@ export function milestones(visits) {
  * Leaderboard: group visits by a key, compute avg composite, return sorted.
  * minVisits filters out entries with too few data points.
  */
-export function leaderboard(visits, keyFn, minVisits = 2) {
-  const groups = {};
+export function leaderboard(visits: Visit[], keyFn: (v: Visit) => string | null | undefined, minVisits = 2): any {
+  const groups: Record<string, { key: string; visits: Visit[]; totalVibe: number; totalCoffee: number; totalComposite: number }> = {};
 
   for (const v of visits) {
     const key = keyFn(v);
@@ -99,13 +101,13 @@ export function leaderboard(visits, keyFn, minVisits = 2) {
 /**
  * Sport-day analysis: compare avg ratings on game days vs non-game days.
  */
-export function sportDayAnalysis(visits) {
+export function sportDayAnalysis(visits: Visit[]): any {
   const gameDays = visits.filter(v => v.sport);
   const nonGameDays = visits.filter(v => !v.sport);
 
   if (!gameDays.length || !nonGameDays.length) return null;
 
-  const avg = (arr, fn) => arr.length ? +(arr.reduce((s, v) => s + fn(v), 0) / arr.length).toFixed(1) : 0;
+  const avg = (arr: Visit[], fn: (v: Visit) => number) => arr.length ? +(arr.reduce((s, v) => s + fn(v), 0) / arr.length).toFixed(1) : 0;
 
   return {
     gameDay: {
@@ -127,9 +129,9 @@ export function sportDayAnalysis(visits) {
 /**
  * Rolling average for trend charts. windowSize = number of visits to average over.
  */
-export function rollingAverage(visits, windowSize = 5) {
-  const sorted = [...visits].sort((a, b) => new Date(a.date) - new Date(b.date));
-  const points = [];
+export function rollingAverage(visits: Visit[], windowSize = 5): any {
+  const sorted = [...visits].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const points: any[] = [];
 
   for (let i = 0; i < sorted.length; i++) {
     const windowStart = Math.max(0, i - windowSize + 1);
@@ -152,8 +154,8 @@ export function rollingAverage(visits, windowSize = 5) {
 /**
  * Monthly visit frequency for bar chart.
  */
-export function monthlyFrequency(visits) {
-  const months = {};
+export function monthlyFrequency(visits: Visit[]): any {
+  const months: Record<string, number> = {};
 
   for (const v of visits) {
     const d = new Date(v.date);
@@ -173,8 +175,8 @@ export function monthlyFrequency(visits) {
 /**
  * Rating distribution: count visits in each 0.5-wide bucket for a rating field.
  */
-export function ratingDistribution(visits, ratingFn) {
-  const buckets = [];
+export function ratingDistribution(visits: Visit[], ratingFn: (v: Visit) => number): any {
+  const buckets: Array<{ range: string; low: number; high: number; count: number }> = [];
   for (let low = 0; low < 10; low += 0.5) {
     buckets.push({ range: `${low.toFixed(1)}`, low, high: low + 0.5, count: 0 });
   }
@@ -191,8 +193,8 @@ export function ratingDistribution(visits, ratingFn) {
 /**
  * Per-city stats cards.
  */
-export function cityStats(visits) {
-  const cities = {};
+export function cityStats(visits: Visit[]): any {
+  const cities: Record<string, { city: string; visits: Visit[]; totalVibe: number; totalCoffee: number; totalComposite: number; shops: Set<string>; orders: Record<string, number> }> = {};
 
   for (const v of visits) {
     const city = v.city;
@@ -227,7 +229,7 @@ export function cityStats(visits) {
 /**
  * Day-of-week rating patterns.
  */
-export function dayOfWeekPatterns(visits) {
+export function dayOfWeekPatterns(visits: Visit[]): any {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const buckets = days.map(d => ({ day: d, totalVibe: 0, totalCoffee: 0, count: 0 }));
 
@@ -251,15 +253,15 @@ export function dayOfWeekPatterns(visits) {
 /**
  * "Getting pickier?" — compare first half vs second half of visits.
  */
-export function trendComparison(visits) {
+export function trendComparison(visits: Visit[]): any {
   if (visits.length < 4) return null;
 
-  const sorted = [...visits].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const sorted = [...visits].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const mid = Math.floor(sorted.length / 2);
   const first = sorted.slice(0, mid);
   const second = sorted.slice(mid);
 
-  const avg = (arr, fn) => +(arr.reduce((s, v) => s + fn(v), 0) / arr.length).toFixed(1);
+  const avg = (arr: Visit[], fn: (v: Visit) => number) => +(arr.reduce((s, v) => s + fn(v), 0) / arr.length).toFixed(1);
 
   return {
     firstHalf: {
@@ -280,17 +282,17 @@ export function trendComparison(visits) {
 /**
  * Coffee order profile — top orders, signature drink, diversity metrics.
  */
-export function orderProfile(visits) {
+export function orderProfile(visits: Visit[]): any {
   const withOrders = visits.filter(v => v.coffee_order?.trim());
   if (!withOrders.length) return null;
 
-  const groups = {};
-  const seenOrders = new Set();
+  const groups: Record<string, { order: string; count: number; totalVibe: number; totalCoffee: number; totalComposite: number }> = {};
+  const seenOrders = new Set<string>();
   let newOrderCount = 0;
 
-  const sorted = [...withOrders].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const sorted = [...withOrders].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   for (const v of sorted) {
-    const order = v.coffee_order.trim();
+    const order = (v.coffee_order as string).trim();
     if (!groups[order]) groups[order] = { order, count: 0, totalVibe: 0, totalCoffee: 0, totalComposite: 0 };
     groups[order].count++;
     groups[order].totalVibe += v.vibe_rating;
@@ -327,8 +329,8 @@ export function orderProfile(visits) {
 /**
  * Repeat visit insights — shops visited 2+ times with trend and consistency.
  */
-export function repeatShopInsights(visits) {
-  const shopMap = {};
+export function repeatShopInsights(visits: Visit[]): any {
+  const shopMap: Record<string, Visit[]> = {};
   for (const v of visits) {
     const name = v.coffee_shop_name;
     if (!shopMap[name]) shopMap[name] = [];
@@ -338,7 +340,7 @@ export function repeatShopInsights(visits) {
   const repeatShops = Object.entries(shopMap)
     .filter(([, vs]) => vs.length >= 2)
     .map(([name, vs]) => {
-      const sorted = [...vs].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const sorted = [...vs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       const composites = sorted.map(v => v.composite_score);
       const avgComposite = +(composites.reduce((s, c) => s + c, 0) / composites.length).toFixed(1);
       const avgVibe = +(sorted.reduce((s, v) => s + v.vibe_rating, 0) / sorted.length).toFixed(1);
@@ -384,7 +386,7 @@ export function repeatShopInsights(visits) {
   };
 }
 
-function formatShortDate(dateStr) {
+function formatShortDate(dateStr: string): string {
   const d = new Date(dateStr);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }

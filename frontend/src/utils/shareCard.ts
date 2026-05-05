@@ -1,16 +1,18 @@
 // Generate a shareable visit card as a PNG blob using HTML5 Canvas.
 
+import type { Visit } from '../types';
+
 /**
  * Generate a styled share card image for a visit.
  * Returns a Blob (image/png).
  */
-export async function generateShareCard(visit, { dark = false } = {}) {
+export async function generateShareCard(visit: Visit, { dark = false }: { dark?: boolean } = {}): Promise<Blob | null> {
   const W = 1080;
   const H = 1350;
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
 
   // Background
   const grad = ctx.createLinearGradient(0, 0, 0, H);
@@ -143,15 +145,15 @@ export async function generateShareCard(visit, { dark = false } = {}) {
   ctx.textAlign = 'center';
   ctx.fillText('VIBES & GRINDS', W / 2, H - 50);
 
-  return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  return new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
 }
 
 /**
  * Share or download a visit card.
  */
-export async function shareVisitCard(visit, { dark = false } = {}) {
+export async function shareVisitCard(visit: Visit, { dark = false }: { dark?: boolean } = {}): Promise<'shared' | 'cancelled' | 'downloaded'> {
   const blob = await generateShareCard(visit, { dark });
-  const file = new File([blob], `vibes-${visit.coffee_shop_name.replace(/\s+/g, '-').toLowerCase()}.png`, { type: 'image/png' });
+  const file = new File([blob as Blob], `vibes-${visit.coffee_shop_name.replace(/\s+/g, '-').toLowerCase()}.png`, { type: 'image/png' });
 
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
     try {
@@ -160,13 +162,13 @@ export async function shareVisitCard(visit, { dark = false } = {}) {
         title: `${visit.coffee_shop_name} — Vibes & Grinds`,
       });
       return 'shared';
-    } catch (e) {
+    } catch (e: any) {
       if (e.name === 'AbortError') return 'cancelled';
     }
   }
 
   // Fallback: download
-  const url = URL.createObjectURL(blob);
+  const url = URL.createObjectURL(blob as Blob);
   const a = document.createElement('a');
   a.href = url;
   a.download = file.name;
@@ -179,7 +181,7 @@ export async function shareVisitCard(visit, { dark = false } = {}) {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function loadImage(src) {
+function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -189,7 +191,7 @@ function loadImage(src) {
   });
 }
 
-function roundRect(ctx, x, y, w, h, r) {
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.lineTo(x + w - r, y);
@@ -203,7 +205,7 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function truncateText(ctx, text, maxWidth) {
+function truncateText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string {
   if (ctx.measureText(text).width <= maxWidth) return text;
   let t = text;
   while (t.length > 0 && ctx.measureText(t + '...').width > maxWidth) {
@@ -212,7 +214,7 @@ function truncateText(ctx, text, maxWidth) {
   return t + '...';
 }
 
-function ratingToColor(rating) {
+function ratingToColor(rating: number): string {
   const clamped = Math.max(0, Math.min(10, rating));
   if (clamped <= 5) {
     const pct = clamped / 5;

@@ -1,6 +1,7 @@
 // Badge system with levels (Bronze → Silver → Gold → Platinum → Diamond).
 // All functions are pure — take visits array, return derived badge data.
 
+import type { Visit } from '../types';
 import { detectStreak } from './insights';
 
 const TIERS = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond'];
@@ -17,7 +18,17 @@ export { TIERS, TIER_COLORS };
 
 // ── Badge Definitions ────────────────────────────────────────────────────────
 
-const BADGE_DEFS = [
+interface BadgeDef {
+  id: string;
+  category: string;
+  icon: string;
+  name: string;
+  description: string;
+  levels: number[];
+  compute: (visits: Visit[]) => number;
+}
+
+const BADGE_DEFS: BadgeDef[] = [
   // Milestones
   {
     id: 'first-sip',
@@ -47,7 +58,7 @@ const BADGE_DEFS = [
     description: 'Consecutive visits with 8+ vibe',
     levels: [3, 5, 10, 15, 20],
     compute: (visits) => {
-      const sorted = [...visits].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const sorted = [...visits].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       const s = detectStreak(sorted, v => v.vibe_rating, 8);
       return Math.max(s.current.length, s.longest.length);
     },
@@ -60,7 +71,7 @@ const BADGE_DEFS = [
     description: 'Consecutive visits with 16+ composite',
     levels: [3, 5, 10, 15, 20],
     compute: (visits) => {
-      const sorted = [...visits].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const sorted = [...visits].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       const s = detectStreak(sorted, v => v.composite_score, 16);
       return Math.max(s.current.length, s.longest.length);
     },
@@ -136,7 +147,7 @@ const BADGE_DEFS = [
     description: 'Order the same drink multiple times',
     levels: [3, 5, 10, 25, 50],
     compute: (visits) => {
-      const counts = {};
+      const counts: Record<string, number> = {};
       visits.forEach(v => { if (v.coffee_order) counts[v.coffee_order] = (counts[v.coffee_order] || 0) + 1; });
       return Math.max(0, ...Object.values(counts));
     },
@@ -200,7 +211,7 @@ export { BADGE_DEFS };
  * Compute all badge states from visits.
  * Returns array of { ...badgeDef, level: 0-5, tier, tierColors, progress, currentValue, nextThreshold }
  */
-export function computeBadges(visits) {
+export function computeBadges(visits: Visit[]): any[] {
   return BADGE_DEFS.map(def => {
     const value = def.compute(visits);
     let level = 0;
@@ -209,7 +220,7 @@ export function computeBadges(visits) {
     }
 
     const tier = level > 0 ? TIERS[level - 1] : null;
-    const tierColors = tier ? TIER_COLORS[tier] : null;
+    const tierColors = tier ? (TIER_COLORS as Record<string, any>)[tier] : null;
     const nextThreshold = level < def.levels.length ? def.levels[level] : null;
     const prevThreshold = level > 0 ? def.levels[level - 1] : 0;
     const progress = nextThreshold
@@ -231,8 +242,8 @@ export function computeBadges(visits) {
 /**
  * Get badges grouped by category.
  */
-export function badgesByCategory(badges) {
-  const groups = {};
+export function badgesByCategory(badges: any[]): Record<string, any[]> {
+  const groups: Record<string, any[]> = {};
   for (const b of badges) {
     if (!groups[b.category]) groups[b.category] = [];
     groups[b.category].push(b);
@@ -244,9 +255,9 @@ export function badgesByCategory(badges) {
  * Detect newly earned badges by comparing old and new badge arrays.
  * Returns array of badges that increased in level.
  */
-export function detectNewBadges(oldBadges, newBadges) {
+export function detectNewBadges(oldBadges: any[], newBadges: any[]): any[] {
   if (!oldBadges || !oldBadges.length) return [];
-  const oldMap = {};
+  const oldMap: Record<string, number> = {};
   for (const b of oldBadges) oldMap[b.id] = b.level;
 
   return newBadges.filter(b => b.level > (oldMap[b.id] || 0));

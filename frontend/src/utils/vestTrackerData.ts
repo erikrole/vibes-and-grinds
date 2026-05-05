@@ -1,5 +1,8 @@
+import type { VestGame } from '../types';
+
 // ranking: Wisconsin's AP ranking at tip-off (null = unranked). Fill in from the ESPN schedule screenshot.
-export const vestGames = [
+// Cast: rows omit `overtime` when false; consumers treat the missing value as falsy.
+export const vestGames = ([
   { id: 1,  date: '2025-11-03', opponent: 'Campbell',         location: 'vs', outfit: 'Dark Gray Vest',          result: 'W', ranking: null },
   { id: 2,  date: '2025-11-07', opponent: 'Northern Illinois',location: 'vs', outfit: 'Red Vest',                result: 'W', ranking: null },
   { id: 3,  date: '2025-11-11', opponent: 'Ball State',       location: 'vs', outfit: 'Black Zipup Vest',        result: 'W', ranking: null },
@@ -26,4 +29,4 @@ export const vestGames = [
   { id: 24, date: '2026-02-10', opponent: 'Illinois',         location: '@',  outfit: 'Red Vest',                result: 'W', ranking: 8, overtime: true },
   { id: 25, date: '2026-02-13', opponent: 'Michigan State',   location: 'vs', outfit: 'Gray Suit Coat',          result: 'W', ranking: 10 },
   { id: 26, date: '2026-02-17', opponent: 'Ohio State',       location: '@',  outfit: 'Red Vest',                result: 'L', ranking: null },
-];
+] as unknown) as VestGame[];
