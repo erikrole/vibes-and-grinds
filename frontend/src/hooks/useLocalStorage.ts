@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 
-export default function useLocalStorage(key, initialValue) {
-  const [value, setValue] = useState(() => {
+export default function useLocalStorage<T>(
+  key: string,
+  initialValue: T
+): [T, Dispatch<SetStateAction<T>>, () => void] {
+  const [value, setValue] = useState<T>(() => {
     try {
       const raw = localStorage.getItem(key);
-      return raw !== null ? JSON.parse(raw) : initialValue;
+      return raw !== null ? (JSON.parse(raw) as T) : initialValue;
     } catch {
       return initialValue;
     }

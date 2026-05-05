@@ -1,0 +1,16 @@
+{
+  "name": "vibes-and-grinds",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n vite,api -c blue,magenta \"npm run dev:web\" \"npm run dev:api\"",
+    "dev:web": "npm --prefix frontend run dev",
+    "dev:api": "wrangler pages dev frontend/dist --d1=DB --port 8788 --compatibility-date=2024-09-23",
+    "db:init:local": "wrangler d1 execute DB --local --file=schema.sql",
+    "build": "npm --prefix frontend run build",
+    "typecheck": "npm --prefix frontend run typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1",
+    "wrangler": "^3.78.0"
+  }
+}

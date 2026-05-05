@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { vestGames as seedGames } from '../utils/vestTrackerData';
-import { fetchVestGames, syncVestGames, fetchVisits, fetchVestBlurb } from '../utils/api';
+import { fetchVestGames, syncVestGames, fetchVisits, fetchVestBlurb, apiFetch } from '../utils/api';
 import NetRankingsPage from './NetRankingsPage';
 
 const GameStatsPanel = lazy(() => import('./GameStatsPanel'));
@@ -316,7 +316,7 @@ export default function VestTrackerDashboard({ showToast }) {
 
       for (const url of sources) {
         try {
-          const response = await fetch(url);
+          const response = url.startsWith('/api') ? await apiFetch(url) : await fetch(url);
           if (!response.ok) continue;
 
           const payload = await response.json();

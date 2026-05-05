@@ -6,6 +6,7 @@ import PhotoCropper from './PhotoCropper';
 import { getRatingColor, getCompositeColor, getTextColor } from '../utils/colors';
 import { formatDate, getRelativeLabel } from '../utils/dates';
 import { shareVisitCard } from '../utils/shareCard';
+import { uploadPhoto } from '../utils/api';
 import useFocusTrap from '../hooks/useFocusTrap';
 
 const coffeeIcon = L.divIcon({
@@ -74,19 +75,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
     setUploading(true);
     try {
-      const uploadFormData = new FormData();
-      uploadFormData.append('file', file);
-
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: uploadFormData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to upload photo');
-      }
-
-      const { url } = await response.json();
+      const { url } = await uploadPhoto(file);
       await onUpdate(visit.id, { ...visit, photo_url: url });
     } catch (error) {
       console.error('Error uploading photo:', error);

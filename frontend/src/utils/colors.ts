@@ -1,17 +1,12 @@
-/**
- * Read a CSS custom property as a number.
- */
-function cssVar(name, fallback) {
+function cssVar(name: string, fallback: number): number {
   const val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return val ? Number(val) : fallback;
 }
 
 /**
- * Get color for a rating on a 0-10 scale
- * Red (0) -> Yellow (5) -> Green (10)
- * Uses CSS custom properties for easy theming.
+ * Red (0) -> Yellow (5) -> Green (10), driven by CSS custom properties for theming.
  */
-export function getRatingColor(rating) {
+export function getRatingColor(rating: number): string {
   const clampedRating = Math.max(0, Math.min(10, rating));
 
   const lowR = cssVar('--rating-low-r', 220);
@@ -39,18 +34,11 @@ export function getRatingColor(rating) {
   }
 }
 
-/**
- * Get color for composite score (0-20 scale)
- */
-export function getCompositeColor(composite) {
-  const normalized = composite / 2;
-  return getRatingColor(normalized);
+export function getCompositeColor(composite: number): string {
+  return getRatingColor(composite / 2);
 }
 
-/**
- * Get text color (black or white) based on background color for readability
- */
-export function getTextColor(bgColor) {
+export function getTextColor(bgColor: string): '#000000' | '#ffffff' {
   const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
   if (!match) return '#000000';
 

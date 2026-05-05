@@ -20,27 +20,19 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: |
-            frontend/package-lock.json
-            backend/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
         run: cd frontend && npm ci
 
+      - name: Typecheck frontend
+        run: cd frontend && npm run typecheck
+
       - name: Build frontend
         run: cd frontend && npm run build
 
-      - name: Validate backend/function syntax
+      - name: Validate Pages Function syntax
         run: |
-          node --check backend/server.js
-          node --check functions/api/places-autocomplete.js
-          node --check functions/api/places-details.js
-          node --check functions/api/stats.js
-          node --check functions/api/upload.js
-          node --check functions/api/visits.js
-          node --check "functions/api/visits/[id].js"
-          node --check functions/api/vest/blurb.js
-          node --check functions/api/vest/games.js
-          node --check functions/api/vest/net-rankings.js
-          node --check functions/api/vest/scores.js
-          node --check "functions/api/vest/game-stats/[eventId].js"
+          for f in $(find functions -name "*.js"); do
+            node --check "$f"
+          done

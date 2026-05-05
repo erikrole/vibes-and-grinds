@@ -3,6 +3,7 @@ import PhotoCropper from './PhotoCropper';
 import AutocompleteInput from './AutocompleteInput';
 import PlacesAutocomplete from './PlacesAutocomplete';
 import { getTodayDateString } from '../utils/dates';
+import { uploadPhoto } from '../utils/api';
 
 const BIG_TEN_TEAMS = {
   'minneapolis': 'Minnesota Golden Gophers',
@@ -216,11 +217,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
     try {
       let photoUrl = formData.photo_url;
       if (photoFile) {
-        const uploadFormData = new FormData();
-        uploadFormData.append('file', photoFile);
-        const response = await fetch('/api/upload', { method: 'POST', body: uploadFormData });
-        if (!response.ok) throw new Error('Failed to upload photo');
-        const { url } = await response.json();
+        const { url } = await uploadPhoto(photoFile);
         photoUrl = url;
       }
       await onSubmit({

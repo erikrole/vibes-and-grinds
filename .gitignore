@@ -11,9 +11,12 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.dev.vars
+
+# Wrangler local state
+.wrangler/
 
 # Production
-/backend/dist
 /frontend/build
 /frontend/dist
 

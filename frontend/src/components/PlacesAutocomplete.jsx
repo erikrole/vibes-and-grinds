@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { apiFetch } from '../utils/api';
 
 const MIN_QUERY_LENGTH = 2;
 
@@ -63,7 +64,7 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, o
       setDebugInfo(null);
 
       try {
-        const response = await fetch(`/api/places-autocomplete?input=${encodeURIComponent(query)}`, {
+        const response = await apiFetch(`/api/places-autocomplete?input=${encodeURIComponent(query)}`, {
           signal: controller.signal,
         });
 
@@ -128,7 +129,7 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, o
     }
 
     try {
-      const response = await fetch(`/api/places-details?placeId=${encodeURIComponent(suggestion.placeId)}`);
+      const response = await apiFetch(`/api/places-details?placeId=${encodeURIComponent(suggestion.placeId)}`);
       if (!response.ok) {
         const parsedError = await parseApiError(response, 'Could not load full place details. You can still save manually.');
         throw parsedError;

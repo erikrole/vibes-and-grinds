@@ -65,9 +65,10 @@ You should see: "Executed 3 commands in X.XXs"
    - **Build output directory**: `frontend/dist`
    - **Root directory**: `/` (leave empty)
 
-5. Add environment variable:
-   - **Variable name**: `GOOGLE_MAPS_API_KEY`
-   - **Value**: `your-google-maps-api-key-here` (get from Google Cloud Console)
+5. Add environment variables (Settings → Environment variables → Production):
+   - `GOOGLE_MAPS_API_KEY` — Google Cloud Places API key
+   - `ANTHROPIC_API_KEY` — for `/api/vest/blurb` (optional)
+   - `AUTH_TOKEN` — **set this** to gate the API behind a bearer token. Without it, the API is public.
 
 6. Click "Save and Deploy"
 
@@ -180,22 +181,24 @@ wrangler d1 execute vibes-and-grinds-db --command="SELECT COUNT(*) as total FROM
 - Make sure build command includes `cd frontend &&`
 - Verify `frontend/dist` is the output directory
 
-## Local Development with D1
+## Local Development
 
-To develop locally with the same D1 database:
+The same Pages Functions that run in production also run locally via `wrangler pages dev`. There is no separate Express backend.
 
 ```bash
-# Run the frontend with local backend
-cd backend
-npm install
-npm start  # Runs on port 3001
-
-# In another terminal
-cd frontend
-npm run dev  # Runs on port 3000
+npm install                  # root tooling (wrangler, concurrently)
+npm --prefix frontend install
+npm run db:init:local        # applies schema.sql to a local D1
+npm run dev                  # Vite (:3000) + wrangler pages dev (:8788)
 ```
 
-The local backend uses SQLite (`backend/vibes-and-grinds.db`), which is compatible with D1.
+Local secrets live in `.dev.vars` at the repo root (gitignored). At minimum:
+
+```env
+GOOGLE_MAPS_API_KEY=...
+ANTHROPIC_API_KEY=...        # optional, for /api/vest/blurb
+AUTH_TOKEN=                  # leave blank to skip auth locally
+```
 
 ## Success! 🎉
 

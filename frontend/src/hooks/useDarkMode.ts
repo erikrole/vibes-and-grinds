@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 
 const DARK_MODE_KEY = 'vibes-and-grinds:dark-mode';
 
-function getInitialDarkMode() {
+function getInitialDarkMode(): boolean {
   const stored = localStorage.getItem(DARK_MODE_KEY);
   if (stored === 'true') return true;
   if (stored === 'false') return false;
   return window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
-export default function useDarkMode() {
+export default function useDarkMode(): [boolean, () => void] {
   const [darkMode, setDarkMode] = useState(getInitialDarkMode);
 
   useEffect(() => {

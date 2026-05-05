@@ -25,10 +25,9 @@ A beautiful web app for tracking coffee shop visits during basketball road trips
 - **Google Maps/Places API** - Autocomplete and location data
 
 ### Backend
-- **Node.js & Express** - RESTful API (local development)
-- **Cloudflare Pages Functions** - Production API
-- **SQLite / Cloudflare D1** - Lightweight, globally distributed database
-- **CORS enabled** - Frontend/backend communication
+- **Cloudflare Pages Functions** - Single API source for both prod and local dev
+- **Cloudflare D1** - SQLite-compatible, globally distributed database
+- **Cloudflare R2** - Photo storage
 
 ## Getting Started
 
@@ -44,61 +43,45 @@ git clone <your-repo-url>
 cd vibes-and-grinds
 ```
 
-### 2. Backend Setup
+### 2. Install dependencies
 
 ```bash
-cd backend
-npm install
-cp .env.example .env
-# Edit .env if needed (default port is 3001)
-npm start
+npm install                         # root tooling (wrangler, concurrently)
+npm --prefix frontend install
 ```
 
-The backend will:
-- Start on `http://localhost:3001`
-- Create a SQLite database file (`vibes-and-grinds.db`)
-- Initialize the database schema automatically
-
-### 3. Frontend Setup
+### 3. Initialize the local D1 database
 
 ```bash
-cd frontend
-npm install
-cp .env.example .env
+npm run db:init:local               # applies schema.sql to a local D1
 ```
 
-**Important:** Edit `frontend/.env` and add your Google Maps API key:
+### 4. Configure secrets
 
-```env
-VITE_API_URL=http://localhost:3001
-```
-
-Then in the project root `.env` (for the backend), add:
+Create a `.dev.vars` file at the repo root for local Pages Functions:
 
 ```env
 GOOGLE_MAPS_API_KEY=your_actual_api_key_here
-NET_RANKINGS_URL=https://big-ten-standings.erikrole.workers.dev  # optional override
+ANTHROPIC_API_KEY=your_anthropic_key_here  # optional, for /api/vest/blurb
+NET_RANKINGS_URL=                          # optional override
+AUTH_TOKEN=                                # leave blank to disable auth locally
 ```
 
-If you want the frontend to call your worker directly instead of the API proxy, you can also set:
+In production, set the same vars as Cloudflare Pages secrets (Settings → Environment variables).
 
-```env
-VITE_NET_RANKINGS_URL=https://big-ten-standings.erikrole.workers.dev  # optional direct browser override
-```
-
-The vest tracker accepts either a dedicated NET rankings payload, your Big Ten standings worker shape (`{ standings: [{ team, netRank, ... }] }`), or a full D1 map shape (`{ netRankings: { "DUKE": 1, ... } }`). If no env var is set on the API, it defaults to `https://www.warrennolan.com/basketball/2026/net` and parses all teams from HTML.
-
-Vest games now sync via `/api/vest/games` backed by DB storage (instead of device-only localStorage), so updates on one device can appear on another once both are online.
-
-If using Cloudflare D1, re-run migrations/schema apply so `vest_games` exists.
-
-Then start the development server:
+### 5. Run
 
 ```bash
 npm run dev
 ```
 
-The frontend will open at `http://localhost:3000`
+This starts both Vite (port 3000) and `wrangler pages dev` (port 8788) concurrently. Vite proxies `/api/*` to the local Pages Functions, which talk to your local D1.
+
+Open `http://localhost:3000`.
+
+### Authentication
+
+The Pages Functions enforce a bearer token when `AUTH_TOKEN` is set in the Cloudflare environment. Locally, leave it blank in `.dev.vars` to skip the check, or set it to test the auth flow. The frontend stores the user-entered token in `localStorage` under `vng:auth-token` and prompts on the first 401.
 
 ### 4. Getting a Google Places API Key
 
@@ -147,21 +130,20 @@ The frontend will open at `http://localhost:3000`
 
 ```
 vibes-and-grinds/
-├── backend/
-│   ├── server.js           # Express server
-│   ├── database.js         # Database initialization
-│   ├── package.json
-│   └── .env.example
+├── functions/api/          # Cloudflare Pages Functions (the API)
+│   ├── _middleware.js      # Bearer-token auth + error handling
+│   ├── visits.js
+│   ├── visits/[id].js
+│   └── vest/...
 ├── frontend/
 │   ├── src/
 │   │   ├── components/     # React components
-│   │   ├── utils/          # Helper functions
+│   │   ├── utils/          # Helpers (api.js, auth.js, ...)
 │   │   ├── App.jsx         # Main app component
-│   │   ├── main.jsx        # Entry point
-│   │   └── index.css       # Tailwind styles
-│   ├── index.html
-│   ├── package.json
-│   └── .env.example
+│   │   └── main.jsx        # Entry point
+│   └── package.json
+├── schema.sql              # D1 schema, applied on deploy and locally
+├── package.json            # Root scripts (dev, db:init:local, build)
 └── README.md
 ```
 
@@ -179,46 +161,33 @@ See also **[PRODUCT_PLAN.md](./PRODUCT_PLAN.md)** for v1/v2 scope and roadmap.
 
 ## Development Commands
 
-### Backend
 ```bash
-npm run dev    # Start with nodemon (auto-reload)
-npm start      # Start production server
-```
-
-### Frontend
-```bash
-npm run dev    # Start development server
-npm run build  # Build for production
-npm run preview # Preview production build
+npm run dev            # Vite + wrangler pages dev concurrently
+npm run dev:web        # Vite only
+npm run dev:api        # wrangler pages dev only
+npm run db:init:local  # apply schema.sql to local D1
+npm run typecheck      # tsc --noEmit
+npm run build          # frontend production build
 ```
 
 ## Deployment
 
-### Frontend (Vercel)
-1. Connect your GitHub repo to Vercel
-2. Set environment variable: `GOOGLE_MAPS_API_KEY` (and optionally `VITE_GOOGLE_MAPS_API_KEY` for legacy frontend usage)
-3. Build command: `cd frontend && npm install && npm run build`
-4. Output directory: `frontend/dist`
-
-### Backend (Railway/Heroku)
-1. Deploy the `backend` folder
-2. Set environment variable: `PORT` (provided by platform)
-3. For production, consider upgrading to PostgreSQL
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for full Cloudflare Pages + D1 setup.
 
 ## Troubleshooting
 
 **Autocomplete not working?**
-- Check that `GOOGLE_MAPS_API_KEY` is set in the backend/root `.env` (or in Cloudflare Pages env vars).
+- Check that `GOOGLE_MAPS_API_KEY` is set in `.dev.vars` locally (or in Cloudflare Pages env vars in production).
 - Make sure Places API (New) is enabled in Google Cloud Console.
 - Confirm billing is active for the Google Cloud project (click **Activate** in Billing if shown).
 - Check API key restrictions and allow Places API (New) for the project key.
 
-**Backend not connecting?**
-- Ensure backend is running on port 3001
-- Check that `VITE_API_URL` in frontend `.env` matches backend URL
+**API calls failing locally?**
+- Ensure `wrangler pages dev` is running on port 8788 (or run `npm run dev` to start both).
+- Confirm the local D1 schema has been applied: `npm run db:init:local`.
 
-**Database issues?**
-- Delete `backend/vibes-and-grinds.db` and restart the server to reset
+**401 Unauthorized in dev?**
+- Either remove `AUTH_TOKEN` from `.dev.vars`, or paste the token at the prompt — it persists in `localStorage`.
 
 ## Contributing
 
