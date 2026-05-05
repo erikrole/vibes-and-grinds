@@ -12,17 +12,22 @@ import {
 } from '../utils/insights';
 import { getRatingColor, getCompositeColor } from '../utils/colors';
 import BadgesPanel from './BadgesPanel';
+import type { Visit } from '../types';
+
+interface Props {
+  visits: Visit[];
+}
 
 // Chart colors that work in both light and dark mode
 const VIBE_COLOR = '#f59e0b';   // amber-500
 const COFFEE_COLOR = '#8b5cf6'; // violet-500
 const BAR_COLOR = '#78716c';    // stone-500
 
-export default function InsightsPanel({ visits }) {
-  const [activeSection, setActiveSection] = useState('streaks');
+export default function InsightsPanel({ visits }: Props) {
+  const [activeSection, setActiveSection] = useState<string>('streaks');
 
   const sorted = useMemo(
-    () => [...visits].sort((a, b) => new Date(a.date) - new Date(b.date)),
+    () => [...visits].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
     [visits]
   );
 
@@ -139,7 +144,7 @@ export default function InsightsPanel({ visits }) {
 
 // ── Section Components ──────────────────────────────────────────────────────
 
-function StreaksSection({ vibeStreak, compositeStreak, bests, badges }) {
+function StreaksSection({ vibeStreak, compositeStreak, bests, badges }: any) {
   return (
     <div className="space-y-4">
       {/* Active Streaks */}
@@ -188,7 +193,7 @@ function StreaksSection({ vibeStreak, compositeStreak, bests, badges }) {
   );
 }
 
-function LeaderboardsSection({ topShops, topCities, topOrders, sportDay }) {
+function LeaderboardsSection({ topShops, topCities, topOrders, sportDay }: any) {
   return (
     <div className="space-y-4">
       <LeaderboardCard title="Top Coffee Shops" items={topShops} />
@@ -222,8 +227,8 @@ function LeaderboardsSection({ topShops, topCities, topOrders, sportDay }) {
   );
 }
 
-function TrendsSection({ rolling, monthly, vibeDist, coffeeDist }) {
-  const [distMode, setDistMode] = useState('vibe');
+function TrendsSection({ rolling, monthly, vibeDist, coffeeDist }: any) {
+  const [distMode, setDistMode] = useState<string>('vibe');
   const activeDist = distMode === 'vibe' ? vibeDist : coffeeDist;
 
   return (
@@ -318,7 +323,7 @@ function TrendsSection({ rolling, monthly, vibeDist, coffeeDist }) {
   );
 }
 
-function DeepDivesSection({ cities, dowPatterns, trend, sportDay, orders, repeats }) {
+function DeepDivesSection({ cities, dowPatterns, trend, sportDay, orders, repeats }: any) {
   return (
     <div className="space-y-4">
       {/* Order Profile */}
@@ -412,7 +417,7 @@ function DeepDivesSection({ cities, dowPatterns, trend, sportDay, orders, repeat
 
 // ── Order Profile & Repeat Visits ────────────────────────────────────────────
 
-function OrderProfileSection({ orders }) {
+function OrderProfileSection({ orders }: any) {
   const maxCount = orders.topOrders[0]?.count || 1;
 
   return (
@@ -469,7 +474,7 @@ function OrderProfileSection({ orders }) {
   );
 }
 
-function RepeatVisitsSection({ repeats }) {
+function RepeatVisitsSection({ repeats }: any) {
   return (
     <SectionCard title="Repeat Visits" subtitle={`${repeats.loyaltyRate}% of visits are to repeat shops`}>
       <div className="space-y-3 mb-4">
@@ -553,7 +558,7 @@ function RepeatVisitsSection({ repeats }) {
 
 // ── Shared Sub-Components ───────────────────────────────────────────────────
 
-function SectionCard({ title, subtitle, children }) {
+function SectionCard({ title, subtitle, children }: any) {
   return (
     <div className="bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 rounded-2xl p-4 sm:p-5 shadow-sm">
       <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">{title}</h3>
@@ -564,7 +569,7 @@ function SectionCard({ title, subtitle, children }) {
   );
 }
 
-function StreakCard({ label, current, longest, emoji }) {
+function StreakCard({ label, current, longest, emoji }: any) {
   return (
     <div className="rounded-xl bg-stone-50 dark:bg-stone-700/40 p-4">
       <p className="text-[11px] uppercase tracking-wider text-stone-400 dark:text-stone-500 font-semibold">{label}</p>
@@ -581,7 +586,7 @@ function StreakCard({ label, current, longest, emoji }) {
   );
 }
 
-function BestCard({ label, value, subtitle, shop, color }) {
+function BestCard({ label, value, subtitle, shop, color }: any) {
   return (
     <div className="rounded-xl bg-stone-50 dark:bg-stone-700/40 p-3 sm:p-4">
       <p className="text-[11px] uppercase tracking-wider text-stone-400 dark:text-stone-500 font-semibold">{label}</p>
@@ -593,7 +598,7 @@ function BestCard({ label, value, subtitle, shop, color }) {
   );
 }
 
-function LeaderboardCard({ title, items }) {
+function LeaderboardCard({ title, items }: any) {
   if (!items.length) return null;
 
   const maxComposite = items[0]?.avgComposite || 1;
@@ -630,7 +635,7 @@ function LeaderboardCard({ title, items }) {
   );
 }
 
-function StatBlock({ label, value, subtitle }) {
+function StatBlock({ label, value, subtitle }: any) {
   return (
     <div className="rounded-xl bg-stone-50 dark:bg-stone-700/40 p-4">
       <p className="text-[11px] uppercase tracking-wider text-stone-400 dark:text-stone-500 font-semibold">{label}</p>

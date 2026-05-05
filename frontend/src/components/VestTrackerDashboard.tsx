@@ -1,4 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import type { VestGame, Visit, NetRankingEntry } from '../types';
+// vestTrackerData is plain JS — treat as any-ish.
 import { vestGames as seedGames } from '../utils/vestTrackerData';
 import { fetchVestGames, syncVestGames, fetchVisits, fetchVestBlurb, apiFetch } from '../utils/api';
 import NetRankingsPage from './NetRankingsPage';
@@ -129,11 +131,11 @@ const normalizeTokens = (value = '') => {
     .filter(Boolean);
 };
 
-const buildNetLookup = (rankings) => {
-  const exact = new Map();
-  const byTokenSet = [];
+const buildNetLookup = (rankings: any[]) => {
+  const exact = new Map<string, number>();
+  const byTokenSet: Array<{ tokens: Set<string>; rank: number }> = [];
 
-  rankings.forEach((entry) => {
+  rankings.forEach((entry: any) => {
     exact.set(entry.key, entry.rank);
     byTokenSet.push({
       tokens: new Set(normalizeTokens(entry.team)),
@@ -249,21 +251,25 @@ const loadGames = () => {
   return { games: seedGames, corrupted: false };
 };
 
-export default function VestTrackerDashboard({ showToast }) {
+interface Props {
+  showToast?: (message: string, kind?: string) => void;
+}
+
+export default function VestTrackerDashboard({ showToast }: Props) {
   const corruptedRef = useRef(false);
-  const [games, setGames] = useState(() => {
+  const [games, setGames] = useState<VestGame[]>(() => {
     const { games: loaded, corrupted } = loadGames();
     if (corrupted) corruptedRef.current = true;
     return loaded;
   });
-  const [netRankings, setNetRankings] = useState([]);
-  const [netStatus, setNetStatus] = useState('idle');
-  const [selectedOutfit, setSelectedOutfit] = useState('All outfits');
-  const [formState, setFormState] = useState(EMPTY_FORM);
-  const [editingId, setEditingId] = useState(null);
+  const [netRankings, setNetRankings] = useState<NetRankingEntry[]>([]);
+  const [netStatus, setNetStatus] = useState<'idle' | 'loading' | 'loaded' | 'error' | 'missing-url'>('idle');
+  const [selectedOutfit, setSelectedOutfit] = useState<string>('All outfits');
+  const [formState, setFormState] = useState<any>(EMPTY_FORM);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [addingOutfit, setAddingOutfit] = useState(false);
   const [syncReady, setSyncReady] = useState(false);
-  const [vestTab, setVestTab] = useState('dashboard');
+  const [vestTab, setVestTab] = useState<'dashboard' | 'game-stats' | 'rankings'>('dashboard');
 
   // Warn if localStorage data was corrupted on load
   useEffect(() => {
@@ -446,7 +452,7 @@ export default function VestTrackerDashboard({ showToast }) {
   const outfitStats = useMemo(() => {
     const grouped = completedGames
       .filter((game) => game.outfit)
-      .reduce((acc, game, index) => {
+      .reduce<Record<string, any>>((acc, game, index) => {
         if (!acc[game.outfit]) {
           acc[game.outfit] = {
             outfit: game.outfit,
@@ -502,11 +508,11 @@ export default function VestTrackerDashboard({ showToast }) {
       }, {});
 
     return Object.values(grouped)
-      .map((entry) => {
+      .map((entry: any) => {
         const last3 = entry.recentResults.slice(-3);
-        let form = null;
-        if (last3.length >= 2 && last3.every((r) => r === 'W')) form = 'hot';
-        else if (last3.length >= 2 && last3.every((r) => r === 'L')) form = 'cold';
+        let form: 'hot' | 'cold' | null = null;
+        if (last3.length >= 2 && last3.every((r: string) => r === 'W')) form = 'hot';
+        else if (last3.length >= 2 && last3.every((r: string) => r === 'L')) form = 'cold';
 
         return {
           ...entry,
@@ -515,7 +521,7 @@ export default function VestTrackerDashboard({ showToast }) {
           form,
         };
       })
-      .sort((a, b) => b.winRate - a.winRate || b.wins - a.wins);
+      .sort((a: any, b: any) => b.winRate - a.winRate || b.wins - a.wins);
   }, [completedGames, netLookup]);
 
   const recommendation = useMemo(() => {
@@ -566,10 +572,10 @@ export default function VestTrackerDashboard({ showToast }) {
   }, [completedGames, outfitStats]);
 
   // ── Streak Badges per outfit ──
-  const outfitBadges = useMemo(() => {
-    const badges = {};
+  const outfitBadges = useMemo<Record<string, string[]>>(() => {
+    const badges: Record<string, string[]> = {};
     for (const stat of outfitStats) {
-      const b = [];
+      const b: string[] = [];
       const s = countTrailingStreak(stat.recentResults);
       if (s && s.count >= 3 && s.result === 'W') b.push(`${s.count}-Game Heater`);
       else if (s && s.count >= 3 && s.result === 'L') b.push(`${s.count}-Game Skid`);
@@ -604,7 +610,7 @@ export default function VestTrackerDashboard({ showToast }) {
   }, [recommendation, sortedGames, netLookup, outfitStats]);
 
   // ── Head-to-Head Outfit Comparison ──
-  const [compareOutfits, setCompareOutfits] = useState([null, null]);
+  const [compareOutfits, setCompareOutfits] = useState<[string | null, string | null]>([null, null]);
 
   const comparisonData = useMemo(() => {
     const [a, b] = compareOutfits;
@@ -624,10 +630,10 @@ export default function VestTrackerDashboard({ showToast }) {
     if (!completedGames.length) return [];
 
     let maxStreak = 0, curStreak = 0;
-    const outfitStreaks = {};
-    let firstQ1Road = null;
-    let worstLoss = null, worstRank = 0;
-    let bestWin = null, bestRank = 999;
+    const outfitStreaks: Record<string, { max: number; cur: number }> = {};
+    let firstQ1Road: any = null;
+    let worstLoss: any = null, worstRank = 0;
+    let bestWin: any = null, bestRank = 999;
     let otWins = 0, otTotal = 0;
 
     for (const g of completedGames) {
@@ -663,10 +669,10 @@ export default function VestTrackerDashboard({ showToast }) {
       if (g.overtime) { otTotal++; if (g.result === 'W') otWins++; }
     }
 
-    const ms = [];
+    const ms: Array<{ icon: string; text: string }> = [];
     if (maxStreak >= 3) ms.push({ icon: '🔥', text: `Longest win streak: ${maxStreak} games` });
 
-    let bestOutfitStreak = { outfit: null, count: 0 };
+    let bestOutfitStreak: { outfit: string | null; count: number } = { outfit: null, count: 0 };
     for (const [outfit, data] of Object.entries(outfitStreaks)) {
       if (data.max > bestOutfitStreak.count) bestOutfitStreak = { outfit, count: data.max };
     }
@@ -680,12 +686,12 @@ export default function VestTrackerDashboard({ showToast }) {
   }, [completedGames, netLookup]);
 
   // ── Coffee + Vest Crossover ──
-  const [coffeeVisits, setCoffeeVisits] = useState([]);
+  const [coffeeVisits, setCoffeeVisits] = useState<Visit[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     fetchVisits()
-      .then(data => {
+      .then((data: any) => {
         if (!cancelled) setCoffeeVisits(Array.isArray(data) ? data : data?.visits || []);
       })
       .catch(() => {});
@@ -695,14 +701,14 @@ export default function VestTrackerDashboard({ showToast }) {
   const coffeeCrossover = useMemo(() => {
     if (!coffeeVisits.length || !completedGames.length) return [];
     // For each completed game, check if there was a coffee visit on the same day
-    const gameDateMap = {};
+    const gameDateMap: any = {};
     for (const g of completedGames) {
       if (g.date) gameDateMap[g.date] = g;
     }
 
     // Group by drink
-    const drinkStats = {};
-    for (const visit of coffeeVisits) {
+    const drinkStats: any = {};
+    for (const visit of coffeeVisits as any[]) {
       const visitDate = toIsoDate(visit.date || visit.visitDate);
       const game = gameDateMap[visitDate];
       if (!game) continue;
@@ -714,7 +720,7 @@ export default function VestTrackerDashboard({ showToast }) {
       if (game.result === 'L') drinkStats[drink].losses++;
     }
 
-    return Object.entries(drinkStats)
+    return (Object.entries(drinkStats) as Array<[string, { wins: number; losses: number }]>)
       .filter(([, s]) => s.wins + s.losses >= 2)
       .map(([drink, s]) => ({
         drink,
@@ -788,8 +794,8 @@ export default function VestTrackerDashboard({ showToast }) {
   }, [scoutingReport, outfitStats, completedGames]);
 
   // ── AI Blurb ──
-  const [aiBlurb, setAiBlurb] = useState('');
-  const [aiBlurbLoading, setAiBlurbLoading] = useState(false);
+  const [aiBlurb, setAiBlurb] = useState<string>('');
+  const [aiBlurbLoading, setAiBlurbLoading] = useState<boolean>(false);
 
   const generateBlurb = async () => {
     if (!recommendation || aiBlurbLoading) return;
@@ -888,7 +894,7 @@ export default function VestTrackerDashboard({ showToast }) {
           ].map((tab) => (
             <button
               key={tab.value}
-              onClick={() => setVestTab(tab.value)}
+              onClick={() => setVestTab(tab.value as 'dashboard' | 'game-stats' | 'rankings')}
               className={`flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium transition-colors border-r last:border-r-0 border-stone-300 dark:border-stone-600 ${
                 vestTab === tab.value
                   ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
@@ -922,7 +928,7 @@ export default function VestTrackerDashboard({ showToast }) {
         ].map((tab) => (
           <button
             key={tab.value}
-            onClick={() => setVestTab(tab.value)}
+            onClick={() => setVestTab(tab.value as 'dashboard' | 'game-stats' | 'rankings')}
             className={`flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium transition-colors border-r last:border-r-0 border-stone-300 dark:border-stone-600 ${
               vestTab === tab.value
                 ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
@@ -1237,7 +1243,7 @@ export default function VestTrackerDashboard({ showToast }) {
                 onChange={(e) => {
                   const val = e.target.value || null;
                   setCompareOutfits((prev) => {
-                    const next = [...prev];
+                    const next: [string | null, string | null] = [...prev];
                     next[slot] = val;
                     return next;
                   });

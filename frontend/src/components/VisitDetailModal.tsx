@@ -8,6 +8,7 @@ import { formatDate, getRelativeLabel } from '../utils/dates';
 import { shareVisitCard } from '../utils/shareCard';
 import { uploadPhoto } from '../utils/api';
 import useFocusTrap from '../hooks/useFocusTrap';
+import type { Visit } from '../types';
 
 const coffeeIcon = L.divIcon({
   html: '<span style="font-size:28px;line-height:1;display:block;">☕</span>',
@@ -16,14 +17,33 @@ const coffeeIcon = L.divIcon({
   iconAnchor: [16, 32],
 });
 
-export default function VisitDetailModal({ visit, visits, onClose, onNavigate, onUpdate, onEdit, onDelete, onDuplicate }) {
-  const modalRef = useRef(null);
+interface ConfirmAction {
+  type: 'delete' | 'duplicate';
+  title: string;
+  message: string;
+  confirmText: string;
+  onConfirm: () => void | Promise<void>;
+}
+
+interface Props {
+  visit: Visit;
+  visits: Visit[];
+  onClose: () => void;
+  onNavigate: (visit: Visit) => void;
+  onUpdate: (id: number, visit: Visit) => Promise<void> | void;
+  onEdit: (visit: Visit) => void;
+  onDelete: (id: number) => void;
+  onDuplicate?: (visit: Visit) => void;
+}
+
+export default function VisitDetailModal({ visit, visits, onClose, onNavigate, onUpdate, onEdit, onDelete, onDuplicate }: Props) {
+  const modalRef = useRef<HTMLDivElement>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [photoError, setPhotoError] = useState(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [cropping, setCropping] = useState(false);
-  const [imageToCrop, setImageToCrop] = useState(null);
-  const [confirmAction, setConfirmAction] = useState(null);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
   const [sharing, setSharing] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -50,8 +70,9 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
   const nextVisit = currentIndex < visits.length - 1 ? visits[currentIndex + 1] : null;
 
   useEffect(() => {
-    const onArrow = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    const onArrow = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') return;
       if (e.key === 'ArrowLeft' && prevVisit) {
         onNavigate(prevVisit);
       } else if (e.key === 'ArrowRight' && nextVisit) {
@@ -70,7 +91,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
     return () => observer.disconnect();
   }, []);
 
-  const handlePhotoUpload = async (file) => {
+  const handlePhotoUpload = async (file: File | Blob | null | undefined) => {
     if (!file) return;
 
     setUploading(true);
@@ -90,11 +111,12 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
     input.type = 'file';
     input.accept = 'image/*';
     input.onchange = (e) => {
-      const file = e.target.files[0];
+      const target = e.target as HTMLInputElement;
+      const file = target.files?.[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = () => {
-          setImageToCrop(reader.result);
+          setImageToCrop(reader.result as string);
           setCropping(true);
         };
         reader.readAsDataURL(file);
@@ -103,7 +125,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
     input.click();
   };
 
-  const handleCropComplete = async (croppedFile) => {
+  const handleCropComplete = async (croppedFile: File | Blob) => {
     setCropping(false);
     setImageToCrop(null);
     await handlePhotoUpload(croppedFile);
@@ -114,14 +136,14 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
     setImageToCrop(null);
   };
 
-  const handlePhotoDrop = (e) => {
+  const handlePhotoDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDraggingPhoto(false);
     const file = e.dataTransfer.files[0];
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = () => {
-        setImageToCrop(reader.result);
+        setImageToCrop(reader.result as string);
         setCropping(true);
       };
       reader.readAsDataURL(file);
@@ -206,7 +228,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
   const hasCoordinates = Number.isFinite(Number(visit.coffee_shop_lat)) && Number.isFinite(Number(visit.coffee_shop_lng));
 
-  const mapCenter = useMemo(() => {
+  const mapCenter = useMemo<[number, number] | null>(() => {
     if (!hasCoordinates) return null;
     return [Number(visit.coffee_shop_lat), Number(visit.coffee_shop_lng)];
   }, [hasCoordinates, visit.coffee_shop_lat, visit.coffee_shop_lng]);
@@ -604,7 +626,13 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
   );
 }
 
-function ScoreCell({ label, score, isTotal = false }) {
+interface ScoreCellProps {
+  label: string;
+  score: number;
+  isTotal?: boolean;
+}
+
+function ScoreCell({ label, score, isTotal = false }: ScoreCellProps) {
   const bgColor = isTotal ? getCompositeColor(score) : getRatingColor(score);
   const maxVal = isTotal ? 20 : 10;
 

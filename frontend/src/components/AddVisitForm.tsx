@@ -4,8 +4,16 @@ import AutocompleteInput from './AutocompleteInput';
 import PlacesAutocomplete from './PlacesAutocomplete';
 import { getTodayDateString } from '../utils/dates';
 import { uploadPhoto } from '../utils/api';
+import type { Visit, VisitInput } from '../types';
 
-const BIG_TEN_TEAMS = {
+interface Props {
+  onSubmit: (visit: VisitInput) => void | Promise<void>;
+  onCancel: () => void;
+  initialData?: Visit | null;
+  visits?: Visit[];
+}
+
+const BIG_TEN_TEAMS: Record<string, string> = {
   'minneapolis': 'Minnesota Golden Gophers',
   'minneapolis, mn': 'Minnesota Golden Gophers',
   'madison': 'Wisconsin Badgers',
@@ -42,17 +50,20 @@ const BIG_TEN_TEAMS = {
 const FI = 'w-full bg-transparent border-none outline-none focus:ring-0 text-[15px] text-stone-900 dark:text-stone-50 placeholder:text-stone-300 dark:placeholder:text-stone-600';
 const FS = 'w-full bg-transparent border-none outline-none focus:ring-0 text-[15px] text-stone-900 dark:text-stone-50 appearance-none cursor-pointer';
 
-export default function AddVisitForm({ onSubmit, onCancel, initialData = null, visits = [] }) {
+export default function AddVisitForm({ onSubmit, onCancel, initialData = null, visits = [] }: Props) {
   const isEditing = Boolean(initialData);
 
-  const suggestions = useMemo(() => ({
-    coffeeShops: [...new Set(visits.map((v) => v.coffee_shop_name).filter(Boolean))].sort(),
-    cities: [...new Set(visits.map((v) => v.city).filter(Boolean))].sort(),
-    opponents: [...new Set(visits.map((v) => v.opponent).filter(Boolean))].sort(),
-    orders: [...new Set(visits.map((v) => v.coffee_order).filter(Boolean))].sort(),
-  }), [visits]);
+  const suggestions = useMemo(() => {
+    const isNonEmpty = (v: string | null | undefined): v is string => Boolean(v);
+    return {
+      coffeeShops: [...new Set(visits.map((v) => v.coffee_shop_name).filter(isNonEmpty))].sort(),
+      cities: [...new Set(visits.map((v) => v.city).filter(isNonEmpty))].sort(),
+      opponents: [...new Set(visits.map((v) => v.opponent).filter(isNonEmpty))].sort(),
+      orders: [...new Set(visits.map((v) => v.coffee_order).filter(isNonEmpty))].sort(),
+    };
+  }, [visits]);
 
-  const [formData, setFormData] = useState(
+  const [formData, setFormData] = useState<any>(
     initialData || {
       date: getTodayDateString(),
       coffee_shop_name: '',
@@ -71,16 +82,16 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
     }
   );
 
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [showCustomSport, setShowCustomSport] = useState(false);
-  const [photoFile, setPhotoFile] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(initialData?.photo_url || null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(initialData?.photo_url || null);
   const [uploading, setUploading] = useState(false);
   const [cropping, setCropping] = useState(false);
-  const [imageToCrop, setImageToCrop] = useState(null);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name } = e.target;
     let { value } = e.target;
 
@@ -97,7 +108,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
       return;
     }
 
-    const updates = { [name]: value };
+    const updates: Record<string, string> = { [name]: value };
 
     if (name === 'city' && value) {
       const cityLower = value.toLowerCase().trim();
@@ -115,10 +126,10 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
     return parts[0] || '';
   };
 
-  const handlePlaceSelected = (place) => {
+  const handlePlaceSelected = (place: any) => {
     if (!place) return;
     const cityFromAddress = extractCityFromAddress(place.address);
-    const updates = {
+    const updates: Record<string, string | number> = {
       coffee_shop_name: place.name || formData.coffee_shop_name,
       coffee_shop_address: place.address || formData.coffee_shop_address,
       coffee_shop_place_id: place.place_id || '',
@@ -130,39 +141,39 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
       const matchedTeam = BIG_TEN_TEAMS[cityFromAddress.toLowerCase()];
       if (matchedTeam && !formData.opponent) updates.opponent = matchedTeam;
     }
-    setFormData((prev) => ({ ...prev, ...updates }));
+    setFormData((prev: any) => ({ ...prev, ...updates }));
   };
 
-  const processPhotoFile = (file) => {
+  const processPhotoFile = (file: File | undefined | null) => {
     if (!file || !file.type.startsWith('image/')) return;
     const reader = new FileReader();
-    reader.onload = () => { setImageToCrop(reader.result); setCropping(true); };
+    reader.onload = () => { setImageToCrop(reader.result as string); setCropping(true); };
     reader.readAsDataURL(file);
   };
 
-  const handlePhotoChange = (e) => {
-    processPhotoFile(e.target.files[0]);
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    processPhotoFile(e.target.files?.[0]);
   };
 
-  const handleDrop = (e) => {
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     setDragging(false);
     processPhotoFile(e.dataTransfer.files[0]);
   };
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     setDragging(true);
   };
 
   const handleDragLeave = () => setDragging(false);
 
-  const handleCropComplete = (croppedFile) => {
+  const handleCropComplete = (croppedFile: File) => {
     setCropping(false);
     setImageToCrop(null);
     setPhotoFile(croppedFile);
     const reader = new FileReader();
-    reader.onloadend = () => setPhotoPreview(reader.result);
+    reader.onloadend = () => setPhotoPreview(reader.result as string);
     reader.readAsDataURL(croppedFile);
   };
 
@@ -178,7 +189,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
     setFormData({ ...formData, photo_url: '' });
   };
 
-  const validateField = (name, value) => {
+  const validateField = (name: string, value: string) => {
     if (name === 'date' && !value) return 'Date is required';
     if (name === 'coffee_shop_name' && !value) return 'Coffee shop is required';
     if (name === 'vibe_rating') {
@@ -194,14 +205,14 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
     return '';
   };
 
-  const handleBlur = (e) => {
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     const error = validateField(name, value);
     if (error) setErrors((prev) => ({ ...prev, [name]: error }));
   };
 
   const validate = () => {
-    const newErrors = {};
+    const newErrors: Record<string, string> = {};
     for (const name of ['date', 'coffee_shop_name', 'vibe_rating', 'coffee_rating']) {
       const error = validateField(name, formData[name]);
       if (error) newErrors[name] = error;
@@ -210,7 +221,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!validate()) return;
     setUploading(true);
@@ -296,9 +307,9 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
           <Field label="Coffee Shop" required error={errors.coffee_shop_name}>
             <PlacesAutocomplete
               value={formData.coffee_shop_name}
-              onChange={(e) => {
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 const nextValue = e.target.value;
-                setFormData((prev) => ({
+                setFormData((prev: any) => ({
                   ...prev,
                   coffee_shop_name: nextValue,
                   ...(!isEditing && {
@@ -505,7 +516,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
-function FormSection({ title, children }) {
+function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-400 dark:text-stone-500 mb-2 pl-1">
@@ -519,7 +530,7 @@ function FormSection({ title, children }) {
   );
 }
 
-function FieldRow({ children }) {
+function FieldRow({ children }: { children: React.ReactNode }) {
   return (
     <div className="grid grid-cols-2 divide-x divide-stone-100 dark:divide-stone-700/50">
       {children}
@@ -527,7 +538,7 @@ function FieldRow({ children }) {
   );
 }
 
-function Field({ label, required = false, error, children }) {
+function Field({ label, required = false, error, children }: { label: string; required?: boolean; error?: string; children: React.ReactNode }) {
   return (
     <div className="px-4 py-3.5 focus-within:bg-stone-50/80 dark:focus-within:bg-stone-700/20 transition-colors">
       <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 mb-1.5 select-none">

@@ -1,20 +1,32 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fetchVestScores, fetchVestGameStats } from '../utils/api';
+import type { VestGame, VestGameStats } from '../types';
+
+interface Props {
+  games: VestGame[];
+}
 
 const MONTHS = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'Jun.', 'Jul.', 'Aug.', 'Sep.', 'Oct.', 'Nov.', 'Dec.'];
 
-const formatDate = (dateStr) => {
+const formatDate = (dateStr: string | null | undefined): string => {
   if (!dateStr) return '';
   const parts = (dateStr || '').slice(0, 10).split('-');
   if (parts.length < 3) return dateStr;
   return `${MONTHS[parseInt(parts[1], 10) - 1]} ${parseInt(parts[2], 10)}`;
 };
 
-const locLabel = (loc) => (loc === '@' ? '@ ' : loc === 'N' ? 'vs ' : 'vs ');
+const locLabel = (loc: string | null | undefined): string => (loc === '@' ? '@ ' : loc === 'N' ? 'vs ' : 'vs ');
 
 // ── Stat card helpers ──
 
-function StatCard({ label, value, sub, highlight }) {
+interface StatCardProps {
+  label: string;
+  value: any;
+  sub?: any;
+  highlight?: boolean;
+}
+
+function StatCard({ label, value, sub, highlight }: StatCardProps) {
   return (
     <div className={`rounded-xl border px-3 py-3 text-center ${highlight ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-900/20' : 'border-stone-200 bg-stone-50 dark:border-stone-600 dark:bg-stone-700/40'}`}>
       <p className="text-[10px] uppercase tracking-[0.1em] text-stone-400 dark:text-stone-500 font-semibold">{label}</p>
@@ -24,7 +36,14 @@ function StatCard({ label, value, sub, highlight }) {
   );
 }
 
-function BarStat({ label, wi, opp, format = 'pct' }) {
+interface BarStatProps {
+  label: string;
+  wi: number | null | undefined;
+  opp: number | null | undefined;
+  format?: 'pct' | 'num';
+}
+
+function BarStat({ label, wi, opp, format = 'pct' }: BarStatProps) {
   const wiVal = typeof wi === 'number' ? wi : 0;
   const oppVal = typeof opp === 'number' ? opp : 0;
   const total = wiVal + oppVal || 1;
@@ -52,37 +71,37 @@ function BarStat({ label, wi, opp, format = 'pct' }) {
 
 // ── Fun Stats Computation ──
 
-function computeFunStats(games, vestGames) {
+function computeFunStats(games: any[], vestGames: VestGame[]): any {
   if (!games.length) return null;
 
   const completed = games.filter((g) => g.wisconsin_score != null && g.opponent_score != null);
   if (!completed.length) return null;
 
   // Build outfit map from vest games
-  const outfitByDate = {};
+  const outfitByDate: Record<string, string> = {};
   for (const vg of vestGames) {
     if (vg.date && vg.outfit) outfitByDate[vg.date] = vg.outfit;
   }
 
   // Basic aggregates
   let totalWiScore = 0, totalOppScore = 0;
-  let biggestWin = null, biggestWinMargin = 0;
-  let closestGame = null, closestMargin = 999;
-  let biggestLoss = null, biggestLossMargin = 0;
+  let biggestWin: any = null, biggestWinMargin = 0;
+  let closestGame: any = null, closestMargin = 999;
+  let biggestLoss: any = null, biggestLossMargin = 0;
   let comebackWins = 0, blownLeads = 0;
   let leadsAtHalf = 0, trailsAtHalf = 0, tiedAtHalf = 0;
   let winsWhenLeadingAtHalf = 0, winsWhenTrailingAtHalf = 0;
 
   // By broadcast
-  const broadcastStats = {};
+  const broadcastStats: Record<string, { wins: number; losses: number }> = {};
   // By outfit + scoring
-  const outfitScoring = {};
+  const outfitScoring: Record<string, { scored: number; allowed: number; games: number; margins: number[] }> = {};
   // Player leader counts
-  const playerPtsCount = {};
-  const playerRebCount = {};
-  const playerAstCount = {};
+  const playerPtsCount: Record<string, number> = {};
+  const playerRebCount: Record<string, number> = {};
+  const playerAstCount: Record<string, number> = {};
   // Score distribution
-  const margins = [];
+  const margins: number[] = [];
 
   for (const g of completed) {
     const wiScore = g.wisconsin_score;
@@ -189,7 +208,7 @@ function computeFunStats(games, vestGames) {
   const topAssist = Object.entries(playerAstCount).sort((a, b) => b[1] - a[1])[0];
 
   // Player-outfit combos: which player leads scoring most often in each outfit
-  const outfitPlayerMap = {};
+  const outfitPlayerMap: Record<string, Record<string, number>> = {};
   for (const g of completed) {
     const date = g.date?.slice(0, 10);
     const outfit = outfitByDate[date] || g.outfit;
@@ -237,11 +256,11 @@ function computeFunStats(games, vestGames) {
 
 // ── Main Component ──
 
-export default function GameStatsPanel({ games: vestGames }) {
-  const [scoreData, setScoreData] = useState([]);
-  const [scoreStatus, setScoreStatus] = useState('idle');
-  const [expandedGame, setExpandedGame] = useState(null);
-  const [gameDetail, setGameDetail] = useState(null);
+export default function GameStatsPanel({ games: vestGames }: Props) {
+  const [scoreData, setScoreData] = useState<any[]>([]);
+  const [scoreStatus, setScoreStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
+  const [expandedGame, setExpandedGame] = useState<string | null>(null);
+  const [gameDetail, setGameDetail] = useState<VestGameStats | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
   useEffect(() => {
@@ -249,7 +268,7 @@ export default function GameStatsPanel({ games: vestGames }) {
     setScoreStatus('loading');
 
     fetchVestScores()
-      .then((data) => {
+      .then((data: any) => {
         if (!cancelled) {
           setScoreData(Array.isArray(data.games) ? data.games : []);
           setScoreStatus('loaded');
@@ -267,7 +286,7 @@ export default function GameStatsPanel({ games: vestGames }) {
     [scoreData, vestGames]
   );
 
-  const handleExpandGame = async (game) => {
+  const handleExpandGame = async (game: any) => {
     if (expandedGame === game.espn_event_id) {
       setExpandedGame(null);
       setGameDetail(null);
@@ -280,7 +299,7 @@ export default function GameStatsPanel({ games: vestGames }) {
 
     setDetailLoading(true);
     try {
-      const { stats } = await fetchVestGameStats(game.espn_event_id);
+      const { stats } = (await fetchVestGameStats(game.espn_event_id)) as { stats: VestGameStats };
       setGameDetail(stats);
     } catch {
       setGameDetail(null);

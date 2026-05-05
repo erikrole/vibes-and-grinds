@@ -1,4 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent } from 'react';
+
+interface AutocompleteInputProps {
+  value: string;
+  // Accepts either a real <input> ChangeEvent or a synthetic { target: { name, value } }
+  // object emitted when the user clicks a suggestion — kept as `any` because the
+  // dual nature isn't expressible without contravariance pain at every callsite.
+  onChange: (event: any) => void;
+  suggestions?: string[];
+  placeholder?: string;
+  className?: string;
+  name?: string;
+  type?: string;
+  required?: boolean;
+}
 
 export default function AutocompleteInput({
   value,
@@ -9,12 +23,12 @@ export default function AutocompleteInput({
   name = '',
   type = 'text',
   required = false,
-}) {
+}: AutocompleteInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [filteredSuggestions, setFilteredSuggestions] = useState([]);
-  const inputRef = useRef(null);
-  const dropdownRef = useRef(null);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!value || suggestions.length === 0) {
@@ -30,14 +44,14 @@ export default function AutocompleteInput({
     setFilteredSuggestions(filtered);
   }, [value, suggestions]);
 
-  // Close suggestions when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
       if (
         inputRef.current &&
-        !inputRef.current.contains(event.target) &&
+        !inputRef.current.contains(target) &&
         dropdownRef.current &&
-        !dropdownRef.current.contains(event.target)
+        !dropdownRef.current.contains(target)
       ) {
         setShowSuggestions(false);
         setIsFocused(false);
@@ -48,13 +62,13 @@ export default function AutocompleteInput({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSelectSuggestion = (suggestion) => {
+  const handleSelectSuggestion = (suggestion: string) => {
     onChange({ target: { name, value: suggestion } });
     setShowSuggestions(false);
     setIsFocused(false);
   };
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     onChange(e);
     const hasValue = Boolean(e.target.value.trim());
     setShowSuggestions(hasValue);
