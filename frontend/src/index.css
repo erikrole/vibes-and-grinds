@@ -13,40 +13,83 @@
 
 @layer base {
   :root {
-    --rating-low-r: 220;
-    --rating-low-g: 38;
-    --rating-low-b: 38;
-    --rating-mid-r: 220;
-    --rating-mid-g: 184;
-    --rating-mid-b: 38;
-    --rating-high-r: 34;
-    --rating-high-g: 197;
-    --rating-high-b: 94;
+    --paper: #f5f0e6;
+    --paper-2: #ffffff;
+    --paper-tint: #ece4d3;
+    --ink: #1d1815;
+    --ink-soft: #6f6356;
+    --ink-faint: #7a6e5e;
+    --rule: #d8cdb8;
+    --latte: #b89977;
+    --latte-deep: #8c6e4f;
+    --accent: #d96f2e;
+    --accent-soft: #f2c7a8;
+  }
+
+  .dark {
+    --paper: #14110e;
+    --paper-2: #1d1814;
+    --paper-tint: #2a231d;
+    --ink: #f5ede0;
+    --ink-soft: #b8aa97;
+    --ink-faint: #a89c87;
+    --rule: #3a312a;
+    --latte: #c89870;
+    --latte-deep: #a07a52;
+    --accent: #ec8a4f;
+    --accent-soft: #5a3a23;
   }
 
   body {
-    @apply bg-stone-50 dark:bg-stone-900 text-stone-700 dark:text-stone-200 transition-colors duration-200;
-    font-family: 'Fraunces', 'Georgia', serif;
+    color: var(--ink);
+    background-color: var(--paper);
+    background-image:
+      radial-gradient(ellipse 90% 50% at 90% -10%, rgba(217, 111, 46, 0.10) 0, transparent 65%),
+      radial-gradient(ellipse 70% 50% at -10% 110%, rgba(184, 153, 119, 0.18) 0, transparent 65%);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-feature-settings: "cv11", "ss01", "ss03";
     font-weight: 400;
-    line-height: 1.5;
+    line-height: 1.55;
+    letter-spacing: -0.005em;
+    transition: background-color 200ms;
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(ellipse 90% 50% at 90% -10%, rgba(236, 138, 79, 0.10) 0, transparent 65%),
+      radial-gradient(ellipse 70% 50% at -10% 110%, rgba(160, 122, 82, 0.10) 0, transparent 65%);
   }
 
   h1, h2, h3 {
-    font-family: 'Fraunces', 'Georgia', serif;
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: -0.02em;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply px-5 py-2.5 bg-stone-800 dark:bg-stone-700 text-stone-50 rounded-xl hover:bg-stone-900 dark:hover:bg-stone-600 transition-all font-medium tracking-wide;
+    @apply px-5 py-2.5 rounded-full transition-all font-medium;
+    background: var(--ink);
+    color: var(--paper);
+    letter-spacing: -0.005em;
   }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 20px -8px rgba(29, 24, 21, 0.3); }
+  .dark .btn-primary { background: var(--accent); color: #fff; }
+  .dark .btn-primary:hover { box-shadow: 0 8px 20px -8px rgba(236, 138, 79, 0.45); }
 
   .btn-secondary {
-    @apply px-5 py-2.5 bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-100 rounded-xl hover:bg-stone-200 dark:hover:bg-stone-600 transition-all font-medium;
+    @apply px-5 py-2.5 rounded-full transition-all font-medium;
+    background: var(--paper-tint);
+    color: var(--ink);
   }
+  .btn-secondary:hover { background: var(--rule); }
 
   .input-field {
-    @apply w-full px-4 py-2.5 border border-stone-300 dark:border-stone-600 rounded-xl focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 focus:border-stone-400 dark:focus:border-stone-500 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-50;
+    @apply w-full px-4 py-2.5 rounded-2xl bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-50 border border-stone-300 dark:border-stone-600 focus:outline-none transition-all;
+  }
+  .input-field:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(217, 111, 46, 0.12);
   }
 
   .card {
@@ -69,11 +112,177 @@
   }
 
   .coffee-shop-name {
-    @apply text-stone-900 dark:text-stone-50;
+    color: var(--ink);
     font-family: 'Fraunces', 'Georgia', serif;
-    font-weight: 900;
-    letter-spacing: 0.05em;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-transform: none;
+  }
+
+  /* Modern café signage system — Vibes page */
+  .eyebrow {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-style: normal;
+    font-weight: 600;
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .smallcap {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 500;
+    color: var(--ink-soft);
+  }
+
+  .rule-h {
+    height: 1px;
+    background-color: var(--rule);
+    opacity: 0.5;
+  }
+  .rule-v {
+    width: 1px;
+    background-color: var(--rule);
+    opacity: 0.4;
+  }
+
+  .hero-numeral {
+    font-family: 'Fraunces', 'Georgia', serif;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums lining-nums;
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+    color: var(--ink);
+  }
+
+  .copper-accent { color: var(--accent); }
+
+  /* Modern pill */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.875rem;
+    border-radius: 999px;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--ink);
+    transition: all 180ms ease;
+  }
+  .pill:hover { transform: translateY(-1px); border-color: var(--accent); }
+  .pill .pill-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    padding: 0 0.4rem;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .dark .pill .pill-count { color: var(--accent); }
+
+  /* Dot-leader list (menu / index style) */
+  .dot-leader {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+  .dot-leader > .dots {
+    flex: 1 1 auto;
+    border-bottom: 1.5px dotted var(--latte);
+    opacity: 0.55;
+    transform: translateY(-0.25rem);
+    min-width: 1.5rem;
+  }
+
+  /* Modern tab — pill segment with accent */
+  .tab-edge {
+    position: relative;
+    padding: 0.5rem 0.25rem 0.7rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 500;
+    color: var(--ink-soft);
+    letter-spacing: -0.005em;
+    transition: color 200ms ease;
+  }
+  .tab-edge:hover { color: var(--ink); }
+  .tab-edge[aria-pressed="true"],
+  .tab-edge.active {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .tab-edge[aria-pressed="true"]::after,
+  .tab-edge.active::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 2px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* Modern FAB — espresso with persimmon ring on hover */
+  .fab-press {
+    background: var(--ink);
+    color: var(--paper);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.10) inset,
+      0 10px 30px -10px rgba(29, 24, 21, 0.45);
+    transition: all 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .dark .fab-press {
+    background: var(--accent);
+    color: #fff;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.15) inset,
+      0 10px 30px -10px rgba(217, 111, 46, 0.5);
+  }
+  .fab-press:hover {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.10) inset,
+      0 18px 36px -12px rgba(29, 24, 21, 0.5),
+      0 0 0 6px rgba(217, 111, 46, 0.18);
+  }
+  .fab-press:active { transform: translateY(0) scale(1); }
+
+  /* Modern soft card */
+  .paper-card {
+    background-color: var(--paper-2);
+    border-radius: 28px;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.7) inset,
+      0 1px 2px rgba(29, 24, 21, 0.04),
+      0 12px 32px -16px rgba(29, 24, 21, 0.10);
+  }
+  .dark .paper-card {
+    background-color: var(--paper-2);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.04) inset,
+      0 1px 2px rgba(0, 0, 0, 0.4),
+      0 12px 32px -16px rgba(0, 0, 0, 0.6);
+  }
+
+  /* Subtle accent dot — for live/now markers */
+  .dot-now {
+    width: 0.5rem; height: 0.5rem; border-radius: 999px;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px rgba(217, 111, 46, 0.15);
+    animation: dot-pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes dot-pulse {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(217, 111, 46, 0.15); }
+    50% { box-shadow: 0 0 0 7px rgba(217, 111, 46, 0.06); }
   }
 
   /* Vest Tracker: sans-serif override */

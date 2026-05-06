@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import PhotoCropper from './PhotoCropper';
-import { getRatingColor, getCompositeColor, getTextColor } from '../utils/colors';
+import { getRatingColor, getCompositeColor } from '../utils/colors';
 import { formatDate, getRelativeLabel } from '../utils/dates';
 import { shareVisitCard } from '../utils/shareCard';
 import useFocusTrap from '../hooks/useFocusTrap';
@@ -233,7 +233,8 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
       <div className="flex min-h-full items-end sm:items-center justify-center sm:p-4">
         <div
           ref={modalRef}
-          className={`${closing ? 'animate-modal-out' : 'animate-modal-in'} relative w-full max-w-2xl bg-white dark:bg-stone-800 rounded-t-2xl sm:rounded-3xl shadow-2xl overflow-hidden border border-stone-200/60 dark:border-stone-600/60 transition-colors max-h-[92vh] sm:max-h-[85vh] overflow-y-auto`}
+          className={`${closing ? 'animate-modal-out' : 'animate-modal-in'} relative w-full max-w-2xl rounded-t-3xl sm:rounded-[28px] shadow-2xl overflow-hidden transition-colors max-h-[92vh] sm:max-h-[85vh] overflow-y-auto`}
+          style={{ backgroundColor: 'var(--paper-2)' }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Photo or decorative header */}
@@ -403,73 +404,70 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
             )}
 
             {/* Title */}
-            <h2 className="coffee-shop-name text-2xl sm:text-3xl md:text-4xl pr-24 leading-tight">
+            <h2
+              className="text-2xl sm:text-3xl md:text-4xl pr-24 leading-tight"
+              style={{
+                fontFamily: 'Fraunces, Georgia, serif',
+                fontWeight: 600,
+                letterSpacing: '-0.025em',
+                color: 'var(--ink)',
+              }}
+            >
               {visit.coffee_shop_name}
             </h2>
 
-            {/* Date with relative label */}
-            <p className="text-sm text-stone-500 dark:text-stone-400 mt-2.5 flex items-center gap-2">
-              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span>
-                {relativeLabel && (
-                  <span className="font-semibold text-stone-700 dark:text-stone-200 mr-1.5">{relativeLabel} &middot;</span>
-                )}
-                {formattedDate}
-              </span>
-            </p>
+            {/* Inline metadata */}
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-stone-600 dark:text-stone-300">
+              {relativeLabel && (
+                <>
+                  <span className="font-medium" style={{ color: 'var(--ink)' }}>{relativeLabel}</span>
+                  <span className="text-stone-300 dark:text-stone-600">·</span>
+                </>
+              )}
+              <span className="text-stone-500 dark:text-stone-400">{formattedDate}</span>
+              {visit.city && (
+                <>
+                  <span className="text-stone-300 dark:text-stone-600">·</span>
+                  <span>{visit.city}</span>
+                </>
+              )}
+              {visit.opponent && (
+                <>
+                  <span className="text-stone-300 dark:text-stone-600">·</span>
+                  <span>vs {visit.opponent}</span>
+                </>
+              )}
+              {visit.sport && (
+                <>
+                  <span className="text-stone-300 dark:text-stone-600">·</span>
+                  <span className="text-stone-500 dark:text-stone-400">{visit.sport}</span>
+                </>
+              )}
+            </div>
 
-            {/* Metadata tags with icons */}
-            {(visit.city || visit.sport || visit.opponent) && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {visit.city && (
-                  <span className="detail-tag inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-stone-100 dark:bg-stone-700/60 text-stone-600 dark:text-stone-300 border border-stone-200/60 dark:border-stone-600/40">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    {visit.city}
-                  </span>
-                )}
-                {visit.sport && (
-                  <span className="detail-tag inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-stone-100 dark:bg-stone-700/60 text-stone-600 dark:text-stone-300 border border-stone-200/60 dark:border-stone-600/40">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    {visit.sport}
-                  </span>
-                )}
-                {visit.opponent && (
-                  <span className="detail-tag inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-stone-100 dark:bg-stone-700/60 text-stone-600 dark:text-stone-300 border border-stone-200/60 dark:border-stone-600/40">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                    {visit.opponent}
-                  </span>
-                )}
-              </div>
-            )}
-
-            {/* Ratings — prominent with glow */}
-            <div className="mt-6 flex items-stretch justify-center gap-4 sm:gap-5">
+            {/* Ratings */}
+            <div className="mt-6 flex items-end justify-center gap-6 sm:gap-8">
               <ScoreCell label="Vibe" score={visit.vibe_rating} />
               <ScoreCell label="Coffee" score={visit.coffee_rating} />
-              <div className="w-px bg-stone-200 dark:bg-stone-600/50 self-stretch my-2" />
+              <div className="w-px self-stretch my-2" style={{ backgroundColor: 'var(--rule)', opacity: 0.4 }} />
               <ScoreCell label="Total" score={visit.composite_score} isTotal />
             </div>
 
             {/* Order card */}
             {visit.coffee_order && (
-              <div className="mt-5 flex items-center gap-4 p-4 sm:p-5 rounded-2xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200/60 dark:border-stone-600/60">
-                <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-stone-200/60 dark:bg-stone-700 flex items-center justify-center text-lg">
+              <div
+                className="mt-5 flex items-center gap-4 p-4 sm:p-5 rounded-2xl"
+                style={{ backgroundColor: 'var(--paper-tint)' }}
+              >
+                <div
+                  className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg"
+                  style={{ backgroundColor: 'var(--accent-soft)' }}
+                >
                   ☕
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 mb-0.5 select-none">
-                    Order
-                  </p>
-                  <p className="text-lg font-semibold text-stone-900 dark:text-stone-50 truncate">
+                  <p className="eyebrow mb-0.5 text-[0.65rem]">Order</p>
+                  <p className="text-lg font-semibold truncate" style={{ color: 'var(--ink)' }}>
                     {visit.coffee_order}
                   </p>
                 </div>
@@ -478,7 +476,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
             {/* Map */}
             {mapCenter && (
-              <div className="mt-5 relative rounded-2xl overflow-hidden border border-stone-200 dark:border-stone-700 h-40 sm:h-52 md:h-64 bg-stone-100 dark:bg-stone-700">
+              <div className="mt-5 relative rounded-3xl overflow-hidden h-40 sm:h-52 md:h-64 bg-stone-100 dark:bg-stone-700">
                 <div className="absolute inset-0 flex items-center justify-center z-0">
                   <div className="animate-pulse text-stone-300 dark:text-stone-600 text-sm">Loading map...</div>
                 </div>
@@ -525,11 +523,15 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
             {/* Notes - when no photo to overlay on */}
             {!visit.photo_url && visit.notes && (
-              <div className="mt-5 p-5 rounded-2xl bg-stone-50 dark:bg-stone-900/40 border border-stone-200/60 dark:border-stone-600/60 relative">
-                <svg className="absolute top-4 left-4 w-5 h-5 text-stone-300 dark:text-stone-600" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
-                </svg>
-                <p className="text-base text-stone-700 dark:text-stone-300 italic leading-relaxed pl-8">
+              <div
+                className="mt-5 p-5 sm:p-6 rounded-2xl"
+                style={{
+                  backgroundColor: 'var(--paper-tint)',
+                  borderLeft: '3px solid var(--accent)',
+                }}
+              >
+                <p className="eyebrow mb-2 text-[0.65rem]">Notes</p>
+                <p className="text-base leading-relaxed" style={{ color: 'var(--ink)' }}>
                   {visit.notes}
                 </p>
               </div>
@@ -537,31 +539,33 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
             {/* Prev/Next navigation */}
             {(prevVisit || nextVisit) && (
-              <div className="mt-6 pt-5 border-t border-stone-100 dark:border-stone-700/50 grid grid-cols-2 gap-3">
+              <div className="mt-6 pt-5 grid grid-cols-2 gap-3" style={{ borderTop: '1px solid var(--rule)' }}>
                 {prevVisit ? (
                   <button
                     onClick={() => onNavigate(prevVisit)}
-                    className="flex items-center gap-2.5 px-4 py-3 rounded-xl text-left bg-stone-50 dark:bg-stone-900/40 border border-stone-200/60 dark:border-stone-600/40 hover:border-stone-300 dark:hover:border-stone-500 hover:bg-stone-100 dark:hover:bg-stone-700/40 transition-all group"
+                    className="flex items-center gap-2.5 px-4 py-3 rounded-2xl text-left transition-all group hover:-translate-y-0.5"
+                    style={{ backgroundColor: 'var(--paper-tint)' }}
                   >
-                    <svg className="w-4 h-4 text-stone-400 dark:text-stone-500 group-hover:-translate-x-0.5 transition-transform flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform flex-shrink-0" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
                     <div className="min-w-0">
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">Previous</p>
-                      <p className="text-sm font-medium text-stone-700 dark:text-stone-200 truncate">{prevVisit.coffee_shop_name}</p>
+                      <p className="eyebrow text-[0.65rem]">Previous</p>
+                      <p className="text-sm font-medium truncate" style={{ color: 'var(--ink)' }}>{prevVisit.coffee_shop_name}</p>
                     </div>
                   </button>
                 ) : <div />}
                 {nextVisit ? (
                   <button
                     onClick={() => onNavigate(nextVisit)}
-                    className="flex items-center justify-end gap-2.5 px-4 py-3 rounded-xl text-right bg-stone-50 dark:bg-stone-900/40 border border-stone-200/60 dark:border-stone-600/40 hover:border-stone-300 dark:hover:border-stone-500 hover:bg-stone-100 dark:hover:bg-stone-700/40 transition-all group"
+                    className="flex items-center justify-end gap-2.5 px-4 py-3 rounded-2xl text-right transition-all group hover:-translate-y-0.5"
+                    style={{ backgroundColor: 'var(--paper-tint)' }}
                   >
                     <div className="min-w-0">
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500">Next</p>
-                      <p className="text-sm font-medium text-stone-700 dark:text-stone-200 truncate">{nextVisit.coffee_shop_name}</p>
+                      <p className="eyebrow text-[0.65rem]">Next</p>
+                      <p className="text-sm font-medium truncate" style={{ color: 'var(--ink)' }}>{nextVisit.coffee_shop_name}</p>
                     </div>
-                    <svg className="w-4 h-4 text-stone-400 dark:text-stone-500 group-hover:translate-x-0.5 transition-transform flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform flex-shrink-0" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </button>
@@ -579,21 +583,23 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
           onClick={() => setConfirmAction(null)}
         >
           <div
-            className="bg-white dark:bg-stone-800 rounded-3xl shadow-2xl max-w-sm w-full p-7 border border-stone-200/60 dark:border-stone-600/60"
+            className="rounded-[28px] shadow-2xl max-w-sm w-full p-7"
+            style={{ backgroundColor: 'var(--paper-2)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-xl font-bold text-stone-900 dark:text-stone-50 mb-2">{confirmAction.title}</h3>
+            <h3 className="text-xl mb-2" style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
+              {confirmAction.title}
+            </h3>
             <p className="text-stone-500 dark:text-stone-400 text-sm leading-relaxed mb-7">{confirmAction.message}</p>
             <div className="space-y-2">
               <button
                 onClick={confirmAction.onConfirm}
-                className={`w-full py-3.5 rounded-2xl font-semibold text-[15px] tracking-wide transition-all active:scale-[0.99] ${
+                className="w-full py-3.5 rounded-full font-semibold text-[15px] transition-all active:scale-[0.99]"
+                style={
                   confirmAction.type === 'delete'
-                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                    : confirmAction.type === 'duplicate'
-                    ? 'bg-stone-900 dark:bg-stone-50 hover:bg-stone-800 dark:hover:bg-white text-white dark:text-stone-900'
-                    : 'bg-stone-900 dark:bg-stone-50 hover:bg-stone-800 dark:hover:bg-white text-white dark:text-stone-900'
-                }`}
+                    ? { backgroundColor: '#dc2626', color: '#fff' }
+                    : { backgroundColor: 'var(--ink)', color: 'var(--paper)' }
+                }
               >
                 {confirmAction.confirmText}
               </button>
@@ -616,21 +622,20 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 }
 
 function ScoreCell({ label, score, isTotal = false }) {
-  const bgColor = isTotal ? getCompositeColor(score) : getRatingColor(score);
+  const accent = isTotal ? getCompositeColor(score) : getRatingColor(score);
   const maxVal = isTotal ? 20 : 10;
 
   return (
-    <div className="flex flex-col items-center flex-1 min-w-0">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 mb-2 select-none">
-        {label}
-      </p>
-      <div
-        className={`w-full px-3 py-3 rounded-xl rating-number text-2xl sm:text-3xl font-black text-center transition-shadow ${isTotal ? 'border-2' : ''}`}
+    <div className="flex flex-col items-center min-w-0">
+      <p className="eyebrow mb-2 text-[0.65rem]">{label}</p>
+      <span
+        className={`tabular-nums ${isTotal ? 'text-5xl sm:text-6xl' : 'text-4xl sm:text-5xl'}`}
         style={{
-          backgroundColor: bgColor,
-          color: getTextColor(bgColor),
-          borderColor: isTotal ? `${bgColor}dd` : undefined,
-          boxShadow: isTotal ? `0 4px 16px ${bgColor}50` : `0 2px 10px ${bgColor}40`,
+          fontFamily: 'Fraunces, Georgia, serif',
+          fontWeight: isTotal ? 700 : 600,
+          color: 'var(--ink)',
+          letterSpacing: '-0.03em',
+          lineHeight: 1,
         }}
         role="meter"
         aria-label={`${label} rating`}
@@ -639,7 +644,11 @@ function ScoreCell({ label, score, isTotal = false }) {
         aria-valuemax={maxVal}
       >
         {score.toFixed(1)}
-      </div>
+      </span>
+      <div
+        className="mt-2 h-[3px] rounded-full"
+        style={{ backgroundColor: accent, width: isTotal ? '2.5rem' : '2rem' }}
+      />
     </div>
   );
 }

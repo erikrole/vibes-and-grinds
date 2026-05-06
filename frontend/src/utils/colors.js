@@ -1,60 +1,48 @@
 /**
- * Read a CSS custom property as a number.
+ * Rating color ramp — earthy traffic light. Red → yellow → green semantics
+ * preserved, but each stop is muted/desaturated to live inside the warm
+ * coffee-shop palette instead of clashing with it.
+ *
+ * Stops are spaced so the visible differentiation lands in the 6.5–10 range
+ * where real ratings live (13+/20 composite). Sub-6 collapses through the
+ * red→amber transition, which is fine: the eye only needs "low" there.
+ *
+ *   0    → terracotta     rgb(178,  88,  68)   warm brick, not fire-engine
+ *   4    → clay rust      rgb(196, 130,  90)
+ *   6    → honey amber    rgb(212, 165,  85)
+ *   7    → olive amber    rgb(186, 174,  92)
+ *   8    → sage           rgb(146, 168,  98)   muted natural green
+ *   9    → moss           rgb(110, 148,  88)
+ *  10    → forest         rgb( 88, 132,  78)
  */
-function cssVar(name, fallback) {
-  const val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  return val ? Number(val) : fallback;
+
+const STOPS = [
+  { v: 0,   rgb: [178,  88,  68] },
+  { v: 4,   rgb: [196, 130,  90] },
+  { v: 6,   rgb: [212, 165,  85] },
+  { v: 7,   rgb: [186, 174,  92] },
+  { v: 8,   rgb: [146, 168,  98] },
+  { v: 9,   rgb: [110, 148,  88] },
+  { v: 10,  rgb: [ 88, 132,  78] },
+];
+
+function lerp(a, b, t) {
+  return Math.round(a + (b - a) * t);
 }
 
-/**
- * Get color for a rating on a 0-10 scale
- * Red (0) -> Yellow (5) -> Green (10)
- * Uses CSS custom properties for easy theming.
- */
 export function getRatingColor(rating) {
-  const clampedRating = Math.max(0, Math.min(10, rating));
-
-  const lowR = cssVar('--rating-low-r', 220);
-  const lowG = cssVar('--rating-low-g', 38);
-  const lowB = cssVar('--rating-low-b', 38);
-  const midR = cssVar('--rating-mid-r', 220);
-  const midG = cssVar('--rating-mid-g', 184);
-  const midB = cssVar('--rating-mid-b', 38);
-  const highR = cssVar('--rating-high-r', 34);
-  const highG = cssVar('--rating-high-g', 197);
-  const highB = cssVar('--rating-high-b', 94);
-
-  if (clampedRating <= 5) {
-    const pct = clampedRating / 5;
-    const r = Math.round(lowR + (midR - lowR) * pct);
-    const g = Math.round(lowG + (midG - lowG) * pct);
-    const b = Math.round(lowB + (midB - lowB) * pct);
-    return `rgb(${r}, ${g}, ${b})`;
-  } else {
-    const pct = (clampedRating - 5) / 5;
-    const r = Math.round(midR + (highR - midR) * pct);
-    const g = Math.round(midG + (highG - midG) * pct);
-    const b = Math.round(midB + (highB - midB) * pct);
-    return `rgb(${r}, ${g}, ${b})`;
+  const r = Math.max(0, Math.min(10, Number(rating) || 0));
+  for (let i = 0; i < STOPS.length - 1; i++) {
+    const a = STOPS[i], b = STOPS[i + 1];
+    if (r <= b.v) {
+      const t = (r - a.v) / (b.v - a.v);
+      return `rgb(${lerp(a.rgb[0], b.rgb[0], t)}, ${lerp(a.rgb[1], b.rgb[1], t)}, ${lerp(a.rgb[2], b.rgb[2], t)})`;
+    }
   }
+  const last = STOPS[STOPS.length - 1].rgb;
+  return `rgb(${last[0]}, ${last[1]}, ${last[2]})`;
 }
 
-/**
- * Get color for composite score (0-20 scale)
- */
 export function getCompositeColor(composite) {
-  const normalized = composite / 2;
-  return getRatingColor(normalized);
-}
-
-/**
- * Get text color (black or white) based on background color for readability
- */
-export function getTextColor(bgColor) {
-  const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-  if (!match) return '#000000';
-
-  const [, r, g, b] = match.map(Number);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.5 ? '#000000' : '#ffffff';
+  return getRatingColor((Number(composite) || 0) / 2);
 }

@@ -39,12 +39,12 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
   }, [showMenu]);
 
   return (
-    <div className="card group cursor-pointer" onClick={() => onViewDetails(visit)}>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="paper-card group cursor-pointer p-5 sm:p-6 transition-all hover:-translate-y-0.5" onClick={() => onViewDetails(visit)}>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
         {/* Left side: Photo + Shop info */}
-        <div className="flex-1 flex gap-5">
+        <div className="flex-1 flex gap-5 min-w-0">
           {visit.photo_url && (
-            <div className="hidden sm:block flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-stone-100 dark:bg-stone-700">
+            <div className="hidden sm:block flex-shrink-0 w-20 h-20 rounded-2xl overflow-hidden bg-stone-100 dark:bg-stone-700">
               <img
                 src={visit.photo_url}
                 alt=""
@@ -53,24 +53,30 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
               />
             </div>
           )}
-          <div className="flex-1">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1">
+          <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between mb-3 gap-3">
+            <div className="flex-1 min-w-0">
               <h3
-                className="coffee-shop-name text-lg sm:text-2xl md:text-3xl mb-2 leading-tight group-hover:text-stone-700 dark:group-hover:text-stone-300 transition-colors"
+                className="text-xl sm:text-2xl md:text-[1.65rem] leading-tight transition-colors mb-1.5"
+                style={{
+                  fontFamily: 'Fraunces, Georgia, serif',
+                  fontWeight: 600,
+                  letterSpacing: '-0.02em',
+                  color: 'var(--ink)',
+                }}
               >
                 {visit.coffee_shop_name}
               </h3>
               {(visit.city || visit.opponent) && (
-                <p className="text-sm text-stone-500 dark:text-stone-400 tracking-wide font-light transition-colors">
-                  {visit.city}
-                  {visit.city && visit.opponent && ' – '}
-                  {visit.opponent}
+                <p className="text-sm text-stone-500 dark:text-stone-400 transition-colors flex items-center gap-1.5 flex-wrap">
+                  {visit.city && <span>{visit.city}</span>}
+                  {visit.city && visit.opponent && <span className="text-stone-300 dark:text-stone-600">·</span>}
+                  {visit.opponent && <span>vs {visit.opponent}</span>}
                 </p>
               )}
               {visitCount > 1 && (
-                <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400 border border-stone-200 dark:border-stone-600">
-                  {visitCount} visits
+                <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[0.7rem] font-medium" style={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)' }}>
+                  {visitCount}× regular
                 </span>
               )}
             </div>
@@ -134,39 +140,37 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
             </div>
           </div>
 
-          <div className="space-y-2.5 mt-4 border-t border-stone-100 dark:border-stone-700 pt-4 transition-colors">
-            <div className="flex items-center text-sm">
-              <span className="text-stone-500 dark:text-stone-400 font-medium w-24 tracking-wide transition-colors">Date</span>
-              <span className="text-stone-900 dark:text-stone-50 transition-colors">
-                {relativeLabel && (
-                  <span className="font-semibold mr-1.5">{relativeLabel}</span>
-                )}
-                {formattedDate}
-              </span>
-            </div>
-
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-stone-600 dark:text-stone-300 mt-3">
+            <span className="inline-flex items-center gap-1.5">
+              {relativeLabel ? (
+                <>
+                  <span className="font-medium" style={{ color: 'var(--ink)' }}>{relativeLabel}</span>
+                  <span className="text-stone-400 dark:text-stone-500">{formattedDate}</span>
+                </>
+              ) : (
+                <span>{formattedDate}</span>
+              )}
+            </span>
             {visit.coffee_order && (
-              <div className="flex items-center text-sm">
-                <span className="text-stone-500 dark:text-stone-400 font-medium w-24 tracking-wide transition-colors">Order</span>
-                <span className="text-stone-900 dark:text-stone-50 transition-colors">{visit.coffee_order}</span>
-              </div>
+              <>
+                <span className="text-stone-300 dark:text-stone-600">·</span>
+                <span>{visit.coffee_order}</span>
+              </>
             )}
-
             {visit.sport && (
-              <div className="flex items-center text-sm">
-                <span className="text-stone-500 dark:text-stone-400 font-medium w-24 tracking-wide transition-colors">Sport</span>
-                <span className="text-stone-900 dark:text-stone-50 transition-colors">{visit.sport}</span>
-              </div>
+              <>
+                <span className="text-stone-300 dark:text-stone-600">·</span>
+                <span className="text-stone-500 dark:text-stone-400">{visit.sport}</span>
+              </>
             )}
           </div>
           </div>
         </div>
 
         {/* Right side: Ratings */}
-        <div className="flex items-center gap-4 justify-center md:justify-end mt-4 md:mt-0 pt-4 md:pt-0 md:pl-8 border-t md:border-t-0 md:border-l border-stone-200/60 dark:border-stone-600/40 transition-colors">
+        <div className="flex items-end gap-2 justify-center md:justify-end mt-3 md:mt-0 pt-4 md:pt-0 md:pl-6 border-t md:border-t-0 md:border-l border-stone-200/40 dark:border-stone-600/30 transition-colors">
           <RatingBadge rating={visit.vibe_rating} label="Vibe" />
           <RatingBadge rating={visit.coffee_rating} label="Coffee" />
-          <div className="hidden md:block w-px h-24 bg-stone-200 dark:bg-stone-600 transition-colors" />
           <CompositeBadge composite={visit.composite_score} />
         </div>
       </div>

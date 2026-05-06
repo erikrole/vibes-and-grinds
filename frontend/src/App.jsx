@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import AddVisitForm from './components/AddVisitForm';
 import VisitList from './components/VisitList';
 import FormModal from './components/FormModal';
+import LazyMount from './components/LazyMount';
 
 const VisitDetailModal = lazy(() => import('./components/VisitDetailModal'));
 const VisitsMap = lazy(() => import('./components/VisitsMap'));
@@ -317,8 +318,12 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-    <div className="min-h-screen bg-stone-50 dark:bg-stone-900 transition-colors duration-200">
-        <header className="bg-white dark:bg-stone-800 border-b border-stone-200 dark:border-stone-700 transition-colors duration-200 safe-top">
+    <div className={`min-h-screen transition-colors duration-200 ${appMode === APP_MODES.VEST ? 'bg-stone-50 dark:bg-stone-900' : ''}`}>
+        <header className={`safe-top transition-colors duration-200 ${
+          appMode === APP_MODES.VEST
+            ? 'bg-white dark:bg-stone-800 border-b border-stone-200 dark:border-stone-700'
+            : ''
+        }`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
             <div className="flex items-center justify-between gap-3">
               <div className="relative min-w-0">
@@ -326,10 +331,23 @@ export default function App() {
                   onClick={() => setShowModeMenu((prev) => !prev)}
                   onBlur={() => window.setTimeout(() => setShowModeMenu(false), 120)}
                   className="flex items-center gap-2 sm:gap-4 text-left hover:opacity-80 transition-opacity min-w-0"
-                  aria-label="Toggle app mode"
+                  aria-label={`${appMode === APP_MODES.VIBES ? 'vibes & grinds' : modeLabel} — toggle app mode`}
                 >
                   <div className="text-2xl sm:text-4xl shrink-0">{appMode === APP_MODES.VEST ? '👔' : '☕'}</div>
-                  <h1 className="coffee-shop-name text-xl sm:text-3xl lg:text-4xl font-black tracking-tight truncate">{modeLabel}</h1>
+                  <h1 className={`text-xl sm:text-3xl lg:text-5xl truncate ${
+                    appMode === APP_MODES.VEST
+                      ? 'coffee-shop-name font-black tracking-tight'
+                      : ''
+                  }`}
+                    style={appMode === APP_MODES.VIBES ? {
+                      fontFamily: 'Fraunces, Georgia, serif',
+                      fontWeight: 600,
+                      letterSpacing: '-0.03em',
+                      color: 'var(--ink)',
+                    } : undefined}
+                  >
+                    {appMode === APP_MODES.VIBES ? 'vibes & grinds' : modeLabel}
+                  </h1>
                   <svg className="w-4 h-4 text-stone-500 shrink-0" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z" />
                   </svg>
@@ -397,6 +415,10 @@ export default function App() {
           <Suspense fallback={<div className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading...</div>}>
             <VestTrackerDashboard showToast={toastBag.show} />
           </Suspense>
+        ) : loading ? (
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" aria-busy="true">
+            <div className="flex items-center justify-center py-20 text-stone-400 dark:text-stone-500 animate-pulse">Loading visits…</div>
+          </main>
         ) : (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {error && (
@@ -405,30 +427,53 @@ export default function App() {
             </div>
           )}
 
-          <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            <SnapshotCard label="Total Visits" value={visits.length} index={0} />
-            <SnapshotCard label="Avg Vibe" value={avgVibe} accentColor={getRatingColor(Number(avgVibe))} index={1} />
-            <SnapshotCard label="Avg Coffee" value={avgCoffee} accentColor={getRatingColor(Number(avgCoffee))} index={2} />
-            <SnapshotCard label="Avg Total" value={`${avgComposite} / 20`} accentColor={getCompositeColor(Number(avgComposite))} index={3} />
+          <section className="paper-card p-7 sm:p-10 mb-6 relative overflow-hidden">
+            <div
+              className="absolute -top-24 -right-24 w-64 h-64 rounded-full opacity-40 pointer-events-none"
+              style={{ background: 'radial-gradient(closest-side, var(--accent-soft), transparent 70%)' }}
+            />
+            <div className="grid grid-cols-1 lg:grid-cols-[auto_1px_1fr] gap-7 lg:gap-12 items-center relative">
+              <div className="flex flex-col justify-center min-w-[8rem]">
+                <p className="eyebrow mb-3">Visits</p>
+                <p className="hero-numeral text-7xl sm:text-8xl lg:text-9xl">{visits.length}</p>
+              </div>
+              <div className="rule-v hidden lg:block" />
+              <div className="rule-h lg:hidden" />
+              <div className="grid grid-cols-3 gap-4 sm:gap-6">
+                <EditorialStat label="Vibe" value={avgVibe} accent={getRatingColor(Number(avgVibe))} index={0} />
+                <EditorialStat label="Coffee" value={avgCoffee} accent={getRatingColor(Number(avgCoffee))} index={1} />
+                <EditorialStat label="Overall" value={avgComposite} suffix="/ 20" accent={getCompositeColor(Number(avgComposite))} index={2} />
+              </div>
+            </div>
           </section>
 
           {visits.length >= 3 && (
             <button
               onClick={() => setShowYearReview(true)}
-              className="w-full mb-6 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-2xl p-4 sm:p-5 shadow-sm transition-all hover:shadow-md flex items-center justify-between group"
+              className="w-full mb-6 group text-left transition-all relative overflow-hidden rounded-[28px] p-6 sm:p-7"
+              style={{
+                background: 'linear-gradient(135deg, var(--ink) 0%, #2a2018 60%, var(--accent) 130%)',
+                color: 'var(--paper)',
+                boxShadow: '0 1px 0 rgba(255,255,255,0.06) inset, 0 14px 36px -16px rgba(217, 111, 46, 0.35)',
+              }}
             >
-              <div className="text-left">
-                <p className="text-xs font-semibold uppercase tracking-widest text-amber-100/70">Season in Review</p>
-                <p className="text-lg sm:text-xl font-bold mt-0.5">Your {getCurrentSeason()} Season Wrapped</p>
+              <div className="flex items-center justify-between gap-3 relative">
+                <div>
+                  <p className="text-xl sm:text-2xl font-semibold tracking-tight">
+                    {getCurrentSeason()} season review
+                  </p>
+                </div>
+                <span className="hidden sm:inline-flex items-center justify-center w-11 h-11 rounded-full bg-white/10 group-hover:bg-white/20 group-hover:translate-x-1 transition-all">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </span>
               </div>
-              <svg className="w-6 h-6 text-amber-100/70 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
             </button>
           )}
 
-          {/* Visits / Insights tab toggle */}
-          <div className="flex rounded-xl border border-stone-300 dark:border-stone-600 overflow-hidden mb-6">
+          {/* Section nav */}
+          <div className="flex items-end gap-7 sm:gap-9 mb-6 border-b border-stone-900/10 dark:border-stone-100/10">
             {[
               { id: 'visits', label: 'Visits' },
               { id: 'insights', label: 'Insights' },
@@ -436,11 +481,8 @@ export default function App() {
               <button
                 key={tab.id}
                 onClick={() => setViewTab(tab.id)}
-                className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors border-r last:border-r-0 border-stone-300 dark:border-stone-600 ${
-                  viewTab === tab.id
-                    ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
-                    : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300'
-                }`}
+                className="tab-edge text-base sm:text-lg"
+                aria-pressed={viewTab === tab.id}
               >
                 {tab.label}
               </button>
@@ -454,43 +496,45 @@ export default function App() {
           ) : (
           <>
           {topCoffeeOrders.length > 0 && (
-            <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 rounded-2xl p-4 sm:p-5 transition-colors shadow-sm">
-              <h3 className="text-[11px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-[0.08em] mb-3 select-none">Top Orders</h3>
-              <div className="flex flex-wrap gap-2">
+            <section className="paper-card p-6 sm:p-7 mb-6">
+              <h2 className="eyebrow mb-4">Top orders</h2>
+              <div className="flex flex-wrap gap-2.5">
                 {topCoffeeOrders.map(({ order, count }) => (
-                  <div
-                    key={order}
-                    className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-700 border border-stone-200 dark:border-stone-600 flex items-center gap-2"
-                  >
-                    <span className="text-sm font-medium text-stone-900 dark:text-stone-100">{order}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-stone-200 dark:bg-stone-600 text-xs font-semibold text-stone-700 dark:text-stone-200">
-                      {count}
-                    </span>
-                  </div>
+                  <span key={order} className="pill">
+                    {order}
+                    <span className="pill-count">{count}</span>
+                  </span>
                 ))}
               </div>
             </section>
           )}
 
           {visits.some((v) => v.coffee_shop_lat) && (
-            <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 rounded-2xl p-4 sm:p-5 transition-colors shadow-sm">
-              <h3 className="text-[11px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-[0.08em] mb-3 select-none">Map</h3>
-              <div className="h-64 sm:h-80 lg:h-96 rounded-xl overflow-hidden" style={{ isolation: 'isolate' }}>
-                <Suspense fallback={<div className="h-full flex items-center justify-center text-stone-400 dark:text-stone-500 text-sm animate-pulse">Loading map...</div>}>
-                  <VisitsMap visits={visits} onVisitClick={setViewingVisit} />
-                </Suspense>
+            <section className="paper-card p-6 sm:p-7 mb-6">
+              <h2 className="eyebrow mb-4">Map</h2>
+              <div className="h-64 sm:h-80 lg:h-96 rounded-3xl overflow-hidden" style={{ isolation: 'isolate' }}>
+                <LazyMount
+                  rootMargin="300px"
+                  placeholder={<div className="h-full flex items-center justify-center text-stone-500 dark:text-stone-400 text-sm">Map loads when in view</div>}
+                >
+                  <Suspense fallback={<div className="h-full flex items-center justify-center text-stone-500 dark:text-stone-400 text-sm animate-pulse">Loading map...</div>}>
+                    <VisitsMap visits={visits} onVisitClick={setViewingVisit} />
+                  </Suspense>
+                </LazyMount>
               </div>
             </section>
           )}
 
-          <section className="mb-6 bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 rounded-2xl p-4 sm:p-5 transition-colors shadow-sm">
+          <section className="paper-card p-6 sm:p-7 mb-6">
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
               <div>
-                <h2 className="text-3xl font-bold text-stone-900 dark:text-stone-50 mb-1 transition-colors">Visits</h2>
-                <p className="text-stone-500 dark:text-stone-400 text-sm tracking-wide transition-colors">
+                <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-stone-900 dark:text-stone-50 transition-colors leading-tight">
+                  Visits
+                </h2>
+                <p className="text-stone-500 dark:text-stone-400 text-sm tracking-wide transition-colors mt-2">
                   {hasActiveFilters
-                    ? `Showing ${sortedVisits.length} of ${visits.length} ${visits.length === 1 ? 'visit' : 'visits'}`
-                    : `${visits.length} total ${visits.length === 1 ? 'visit' : 'visits'}`}
+                    ? `${sortedVisits.length} of ${visits.length}`
+                    : `${visits.length} ${visits.length === 1 ? 'visit' : 'visits'}`}
                 </p>
                 {hasActiveFilters && (
                   <div className="flex flex-wrap items-center gap-1.5 mt-2">
@@ -533,7 +577,8 @@ export default function App() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 sm:items-center lg:justify-end">
-                <div className="flex rounded-xl border border-stone-300 dark:border-stone-600 overflow-hidden">
+                <div className="flex items-end gap-4 sm:gap-5 border-b border-stone-900/10 dark:border-stone-100/10 pb-0">
+                  <span className="eyebrow pb-2.5">Sort</span>
                   {[
                     { value: 'date', label: 'Date' },
                     { value: 'vibe', label: 'Vibe' },
@@ -543,11 +588,7 @@ export default function App() {
                     <button
                       key={option.value}
                       onClick={() => setSortBy(option.value)}
-                      className={`flex-1 sm:flex-none px-3 py-2.5 text-sm transition-colors border-r last:border-r-0 border-stone-300 dark:border-stone-600 flex items-center justify-center gap-1 ${
-                        sortBy === option.value
-                          ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
-                          : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
-                      }`}
+                      className="tab-edge text-sm sm:text-base flex items-center gap-1"
                       aria-pressed={sortBy === option.value}
                     >
                       {option.label}
@@ -563,6 +604,7 @@ export default function App() {
                 <select
                   value={sportFilter}
                   onChange={(e) => setSportFilter(e.target.value)}
+                  aria-label="Filter visits by sport"
                   className="w-full sm:w-auto px-3 py-2.5 text-sm rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 cursor-pointer transition-colors sm:min-w-[180px]"
                 >
                   <option value="">All sports</option>
@@ -575,14 +617,27 @@ export default function App() {
               </div>
             </div>
 
-            <div className="relative mt-4 search-glow rounded-xl transition-shadow">
+            <div className="relative mt-5 search-glow rounded-full transition-shadow">
               <input
                 ref={searchRef}
                 type="text"
-                placeholder="Search by shop name, city, opponent, or order..."
+                placeholder="Search shop, city, opponent, or order..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3 pl-11 pr-16 border border-stone-300 dark:border-stone-600 rounded-xl focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-100 transition-colors"
+                className="w-full px-4 py-3.5 pl-11 pr-16 rounded-full focus:outline-none transition-all"
+                style={{
+                  backgroundColor: 'var(--paper-tint)',
+                  color: 'var(--ink)',
+                  border: '1px solid transparent',
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'var(--accent)';
+                  e.target.style.backgroundColor = 'var(--paper-2)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'transparent';
+                  e.target.style.backgroundColor = 'var(--paper-tint)';
+                }}
               />
               <svg
                 className="absolute left-3.5 top-3.5 h-5 w-5 text-stone-400 dark:text-stone-500 transition-colors"
@@ -634,14 +689,26 @@ export default function App() {
         </main>
         )}
 
-        <footer className="mt-20 py-8 text-center text-stone-500 dark:text-stone-400 text-sm tracking-wide border-t border-stone-200 dark:border-stone-600 transition-colors">
-          <p>{appMode === APP_MODES.VEST ? "Built for charting AJ's sideline fits and results" : "Built for logging AJ Harrison's road coffee orders"}</p>
+        {!loading && (
+        <footer className={`mt-16 py-10 text-center transition-colors ${
+          appMode === APP_MODES.VEST
+            ? 'border-t border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 text-sm'
+            : ''
+        }`}>
+          {appMode === APP_MODES.VIBES ? (
+            <p className="text-stone-500 dark:text-stone-400 text-sm">
+              Built for logging AJ Harrison's road coffee orders
+            </p>
+          ) : (
+            <p>Built for charting AJ's sideline fits and results</p>
+          )}
         </footer>
+        )}
 
         {appMode === APP_MODES.VIBES && !showForm && !editingVisit && (
           <button
             onClick={() => setShowForm(true)}
-            className="fixed right-5 md:right-6 w-14 h-14 bg-stone-800 dark:bg-stone-700 text-stone-50 rounded-full shadow-lg hover:bg-stone-900 dark:hover:bg-stone-600 transition-all flex items-center justify-center z-50 hover:scale-110 active:scale-95"
+            className="fab-press fixed right-5 md:right-6 w-14 h-14 rounded-2xl flex items-center justify-center z-50"
             style={{ bottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
             aria-label="Add Visit"
           >
@@ -720,22 +787,34 @@ export default function App() {
   );
 }
 
-function SnapshotCard({ label, value, accentColor, index = 0 }) {
+function EditorialStat({ label, value, suffix, accent, index = 0 }) {
   return (
-    <div className="relative bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 rounded-2xl p-4 sm:p-5 transition-all shadow-sm overflow-hidden group hover:shadow-md">
-      {accentColor && (
-        <div
-          className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
-          style={{ backgroundColor: accentColor }}
-        />
-      )}
-      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 select-none">{label}</p>
-      <p
-        className="text-3xl font-black rating-number text-stone-900 dark:text-stone-50 mt-2 animate-stat-pop"
-        style={{ animationDelay: `${index * 80}ms` }}
-      >
-        {value}
-      </p>
+    <div className="flex flex-col min-w-0">
+      <div className="flex items-center gap-1.5 mb-2">
+        {accent && (
+          <span
+            className="w-1.5 h-1.5 rounded-full shrink-0"
+            style={{ backgroundColor: accent }}
+          />
+        )}
+        <p className="eyebrow truncate">{label}</p>
+      </div>
+      <div className="flex items-baseline gap-1.5 min-w-0">
+        <span
+          className="text-3xl sm:text-4xl lg:text-5xl animate-stat-pop tracking-tight font-semibold tabular-nums"
+          style={{
+            animationDelay: `${index * 80}ms`,
+            color: 'var(--ink)',
+            fontFamily: 'Fraunces, Georgia, serif',
+            fontWeight: 600,
+          }}
+        >
+          {value}
+        </span>
+        {suffix && (
+          <span className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 font-medium">{suffix}</span>
+        )}
+      </div>
     </div>
   );
 }
