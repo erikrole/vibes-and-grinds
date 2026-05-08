@@ -1,6 +1,7 @@
 require('dotenv').config();
 
-// For simplicity in v1, using SQLite
+// `sqlite3` is the native driver; `sqlite` is the promise-based wrapper that
+// drives it. Both packages are required.
 const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
 

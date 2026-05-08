@@ -5,90 +5,57 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const DEFAULT_NET_RANKINGS_URL = 'https://www.warrennolan.com/basketball/2026/net';
-const WISCONSIN_TEAM_ID = '275';
-const ESPN_SCHEDULE_BASE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams';
-const ESPN_SUMMARY_BASE = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/summary';
-const FETCH_TIMEOUT_MS = 10000;
+
+// Shared constants live in ../shared/constants.js (ESM). server.js is
+// CommonJS, so we lazy-import once at startup and capture the values.
+let DEFAULT_NET_RANKINGS_URL;
+let WISCONSIN_TEAM_ID;
+let ESPN_SCHEDULE_BASE;
+let ESPN_SUMMARY_BASE;
+let FETCH_TIMEOUT_MS;
+const constantsReady = import('../shared/constants.js').then((mod) => {
+  DEFAULT_NET_RANKINGS_URL = mod.DEFAULT_NET_RANKINGS_URL;
+  WISCONSIN_TEAM_ID = mod.WISCONSIN_TEAM_ID;
+  ESPN_SCHEDULE_BASE = mod.ESPN_SCHEDULE_BASE;
+  ESPN_SUMMARY_BASE = mod.ESPN_SUMMARY_BASE;
+  FETCH_TIMEOUT_MS = mod.FETCH_TIMEOUT_MS;
+});
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// Initialize database then start listening — prevents requests arriving before db is ready
+// Initialize database + load shared constants, then start listening — prevents
+// requests arriving before either is ready.
 let db;
-initDatabase()
-  .then((database) => {
+Promise.all([initDatabase(), constantsReady])
+  .then(([database]) => {
     db = database;
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
   })
   .catch((err) => {
-    console.error('Failed to initialize database:', err);
+    console.error('Failed to initialize backend:', err);
     process.exit(1);
   });
 
 // Routes
 
 
-function stripHtmlTags(value = '') {
-  return value
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
+// HTML parsing helpers live in ../shared/html-parsing.js (ESM). server.js is
+// CommonJS, so we resolve the module lazily on first use.
+let htmlParsingPromise;
+function getHtmlParsing() {
+  if (!htmlParsingPromise) {
+    htmlParsingPromise = import('../shared/html-parsing.js');
+  }
+  return htmlParsingPromise;
 }
 
-function parseNetRankingsHtml(html = '') {
-  const rankings = [];
-
-  if (!html) return rankings;
-
-  const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
-  const tables = html.match(tableRegex);
-  if (!tables || tables.length === 0) return rankings;
-
-  const netTable = tables.reduce((best, table) => {
-    const bestRows = (best.match(/<tr/gi) || []).length;
-    const tableRows = (table.match(/<tr/gi) || []).length;
-    return tableRows > bestRows ? table : best;
-  });
-
-  const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-  const rows = [...netTable.matchAll(rowRegex)];
-
-  for (let i = 1; i < rows.length; i++) {
-    const rowHtml = rows[i][1] || '';
-    if (rowHtml.includes('<th')) continue;
-
-    const cellRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
-    const cells = [...rowHtml.matchAll(cellRegex)].map((cellMatch) => stripHtmlTags(cellMatch[1]));
-    if (cells.length < 2) continue;
-
-    const rank = Number.parseInt(cells[0], 10);
-    const team = (cells[1] || '').trim();
-
-    if (!Number.isFinite(rank) || !team) continue;
-
-    // Scan remaining cells for a W-L record pattern
-    let record = null;
-    for (let c = 2; c < cells.length; c++) {
-      if (/^\d+-\d+$/.test(cells[c])) {
-        record = cells[c];
-        break;
-      }
-    }
-
-    rankings.push({ team, rank, record });
-  }
-
-  return rankings;
+async function parseNetRankingsHtml(html = '') {
+  const { parseRankingsHtml } = await getHtmlParsing();
+  return parseRankingsHtml(html);
 }
 
 // ── Shared helpers ──
@@ -773,7 +740,7 @@ app.get('/api/vest/net-rankings', async (req, res) => {
 
     if (contentType.includes('text/html')) {
       const html = await response.text();
-      const rankings = parseNetRankingsHtml(html);
+      const rankings = await parseNetRankingsHtml(html);
 
       if (!rankings.length) {
         return res.status(502).json({

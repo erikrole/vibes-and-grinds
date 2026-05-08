@@ -158,6 +158,34 @@ wrangler d1 execute vibes-and-grinds-db --command="SELECT * FROM coffee_visits O
 wrangler d1 execute vibes-and-grinds-db --command="SELECT COUNT(*) as total FROM coffee_visits"
 ```
 
+## Backing Up the Database
+
+Before any risky migration or schema change, capture a backup. The repo
+includes `scripts/backup-db.sh`, which writes timestamped dumps to `./backups/`
+(gitignored).
+
+```bash
+# Back up everything available (local SQLite + D1 if logged in)
+./scripts/backup-db.sh
+
+# Just the local SQLite file
+./scripts/backup-db.sh --local
+
+# Just remote D1 (requires `wrangler login`)
+./scripts/backup-db.sh --d1
+
+# Override the D1 database name
+D1_DATABASE=my-other-db ./scripts/backup-db.sh --d1
+```
+
+To restore a D1 backup, recreate the database and replay the SQL dump:
+
+```bash
+wrangler d1 create vibes-and-grinds-db-restored
+wrangler d1 execute vibes-and-grinds-db-restored --remote \
+  --file=./backups/d1-vibes-and-grinds-db-<timestamp>.sql
+```
+
 ## Troubleshooting
 
 **API calls failing (404)?**

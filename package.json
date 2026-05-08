@@ -1,0 +1,13 @@
+{
+  "name": "vibes-and-grinds",
+  "private": true,
+  "description": "Repo-level tooling: tests for Cloudflare Pages Functions and shared scripts.",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:all": "npm run test && cd frontend && npm test"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8"
+  }
+}

@@ -1,7 +1,10 @@
 // /api/vest/game-stats/:eventId — Fetch ESPN game summary (box score + leaders)
 
-const TEAM_ID = '275';
-const ESPN_SUMMARY = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/summary';
+import {
+  FETCH_TIMEOUT_MS,
+  WISCONSIN_TEAM_ID as TEAM_ID,
+  espnSummaryUrl,
+} from '../../../../shared/constants.js';
 
 function extractStat(stats, label) {
   if (!Array.isArray(stats)) return null;
@@ -56,8 +59,8 @@ export async function onRequestGet({ env, params }) {
       return json({ stats: cached, source: 'cache' });
     }
 
-    const res = await fetch(`${ESPN_SUMMARY}?event=${eventId}`, {
-      signal: AbortSignal.timeout(10000),
+    const res = await fetch(espnSummaryUrl(eventId), {
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
 
     if (!res.ok) {

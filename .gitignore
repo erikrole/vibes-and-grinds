@@ -25,3 +25,9 @@ yarn-error.log*
 *.db
 *.sqlite
 *.sqlite3
+
+# Backups (created by scripts/backup-db.sh)
+/backups/
+
+# Test coverage
+coverage/

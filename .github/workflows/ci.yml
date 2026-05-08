@@ -1,4 +1,4 @@
-name: Frontend Build Check
+name: CI
 
 on:
   pull_request:
@@ -8,7 +8,7 @@ on:
       - work
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,16 +21,26 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: |
+            package-lock.json
             frontend/package-lock.json
             backend/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
 
       - name: Install frontend dependencies
         run: cd frontend && npm ci
 
+      - name: Run root tests (Cloudflare Functions + shared modules)
+        run: npm test
+
+      - name: Run frontend tests
+        run: cd frontend && npm test
+
       - name: Build frontend
         run: cd frontend && npm run build
 
-      - name: Validate backend/function syntax
+      - name: Validate function syntax
         run: |
           node --check backend/server.js
           node --check functions/api/places-autocomplete.js
@@ -44,3 +54,5 @@ jobs:
           node --check functions/api/vest/net-rankings.js
           node --check functions/api/vest/scores.js
           node --check "functions/api/vest/game-stats/[eventId].js"
+          node --check shared/constants.js
+          node --check shared/html-parsing.js

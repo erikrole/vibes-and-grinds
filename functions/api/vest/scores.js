@@ -1,7 +1,11 @@
 // /api/vest/scores — Fetch ESPN schedule+scores, cache in D1, return merged with vest data
 
-const TEAM_ID = '275';
-const ESPN_URL = `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/${TEAM_ID}/schedule`;
+import {
+  EXTERNAL_CACHE_TTL_S,
+  FETCH_TIMEOUT_MS,
+  WISCONSIN_TEAM_ID as TEAM_ID,
+  espnTeamScheduleUrl,
+} from '../../../shared/constants.js';
 
 function parseEspnEvent(event) {
   const competition = event.competitions?.[0] || {};
@@ -43,47 +47,16 @@ function parseEspnEvent(event) {
   };
 }
 
-async function ensureTable(db) {
-  await db.prepare(`
-    CREATE TABLE IF NOT EXISTS vest_game_stats (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      espn_event_id TEXT NOT NULL UNIQUE,
-      game_id INTEGER,
-      wisconsin_score INTEGER, opponent_score INTEGER,
-      wisconsin_h1 INTEGER, wisconsin_h2 INTEGER,
-      opponent_h1 INTEGER, opponent_h2 INTEGER,
-      ot_periods INTEGER DEFAULT 0,
-      venue TEXT, venue_city TEXT, broadcast TEXT, attendance INTEGER,
-      opp_ranking INTEGER, wi_ranking INTEGER, wi_record TEXT,
-      wi_fg TEXT, wi_3pt TEXT, wi_ft TEXT,
-      wi_rebounds INTEGER, wi_turnovers INTEGER,
-      wi_fg_pct REAL, wi_3pt_pct REAL, wi_ft_pct REAL,
-      opp_fg TEXT, opp_3pt TEXT, opp_ft TEXT,
-      opp_rebounds INTEGER, opp_turnovers INTEGER,
-      opp_fg_pct REAL, opp_3pt_pct REAL, opp_ft_pct REAL,
-      wi_leader_pts_name TEXT, wi_leader_pts_value TEXT,
-      wi_leader_reb_name TEXT, wi_leader_reb_value TEXT,
-      wi_leader_ast_name TEXT, wi_leader_ast_value TEXT,
-      fetched_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )
-  `).run();
-
-  // Add espn_event_id column to vest_games if missing
-  try {
-    await db.prepare(
-      'ALTER TABLE vest_games ADD COLUMN espn_event_id TEXT'
-    ).run();
-  } catch { /* column already exists */ }
-}
-
 export async function onRequestGet({ env, request }) {
   const url = new URL(request.url);
   const season = url.searchParams.get('season') || '2025';
 
+  // Schema (vest_game_stats and vest_games.espn_event_id) is owned by
+  // schema.sql; deploy the schema with `wrangler d1 execute --file=./schema.sql`.
+
   try {
-    await ensureTable(env.DB);
-    const espnRes = await fetch(`${ESPN_URL}?season=${season}`, {
-      signal: AbortSignal.timeout(10000),
+    const espnRes = await fetch(espnTeamScheduleUrl(season, TEAM_ID), {
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
 
     if (!espnRes.ok) {
@@ -165,8 +138,12 @@ async function getCached(db) {
 }
 
 function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
+  const headers = { 'Content-Type': 'application/json' };
+  // Successful responses are safe to cache briefly at the edge — the data is
+  // refreshed by ESPN every few minutes during games and we serve stale-cache
+  // fallbacks anyway. Errors and cache-fallbacks bypass the cache.
+  if (status === 200 && data?.source === 'espn') {
+    headers['Cache-Control'] = `public, max-age=${EXTERNAL_CACHE_TTL_S}, s-maxage=${EXTERNAL_CACHE_TTL_S}`;
+  }
+  return new Response(JSON.stringify(data), { status, headers });
 }
