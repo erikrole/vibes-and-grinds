@@ -51,7 +51,7 @@ export default function AppHeader({
             >
               <div className="text-2xl sm:text-4xl shrink-0">{isVibes ? '☕' : '👔'}</div>
               <h1
-                className={`text-xl sm:text-3xl lg:text-5xl truncate ${
+                className={`text-xl sm:text-3xl lg:text-5xl truncate leading-[1.15] pb-0.5 ${
                   isVibes ? '' : 'coffee-shop-name font-black tracking-tight'
                 }`}
                 style={isVibes ? VIBES_TITLE_STYLE : undefined}
