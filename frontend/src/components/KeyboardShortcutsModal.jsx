@@ -29,6 +29,9 @@ export default function KeyboardShortcutsModal({ onClose }) {
     <div
       className="fixed inset-0 z-[1002] flex items-center justify-center p-4 bg-black/60 dark:bg-black/70 backdrop-blur-sm animate-backdrop-in"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Keyboard shortcuts"
     >
       <div
         ref={ref}

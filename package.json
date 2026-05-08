@@ -5,9 +5,11 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:all": "npm run test && cd frontend && npm test"
+    "test:all": "npm run test && cd frontend && npm test",
+    "smoke": "node scripts/browser-smoke.mjs"
   },
   "devDependencies": {
+    "playwright": "^1.56.1",
     "vitest": "^2.1.8"
   }
 }
