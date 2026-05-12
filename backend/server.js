@@ -93,19 +93,39 @@ function parseNetRankingsHtml(html = '') {
 
 // ── Shared helpers ──
 
-/**
- * Validate the required fields for a coffee visit.
- * Returns an error string if invalid, or null if valid.
- */
-function validateVisit({ date, coffee_shop_name, vibe_rating, coffee_rating }) {
+// Validation rules — must mirror shared/visit-validation.js (which the
+// Cloudflare Pages Functions use). Backend is CJS so it can't import
+// the ESM module directly without dynamic import wiring.
+const VISIT_FIELD_LIMITS = {
+  coffee_shop_name: 200,
+  city: 100,
+  opponent: 100,
+  sport: 50,
+  coffee_shop_address: 500,
+  coffee_shop_place_id: 200,
+  coffee_order: 200,
+  notes: 2000,
+  photo_url: 1000,
+  date: 32,
+};
+
+function validateVisit(body) {
+  const { date, coffee_shop_name, vibe_rating, coffee_rating } = body || {};
+
   if (!date || !coffee_shop_name || vibe_rating === undefined || coffee_rating === undefined) {
     return 'Missing required fields';
+  }
+  if (!String(coffee_shop_name).trim()) {
+    return 'Coffee shop name cannot be empty';
   }
   if (vibe_rating < 0 || vibe_rating > 10 || coffee_rating < 0 || coffee_rating > 10) {
     return 'Ratings must be between 0 and 10';
   }
-  if (!(coffee_shop_name || '').trim()) {
-    return 'Coffee shop name cannot be empty';
+  for (const [field, max] of Object.entries(VISIT_FIELD_LIMITS)) {
+    const value = body[field];
+    if (typeof value === 'string' && value.length > max) {
+      return `${field} must be ${max} characters or fewer`;
+    }
   }
   return null;
 }
@@ -170,7 +190,7 @@ app.post('/api/visits', async (req, res) => {
       photo_url
     } = req.body;
 
-    const validationError = validateVisit({ date, coffee_shop_name, vibe_rating, coffee_rating });
+    const validationError = validateVisit(req.body);
     if (validationError) {
       return res.status(400).json({ error: validationError });
     }
@@ -232,7 +252,7 @@ app.put('/api/visits/:id', async (req, res) => {
       photo_url
     } = req.body;
 
-    const validationError = validateVisit({ date, coffee_shop_name, vibe_rating, coffee_rating });
+    const validationError = validateVisit(req.body);
     if (validationError) {
       return res.status(400).json({ error: validationError });
     }
@@ -846,7 +866,7 @@ function buildPlacesErrorResponse(prefix, upstreamStatus, payloadText) {
 
 app.get('/api/places-autocomplete', async (req, res) => {
   const input = `${req.query.input || ''}`.trim();
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
 
   if (!apiKey) {
     return res.status(503).json({ error: 'Google Places is not configured on the server.' });
@@ -902,7 +922,7 @@ app.get('/api/places-autocomplete', async (req, res) => {
 
 app.get('/api/places-details', async (req, res) => {
   const placeId = `${req.query.placeId || ''}`.trim();
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
 
   if (!apiKey) {
     return res.status(503).json({ error: 'Google Places is not configured on the server.' });

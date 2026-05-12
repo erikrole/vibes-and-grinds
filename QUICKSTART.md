@@ -60,7 +60,6 @@ Set your Google Maps API key in `frontend/.env` before running locally.
      - Build output: `frontend/dist`
    - Add environment variable:
      - `GOOGLE_MAPS_API_KEY` = `your_new_google_maps_api_key`
-     - (Optional legacy fallback) `VITE_GOOGLE_MAPS_API_KEY` = `your_new_google_maps_api_key`
    - Click "Save and Deploy"
 
 6. **Bind Database:**

@@ -1,7 +1,10 @@
 // /api/vest/game-stats/:eventId — Fetch ESPN game summary (box score + leaders)
 
-const TEAM_ID = '275';
-const ESPN_SUMMARY = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/summary';
+import { WISCONSIN_TEAM_ID, ESPN_SUMMARY_BASE } from '../../../../shared/ncaa.js';
+import { json, jsonError } from '../../../../shared/http.js';
+
+const TEAM_ID = WISCONSIN_TEAM_ID;
+const ESPN_SUMMARY = ESPN_SUMMARY_BASE;
 
 function extractStat(stats, label) {
   if (!Array.isArray(stats)) return null;
@@ -62,7 +65,7 @@ export async function onRequestGet({ env, params }) {
 
     if (!res.ok) {
       if (cached) return json({ stats: cached, source: 'cache-partial' });
-      return json({ error: 'ESPN summary unavailable' }, 502);
+      return jsonError('ESPN summary unavailable', 502);
     }
 
     const summary = await res.json();
@@ -137,13 +140,6 @@ export async function onRequestGet({ env, params }) {
     return json({ stats: final, source: 'espn' });
   } catch (error) {
     console.error('Error fetching game stats:', error);
-    return json({ error: 'Failed to fetch game stats' }, 502);
+    return jsonError('Failed to fetch game stats', 502);
   }
-}
-
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
 }

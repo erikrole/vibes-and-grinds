@@ -1,3 +1,5 @@
+import { json, jsonError } from '../../shared/http.js';
+
 function buildPlacesErrorResponse(prefix, upstreamStatus, payloadText) {
   let parsed;
 
@@ -39,20 +41,14 @@ function buildPlacesErrorResponse(prefix, upstreamStatus, payloadText) {
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const placeId = (url.searchParams.get('placeId') || '').trim();
-  const apiKey = env.GOOGLE_MAPS_API_KEY || env.VITE_GOOGLE_MAPS_API_KEY;
+  const apiKey = env.GOOGLE_MAPS_API_KEY;
 
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'Google Places is not configured on the server.' }), {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Google Places is not configured on the server.', 503);
   }
 
   if (!placeId) {
-    return new Response(JSON.stringify({ error: 'placeId is required.' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('placeId is required.', 400);
   }
 
   try {
@@ -67,15 +63,12 @@ export async function onRequestGet({ request, env }) {
       const details = await response.text();
       const errorPayload = buildPlacesErrorResponse('Place details failed', response.status, details);
       console.error('Place details failed:', errorPayload);
-      return new Response(JSON.stringify(errorPayload), {
-        status: 502,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return json(errorPayload, 502);
     }
 
     const data = await response.json();
 
-    return new Response(JSON.stringify({
+    return json({
       place: {
         name: data.displayName?.text || '',
         address: data.formattedAddress || '',
@@ -83,17 +76,11 @@ export async function onRequestGet({ request, env }) {
         lat: data.location?.latitude ?? '',
         lng: data.location?.longitude ?? '',
       },
-    }), {
-      headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error fetching place details:', error);
-    return new Response(JSON.stringify({
-      error: 'Place details failed: Unable to reach Google Places.',
+    return jsonError('Place details failed: Unable to reach Google Places.', 500, {
       details: error.message,
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
     });
   }
 }

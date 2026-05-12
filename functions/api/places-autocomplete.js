@@ -1,3 +1,5 @@
+import { json, jsonError } from '../../shared/http.js';
+
 function buildPlacesErrorResponse(prefix, upstreamStatus, payloadText) {
   let parsed;
 
@@ -39,19 +41,14 @@ function buildPlacesErrorResponse(prefix, upstreamStatus, payloadText) {
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const input = (url.searchParams.get('input') || '').trim();
-  const apiKey = env.GOOGLE_MAPS_API_KEY || env.VITE_GOOGLE_MAPS_API_KEY;
+  const apiKey = env.GOOGLE_MAPS_API_KEY;
 
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'Google Places is not configured on the server.' }), {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Google Places is not configured on the server.', 503);
   }
 
   if (input.length < 2) {
-    return new Response(JSON.stringify({ suggestions: [] }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return json({ suggestions: [] });
   }
 
   try {
@@ -71,10 +68,7 @@ export async function onRequestGet({ request, env }) {
       const details = await response.text();
       const errorPayload = buildPlacesErrorResponse('Autocomplete failed', response.status, details);
       console.error('Places autocomplete failed:', errorPayload);
-      return new Response(JSON.stringify(errorPayload), {
-        status: 502,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return json(errorPayload, 502);
     }
 
     const data = await response.json();
@@ -91,17 +85,11 @@ export async function onRequestGet({ request, env }) {
       })
       .filter(Boolean);
 
-    return new Response(JSON.stringify({ suggestions }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return json({ suggestions });
   } catch (error) {
     console.error('Error fetching places autocomplete:', error);
-    return new Response(JSON.stringify({
-      error: 'Autocomplete failed: Unable to reach Google Places.',
+    return jsonError('Autocomplete failed: Unable to reach Google Places.', 500, {
       details: error.message,
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
     });
   }
 }

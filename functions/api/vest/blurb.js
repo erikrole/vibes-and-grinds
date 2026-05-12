@@ -1,30 +1,23 @@
 // /api/vest/blurb - AI-generated game narrative using Claude
 
+import { json, jsonError } from '../../../shared/http.js';
+
 export async function onRequestPost({ request, env }) {
   const apiKey = env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }), {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('ANTHROPIC_API_KEY not configured', 503);
   }
 
   let body;
   try {
     body = await request.json();
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Invalid JSON', 400);
   }
 
   const { context } = body;
   if (!context || typeof context !== 'string') {
-    return new Response(JSON.stringify({ error: 'Missing context string' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Missing context string', 400);
   }
 
   try {
@@ -50,23 +43,15 @@ export async function onRequestPost({ request, env }) {
     if (!resp.ok) {
       const err = await resp.text();
       console.error('Anthropic API error:', resp.status, err);
-      return new Response(JSON.stringify({ error: 'AI service error' }), {
-        status: 502,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError('AI service error', 502);
     }
 
     const data = await resp.json();
     const blurb = data.content?.[0]?.text || '';
 
-    return new Response(JSON.stringify({ blurb }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return json({ blurb });
   } catch (error) {
     console.error('Blurb generation error:', error);
-    return new Response(JSON.stringify({ error: 'Failed to generate blurb' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('Failed to generate blurb');
   }
 }
