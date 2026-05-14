@@ -21,7 +21,18 @@ async function parseApiError(response, fallbackMessage) {
   }
 }
 
-export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, onBlur, disabled = false, inputClassName = 'input-field' }) {
+export default function PlacesAutocomplete({
+  id,
+  onPlaceSelected,
+  value,
+  onChange,
+  onBlur,
+  disabled = false,
+  inputClassName = 'input-field',
+  ariaInvalid,
+  ariaDescribedBy,
+  enterKeyHint,
+}) {
   const [suggestions, setSuggestions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
@@ -149,6 +160,7 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, o
   return (
     <div className="relative" ref={containerRef}>
       <input
+        id={id}
         type="text"
         value={value}
         onChange={onChange}
@@ -158,6 +170,10 @@ export default function PlacesAutocomplete({ onPlaceSelected, value, onChange, o
         className={inputClassName}
         autoComplete="off"
         disabled={disabled}
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
+        enterKeyHint={enterKeyHint}
+        autoCapitalize="words"
       />
 
       {showSuggestions && hasSuggestions && (

@@ -321,16 +321,16 @@ export default function App() {
             : ''
         }`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-            <div className="flex items-center justify-between gap-3">
-              <div className="relative min-w-0">
+            <div className="flex items-center justify-between gap-3 min-w-0">
+              <div className="relative flex-1 min-w-0">
                 <button
                   onClick={() => setShowModeMenu((prev) => !prev)}
                   onBlur={() => window.setTimeout(() => setShowModeMenu(false), 120)}
-                  className="flex items-center gap-2 sm:gap-4 text-left hover:opacity-80 transition-opacity min-w-0"
+                  className="flex max-w-full items-center gap-2 sm:gap-4 text-left hover:opacity-80 transition-opacity min-w-0"
                   aria-label={`${appMode === APP_MODES.VIBES ? 'vibes & grinds' : modeLabel} — toggle app mode`}
                 >
                   <div className="text-2xl sm:text-4xl shrink-0">{appMode === APP_MODES.VEST ? '👔' : '☕'}</div>
-                  <h1 className={`text-xl sm:text-3xl lg:text-5xl truncate ${
+                  <h1 className={`text-xl sm:text-3xl lg:text-5xl leading-none ${
                     appMode === APP_MODES.VEST
                       ? 'coffee-shop-name font-black tracking-tight'
                       : ''
@@ -338,7 +338,7 @@ export default function App() {
                     style={appMode === APP_MODES.VIBES ? {
                       fontFamily: 'Fraunces, Georgia, serif',
                       fontWeight: 600,
-                      letterSpacing: '-0.03em',
+                      letterSpacing: '0',
                       color: 'var(--ink)',
                     } : undefined}
                   >

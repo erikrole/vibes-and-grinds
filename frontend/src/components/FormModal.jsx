@@ -13,15 +13,15 @@ export default function FormModal({ title, onClose, children }) {
   useFocusTrap(modalRef, { onEscape: handleClose });
 
   return (
-    <div className="fixed inset-0 z-[1001] overflow-y-auto" role="dialog" aria-modal="true" aria-label={title}>
+    <div className="fixed inset-0 z-[1001] overflow-hidden sm:overflow-y-auto" role="dialog" aria-modal="true" aria-label={title}>
       <div
         className={`fixed inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-sm ${closing ? 'animate-backdrop-out' : 'animate-backdrop-in'}`}
         onClick={handleClose}
       />
-      <div className="flex min-h-full items-center justify-center p-4">
+      <div className="flex min-h-full items-end justify-center sm:items-center sm:p-4">
         <div
           ref={modalRef}
-          className={`${closing ? 'animate-modal-out' : 'animate-modal-in'} relative bg-white dark:bg-stone-800 rounded-2xl sm:rounded-3xl shadow-2xl max-w-xl w-full max-h-[85vh] overflow-y-auto border border-stone-200/60 dark:border-stone-600/60`}
+          className={`${closing ? 'animate-modal-out' : 'animate-modal-in'} relative h-[100dvh] max-h-[100dvh] w-full overflow-y-auto overscroll-contain border-0 bg-white shadow-2xl dark:bg-stone-800 sm:h-auto sm:max-h-[85vh] sm:max-w-xl sm:rounded-3xl sm:border sm:border-stone-200/60 sm:dark:border-stone-600/60`}
           onClick={(e) => e.stopPropagation()}
         >
           <button
@@ -33,7 +33,7 @@ export default function FormModal({ title, onClose, children }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <div className="p-4 sm:p-5 md:p-7">{children}</div>
+          <div className="min-h-full p-4 pb-0 sm:min-h-0 sm:p-5 md:p-7">{children}</div>
         </div>
       </div>
     </div>

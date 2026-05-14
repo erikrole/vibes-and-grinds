@@ -1,4 +1,13 @@
 // POST /api/upload - Upload a photo to R2
+const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+]);
+
 export async function onRequestPost({ request, env }) {
   try {
     const formData = await request.formData();
@@ -11,10 +20,24 @@ export async function onRequestPost({ request, env }) {
       });
     }
 
+    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+      return new Response(JSON.stringify({ error: 'Photo must be a JPG, PNG, WebP, or HEIC image' }), {
+        status: 415,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (file.size > MAX_PHOTO_BYTES) {
+      return new Response(JSON.stringify({ error: 'Photo must be 12 MB or smaller' }), {
+        status: 413,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     // Generate unique filename
     const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 15);
-    const extension = file.name.split('.').pop();
+    const randomString = crypto.randomUUID();
+    const extension = getSafeExtension(file);
     const filename = `${timestamp}-${randomString}.${extension}`;
 
     // Upload to R2
@@ -44,4 +67,16 @@ export async function onRequestPost({ request, env }) {
       }
     );
   }
+}
+
+function getSafeExtension(file) {
+  const byType = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/heic': 'heic',
+    'image/heif': 'heif',
+  };
+
+  return byType[file.type] || 'jpg';
 }

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
 import PhotoCropper from './PhotoCropper';
 import AutocompleteInput from './AutocompleteInput';
 import PlacesAutocomplete from './PlacesAutocomplete';
@@ -39,8 +39,8 @@ const BIG_TEN_TEAMS = {
 };
 
 // Transparent, borderless input style for use inside section cells
-const FI = 'w-full bg-transparent border-none outline-none focus:ring-0 text-[15px] text-stone-900 dark:text-stone-50 placeholder:text-stone-300 dark:placeholder:text-stone-600';
-const FS = 'w-full bg-transparent border-none outline-none focus:ring-0 text-[15px] text-stone-900 dark:text-stone-50 appearance-none cursor-pointer';
+const FI = 'w-full bg-transparent border-none outline-none focus:ring-0 text-base sm:text-[15px] text-stone-900 dark:text-stone-50 placeholder:text-stone-300 dark:placeholder:text-stone-600';
+const FS = 'w-full bg-transparent border-none outline-none focus:ring-0 text-base sm:text-[15px] text-stone-900 dark:text-stone-50 appearance-none cursor-pointer';
 
 function getDefaultVisitData() {
   return {
@@ -82,6 +82,22 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
   const [cropping, setCropping] = useState(false);
   const [imageToCrop, setImageToCrop] = useState(null);
   const [dragging, setDragging] = useState(false);
+  const formRef = useRef(null);
+  const reactId = useId().replace(/:/g, '');
+  const fieldIds = useMemo(() => ({
+    date: `${reactId}-date`,
+    sport: `${reactId}-sport`,
+    customSport: `${reactId}-custom-sport`,
+    coffee_shop_name: `${reactId}-coffee-shop-name`,
+    city: `${reactId}-city`,
+    opponent: `${reactId}-opponent`,
+    coffee_shop_address: `${reactId}-coffee-shop-address`,
+    coffee_order: `${reactId}-coffee-order`,
+    vibe_rating: `${reactId}-vibe-rating`,
+    coffee_rating: `${reactId}-coffee-rating`,
+    photo: `${reactId}-photo`,
+    notes: `${reactId}-notes`,
+  }), [reactId]);
 
   const repeatContext = useMemo(
     () => getRepeatContext(visits, formData, { excludeId: isEditing ? initialData?.id : null }),
@@ -215,6 +231,14 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
       if (error) newErrors[name] = error;
     }
     setErrors(newErrors);
+    const firstError = Object.keys(newErrors)[0];
+    if (firstError) {
+      requestAnimationFrame(() => {
+        const field = formRef.current?.querySelector(`#${fieldIds[firstError]}`);
+        field?.focus({ preventScroll: true });
+        field?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      });
+    }
     return Object.keys(newErrors).length === 0;
   };
 
@@ -255,7 +279,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
         </h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+      <form ref={formRef} onSubmit={handleSubmit} className="space-y-5" noValidate>
         {repeatContext?.personalCount > 0 && (
           <RepeatContextPanel context={repeatContext} isReturnVisit={isReturnVisit} />
         )}
@@ -263,22 +287,26 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
         {/* ── WHEN & WHERE ─────────────────────────────── */}
         <FormSection title="When & Where">
           <FieldRow>
-            <Field label="Date" required error={errors.date}>
+            <Field label="Date" htmlFor={fieldIds.date} required error={errors.date}>
               <input
+                id={fieldIds.date}
                 type="date"
                 name="date"
                 value={formData.date}
                 onChange={handleInputChange}
                 onBlur={handleBlur}
                 className={FI}
+                aria-invalid={Boolean(errors.date)}
+                aria-describedby={errors.date ? `${fieldIds.date}-error` : undefined}
               />
             </Field>
           </FieldRow>
 
-          <Field label="Sport">
+          <Field label="Sport" htmlFor={showCustomSport ? fieldIds.customSport : fieldIds.sport}>
             <div className="relative">
               {showCustomSport ? (
                 <input
+                  id={fieldIds.customSport}
                   name="sport"
                   type="text"
                   value={formData.sport}
@@ -286,10 +314,13 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
                   placeholder="Enter sport name"
                   className={FI}
                   autoFocus
+                  enterKeyHint="next"
+                  autoCapitalize="words"
                 />
               ) : (
                 <>
                   <select
+                    id={fieldIds.sport}
                     name="sport"
                     value={formData.sport}
                     onChange={handleInputChange}
@@ -311,8 +342,9 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
             </div>
           </Field>
 
-          <Field label="Coffee Shop" required error={errors.coffee_shop_name}>
+          <Field label="Coffee Shop" htmlFor={fieldIds.coffee_shop_name} required error={errors.coffee_shop_name}>
             <PlacesAutocomplete
+              id={fieldIds.coffee_shop_name}
               value={formData.coffee_shop_name}
               onChange={(e) => {
                 const nextValue = e.target.value;
@@ -331,6 +363,9 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
               onBlur={handleBlur}
               onPlaceSelected={handlePlaceSelected}
               inputClassName={FI}
+              ariaInvalid={Boolean(errors.coffee_shop_name)}
+              ariaDescribedBy={errors.coffee_shop_name ? `${fieldIds.coffee_shop_name}-error` : undefined}
+              enterKeyHint="next"
             />
           </Field>
           {repeatContext?.personalCount > 0 && (
@@ -345,54 +380,67 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
           )}
 
           <FieldRow>
-            <Field label="City">
+            <Field label="City" htmlFor={fieldIds.city}>
               <AutocompleteInput
+                id={fieldIds.city}
                 name="city"
                 value={formData.city}
                 onChange={handleInputChange}
                 suggestions={suggestions.cities}
                 className={FI}
+                enterKeyHint="next"
+                autoCapitalize="words"
               />
             </Field>
-            <Field label="Opponent">
+            <Field label="Opponent" htmlFor={fieldIds.opponent}>
               <AutocompleteInput
+                id={fieldIds.opponent}
                 name="opponent"
                 value={formData.opponent}
                 onChange={handleInputChange}
                 suggestions={suggestions.opponents}
                 className={FI}
+                enterKeyHint="next"
+                autoCapitalize="words"
               />
             </Field>
           </FieldRow>
 
-          <Field label="Address">
+          <Field label="Address" htmlFor={fieldIds.coffee_shop_address}>
             <input
+              id={fieldIds.coffee_shop_address}
               type="text"
               name="coffee_shop_address"
               value={formData.coffee_shop_address}
               onChange={handleInputChange}
               className={`${FI} text-stone-500 dark:text-stone-400`}
               placeholder="Auto-fills from Places"
+              enterKeyHint="next"
+              autoCapitalize="words"
             />
           </Field>
         </FormSection>
 
         {/* ── ORDER & RATINGS ───────────────────────────── */}
         <FormSection title="Order & Ratings">
-          <Field label="Coffee Order">
+          <Field label="Coffee Order" htmlFor={fieldIds.coffee_order}>
             <AutocompleteInput
+              id={fieldIds.coffee_order}
               name="coffee_order"
               value={formData.coffee_order}
               onChange={handleInputChange}
               suggestions={suggestions.orders}
               className={FI}
+              enterKeyHint="next"
+              autoCapitalize="words"
             />
           </Field>
 
           <FieldRow>
-            <Field label="Vibe" required error={errors.vibe_rating}>
+            <Field label="Vibe" htmlFor={fieldIds.vibe_rating} required error={errors.vibe_rating}>
               <div className="flex items-baseline gap-1.5 mt-1">
                 <input
+                  id={fieldIds.vibe_rating}
                   type="number"
                   name="vibe_rating"
                   value={formData.vibe_rating}
@@ -405,13 +453,17 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
                   autoComplete="off"
                   placeholder="—"
                   className="w-16 bg-transparent border-none outline-none focus:ring-0 text-3xl font-black rating-number text-stone-900 dark:text-stone-50 placeholder:text-stone-200 dark:placeholder:text-stone-700"
+                  aria-invalid={Boolean(errors.vibe_rating)}
+                  aria-describedby={errors.vibe_rating ? `${fieldIds.vibe_rating}-error` : undefined}
+                  enterKeyHint="next"
                 />
                 <span className="text-sm text-stone-300 dark:text-stone-600 mb-0.5">/ 10</span>
               </div>
             </Field>
-            <Field label="Coffee" required error={errors.coffee_rating}>
+            <Field label="Coffee" htmlFor={fieldIds.coffee_rating} required error={errors.coffee_rating}>
               <div className="flex items-baseline gap-1.5 mt-1">
                 <input
+                  id={fieldIds.coffee_rating}
                   type="number"
                   name="coffee_rating"
                   value={formData.coffee_rating}
@@ -424,6 +476,9 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
                   autoComplete="off"
                   placeholder="—"
                   className="w-16 bg-transparent border-none outline-none focus:ring-0 text-3xl font-black rating-number text-stone-900 dark:text-stone-50 placeholder:text-stone-200 dark:placeholder:text-stone-700"
+                  aria-invalid={Boolean(errors.coffee_rating)}
+                  aria-describedby={errors.coffee_rating ? `${fieldIds.coffee_rating}-error` : undefined}
+                  enterKeyHint="done"
                 />
                 <span className="text-sm text-stone-300 dark:text-stone-600 mb-0.5">/ 10</span>
               </div>
@@ -456,7 +511,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
                   </button>
                 </div>
               </div>
-              <label className="flex items-center gap-3 px-4 py-3 cursor-pointer group">
+              <label htmlFor={fieldIds.photo} className="flex items-center gap-3 px-4 py-3 cursor-pointer group">
                 <svg className="w-4 h-4 text-stone-400 dark:text-stone-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
@@ -464,11 +519,12 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
                   Change photo
                 </span>
                 {errors.photo && <span className="text-xs text-red-500 ml-auto">{errors.photo}</span>}
-                <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+                <input id={fieldIds.photo} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
               </label>
             </>
           ) : (
             <label
+              htmlFor={fieldIds.photo}
               className={`flex items-center gap-4 px-4 py-3.5 cursor-pointer group transition-colors ${dragging ? 'bg-stone-100 dark:bg-stone-700/40' : ''}`}
               onDrop={handleDrop}
               onDragOver={handleDragOver}
@@ -488,24 +544,26 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
               {errors.photo && <span className="text-xs text-red-500">{errors.photo}</span>}
-              <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+              <input id={fieldIds.photo} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
             </label>
           )}
 
           {/* Notes */}
-          <Field label="Notes">
+          <Field label="Notes" htmlFor={fieldIds.notes}>
             <textarea
+              id={fieldIds.notes}
               name="notes"
               value={formData.notes}
               onChange={handleInputChange}
               rows={3}
               className={`${FI} resize-none`}
+              enterKeyHint="done"
             />
           </Field>
         </FormSection>
 
         {/* ── ACTIONS ──────────────────────────────────── */}
-        <div className="sticky bottom-0 z-10 bg-white/95 dark:bg-stone-800/95 backdrop-blur-md pt-4 pb-2 border-t border-stone-100 dark:border-stone-600/60 safe-bottom">
+        <div className="sticky bottom-0 z-10 -mx-4 bg-white/95 px-4 pt-4 pb-2 backdrop-blur-md safe-bottom dark:bg-stone-800/95 sm:mx-0 sm:px-0 border-t border-stone-100 dark:border-stone-600/60">
           <button
             type="submit"
             disabled={uploading}
@@ -590,21 +648,32 @@ function RepeatContextPanel({ context, isReturnVisit }) {
 
 function FieldRow({ children }) {
   return (
-    <div className="grid grid-cols-2 divide-x divide-stone-100 dark:divide-stone-700/50">
+    <div className="grid grid-cols-1 divide-y divide-stone-100 dark:divide-stone-700/50 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
       {children}
     </div>
   );
 }
 
-function Field({ label, required = false, error, children }) {
+function Field({ label, htmlFor, required = false, error, children }) {
+  const labelClassName = 'text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 mb-1.5 select-none';
+  const labelContent = (
+    <>
+      {label}{required && <span className="text-red-400 ml-0.5">*</span>}
+    </>
+  );
+
   return (
     <div className="px-4 py-3.5 focus-within:bg-stone-50/80 dark:focus-within:bg-stone-700/20 transition-colors">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 mb-1.5 select-none">
-        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
-      </p>
+      {htmlFor ? (
+        <label htmlFor={htmlFor} className={`block ${labelClassName}`}>
+          {labelContent}
+        </label>
+      ) : (
+        <p className={labelClassName}>{labelContent}</p>
+      )}
       {children}
       {error && (
-        <p className="flex items-center gap-1 text-red-500 dark:text-red-400 text-xs mt-1.5">
+        <p id={`${htmlFor}-error`} className="flex items-center gap-1 text-red-500 dark:text-red-400 text-xs mt-1.5">
           <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
           </svg>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 
 export default function AutocompleteInput({
+  id,
   value,
   onChange,
   suggestions = [],
@@ -9,6 +10,10 @@ export default function AutocompleteInput({
   name = '',
   type = 'text',
   required = false,
+  ariaInvalid,
+  ariaDescribedBy,
+  enterKeyHint,
+  autoCapitalize = 'sentences',
 }) {
   const [isFocused, setIsFocused] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -72,6 +77,7 @@ export default function AutocompleteInput({
   return (
     <div className="relative">
       <input
+        id={id}
         ref={inputRef}
         type={type}
         name={name}
@@ -83,6 +89,10 @@ export default function AutocompleteInput({
         required={required}
         autoComplete="off"
         spellCheck={false}
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
+        enterKeyHint={enterKeyHint}
+        autoCapitalize={autoCapitalize}
       />
 
       {shouldShowSuggestions && (
