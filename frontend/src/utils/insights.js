@@ -1,5 +1,6 @@
 // Pure computation functions for the Insights panel.
 // All functions take a sorted-by-date visits array and return derived data.
+import { getShopRepeatKey } from './repeats';
 
 /**
  * Detect streaks where a rating field stays above a threshold.
@@ -330,14 +331,19 @@ export function orderProfile(visits) {
 export function repeatShopInsights(visits) {
   const shopMap = {};
   for (const v of visits) {
-    const name = v.coffee_shop_name;
-    if (!shopMap[name]) shopMap[name] = [];
-    shopMap[name].push(v);
+    const key = getShopRepeatKey(v);
+    if (!shopMap[key]) {
+      shopMap[key] = {
+        name: v.coffee_shop_name,
+        visits: [],
+      };
+    }
+    shopMap[key].visits.push(v);
   }
 
-  const repeatShops = Object.entries(shopMap)
-    .filter(([, vs]) => vs.length >= 2)
-    .map(([name, vs]) => {
+  const repeatShops = Object.values(shopMap)
+    .filter(({ visits: vs }) => vs.length >= 2)
+    .map(({ name, visits: vs }) => {
       const sorted = [...vs].sort((a, b) => new Date(a.date) - new Date(b.date));
       const composites = sorted.map(v => v.composite_score);
       const avgComposite = +(composites.reduce((s, c) => s + c, 0) / composites.length).toFixed(1);

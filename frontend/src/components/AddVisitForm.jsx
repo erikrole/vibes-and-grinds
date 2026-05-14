@@ -3,6 +3,7 @@ import PhotoCropper from './PhotoCropper';
 import AutocompleteInput from './AutocompleteInput';
 import PlacesAutocomplete from './PlacesAutocomplete';
 import { getTodayDateString } from '../utils/dates';
+import { getRepeatContext } from '../utils/repeats';
 
 const BIG_TEN_TEAMS = {
   'minneapolis': 'Minnesota Golden Gophers',
@@ -41,8 +42,28 @@ const BIG_TEN_TEAMS = {
 const FI = 'w-full bg-transparent border-none outline-none focus:ring-0 text-[15px] text-stone-900 dark:text-stone-50 placeholder:text-stone-300 dark:placeholder:text-stone-600';
 const FS = 'w-full bg-transparent border-none outline-none focus:ring-0 text-[15px] text-stone-900 dark:text-stone-50 appearance-none cursor-pointer';
 
-export default function AddVisitForm({ onSubmit, onCancel, initialData = null, visits = [] }) {
-  const isEditing = Boolean(initialData);
+function getDefaultVisitData() {
+  return {
+    date: getTodayDateString(),
+    coffee_shop_name: '',
+    city: '',
+    opponent: '',
+    sport: '',
+    coffee_shop_address: '',
+    coffee_shop_place_id: '',
+    coffee_shop_lat: '',
+    coffee_shop_lng: '',
+    coffee_order: '',
+    vibe_rating: '',
+    coffee_rating: '',
+    notes: '',
+    photo_url: '',
+  };
+}
+
+export default function AddVisitForm({ onSubmit, onCancel, initialData = null, visits = [], mode = 'add' }) {
+  const isEditing = mode === 'edit';
+  const isReturnVisit = mode === 'return';
 
   const suggestions = useMemo(() => ({
     coffeeShops: [...new Set(visits.map((v) => v.coffee_shop_name).filter(Boolean))].sort(),
@@ -51,24 +72,7 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
     orders: [...new Set(visits.map((v) => v.coffee_order).filter(Boolean))].sort(),
   }), [visits]);
 
-  const [formData, setFormData] = useState(
-    initialData || {
-      date: getTodayDateString(),
-      coffee_shop_name: '',
-      city: '',
-      opponent: '',
-      sport: '',
-      coffee_shop_address: '',
-      coffee_shop_place_id: '',
-      coffee_shop_lat: '',
-      coffee_shop_lng: '',
-      coffee_order: '',
-      vibe_rating: '',
-      coffee_rating: '',
-      notes: '',
-      photo_url: '',
-    }
-  );
+  const [formData, setFormData] = useState({ ...getDefaultVisitData(), ...(initialData || {}) });
 
   const [errors, setErrors] = useState({});
   const [showCustomSport, setShowCustomSport] = useState(false);
@@ -78,6 +82,11 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
   const [cropping, setCropping] = useState(false);
   const [imageToCrop, setImageToCrop] = useState(null);
   const [dragging, setDragging] = useState(false);
+
+  const repeatContext = useMemo(
+    () => getRepeatContext(visits, formData, { excludeId: isEditing ? initialData?.id : null }),
+    [formData, initialData?.id, isEditing, visits]
+  );
 
   const handleInputChange = (e) => {
     const { name } = e.target;
@@ -241,10 +250,15 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
     <div>
       {/* Header */}
       <div className="mb-5 sm:mb-7 pr-12">
-        <h2 className="coffee-shop-name text-2xl sm:text-4xl">{isEditing ? 'Edit Visit' : 'New Visit'}</h2>
+        <h2 className="coffee-shop-name text-2xl sm:text-4xl">
+          {isEditing ? 'Edit Visit' : isReturnVisit ? 'Return Visit' : 'New Visit'}
+        </h2>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        {repeatContext?.personalCount > 0 && (
+          <RepeatContextPanel context={repeatContext} isReturnVisit={isReturnVisit} />
+        )}
 
         {/* ── WHEN & WHERE ─────────────────────────────── */}
         <FormSection title="When & Where">
@@ -259,42 +273,43 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
                 className={FI}
               />
             </Field>
-            <Field label="Sport">
-              <div className="relative">
-                {showCustomSport ? (
-                  <input
+          </FieldRow>
+
+          <Field label="Sport">
+            <div className="relative">
+              {showCustomSport ? (
+                <input
+                  name="sport"
+                  type="text"
+                  value={formData.sport}
+                  onChange={handleInputChange}
+                  placeholder="Enter sport name"
+                  className={FI}
+                  autoFocus
+                />
+              ) : (
+                <>
+                  <select
                     name="sport"
-                    type="text"
                     value={formData.sport}
                     onChange={handleInputChange}
-                    placeholder="Enter sport name"
-                    className={FI}
-                    autoFocus
-                  />
-                ) : (
-                  <>
-                    <select
-                      name="sport"
-                      value={formData.sport}
-                      onChange={handleInputChange}
-                      className={FS}
-                    >
-                      <option value="">None</option>
-                      <option value="Men's Basketball">Men's Basketball</option>
-                      <option value="Men's Hockey">Men's Hockey</option>
-                      <option value="Football">Football</option>
-                      <option value="Track & Field">Track & Field</option>
-                      <option value="Cross Country">Cross Country</option>
-                      <option value="__custom__">+ Add Sport</option>
-                    </select>
-                    <svg className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-300 dark:text-stone-600 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </>
-                )}
-              </div>
-            </Field>
-          </FieldRow>
+                    className={FS}
+                  >
+                    <option value="">None</option>
+                    <option value="Men's Basketball">Men's Basketball</option>
+                    <option value="Men's Hockey">Men's Hockey</option>
+                    <option value="Football">Football</option>
+                    <option value="Track & Field">Track & Field</option>
+                    <option value="Cross Country">Cross Country</option>
+                    <option value="__custom__">+ Add Sport</option>
+                  </select>
+                  <svg className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-300 dark:text-stone-600 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </>
+              )}
+            </div>
+          </Field>
 
           <Field label="Coffee Shop" required error={errors.coffee_shop_name}>
             <PlacesAutocomplete
@@ -318,6 +333,16 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
               inputClassName={FI}
             />
           </Field>
+          {repeatContext?.personalCount > 0 && (
+            <div className="px-4 py-3 bg-amber-50/70 dark:bg-amber-900/10 text-sm text-stone-600 dark:text-stone-300">
+              <span className="font-semibold text-stone-900 dark:text-stone-100">
+                {repeatContext.visitorName}'s visit #{repeatContext.visitNumber}
+              </span>
+              {repeatContext.lastVisit?.coffee_order && (
+                <span className="text-stone-500 dark:text-stone-400"> · Last order: {repeatContext.lastVisit.coffee_order}</span>
+              )}
+            </div>
+          )}
 
           <FieldRow>
             <Field label="City">
@@ -517,6 +542,47 @@ function FormSection({ title, children }) {
       {/* No overflow-hidden so autocomplete dropdowns can escape the card */}
       <div className="rounded-2xl bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 divide-y divide-stone-100 dark:divide-stone-700/50 shadow-sm">
         {children}
+      </div>
+    </div>
+  );
+}
+
+function RepeatContextPanel({ context, isReturnVisit }) {
+  const lastVisitDate = context.lastVisit?.date
+    ? new Date(context.lastVisit.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : null;
+  const bestScore = Number.isFinite(Number(context.bestVisit?.composite_score))
+    ? Number(context.bestVisit.composite_score).toFixed(1)
+    : null;
+
+  return (
+    <div className="rounded-2xl border border-amber-200/80 dark:border-amber-800/50 bg-amber-50/80 dark:bg-amber-900/15 px-4 py-3.5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300">
+            {isReturnVisit ? 'Return visit ready' : 'Repeat visit'}
+          </p>
+          <p className="mt-1 text-sm font-semibold text-stone-900 dark:text-stone-50">
+            {context.visitorName}'s visit #{context.visitNumber} here
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs text-stone-600 dark:text-stone-300">
+          {lastVisitDate && (
+            <span className="rounded-full bg-white/70 dark:bg-stone-800/70 px-2.5 py-1">
+              Last: {lastVisitDate}
+            </span>
+          )}
+          {context.lastVisit?.coffee_order && (
+            <span className="rounded-full bg-white/70 dark:bg-stone-800/70 px-2.5 py-1">
+              {context.lastVisit.coffee_order}
+            </span>
+          )}
+          {bestScore && (
+            <span className="rounded-full bg-white/70 dark:bg-stone-800/70 px-2.5 py-1">
+              Best: {bestScore}/20
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

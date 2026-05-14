@@ -1,6 +1,17 @@
 import VisitCard from './VisitCard';
+import { getShopRepeatKey } from '../utils/repeats';
 
-export default function VisitList({ visits, loading, onEdit, onDelete, onViewDetails, onAddVisit, hasActiveFilters = false, shopVisitCounts = {} }) {
+export default function VisitList({
+  visits,
+  loading,
+  onEdit,
+  onDelete,
+  onViewDetails,
+  onAddVisit,
+  onLogReturnVisit,
+  hasActiveFilters = false,
+  shopVisitCounts = {},
+}) {
   if (loading) {
     return (
       <div className="space-y-4">
@@ -64,7 +75,8 @@ export default function VisitList({ visits, loading, onEdit, onDelete, onViewDet
             onEdit={onEdit}
             onDelete={onDelete}
             onViewDetails={onViewDetails}
-            visitCount={shopVisitCounts[visit.coffee_shop_name.toLowerCase()] || 1}
+            onLogReturnVisit={onLogReturnVisit}
+            visitCount={shopVisitCounts[getShopRepeatKey(visit)] || 1}
           />
         </div>
       ))}

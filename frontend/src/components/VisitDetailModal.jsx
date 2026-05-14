@@ -5,6 +5,7 @@ import L from 'leaflet';
 import PhotoCropper from './PhotoCropper';
 import { getRatingColor, getCompositeColor } from '../utils/colors';
 import { formatDate, getRelativeLabel } from '../utils/dates';
+import { DEFAULT_VISITOR_NAME, getRepeatVisits } from '../utils/repeats';
 import { shareVisitCard } from '../utils/shareCard';
 import useFocusTrap from '../hooks/useFocusTrap';
 
@@ -15,7 +16,7 @@ const coffeeIcon = L.divIcon({
   iconAnchor: [16, 32],
 });
 
-export default function VisitDetailModal({ visit, visits, onClose, onNavigate, onUpdate, onEdit, onDelete, onDuplicate }) {
+export default function VisitDetailModal({ visit, visits, onClose, onNavigate, onUpdate, onEdit, onDelete, onLogReturnVisit }) {
   const modalRef = useRef(null);
   const [showMenu, setShowMenu] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -184,16 +185,16 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
     }
   };
 
-  const handleDuplicate = () => {
+  const handleLogReturnVisit = () => {
     setShowMenu(false);
     setConfirmAction({
-      type: 'duplicate',
-      title: 'Duplicate this visit?',
-      message: "This will create a copy with today's date that you can edit.",
-      confirmText: 'Duplicate Visit',
+      type: 'return',
+      title: 'Log return visit?',
+      message: 'This will prefill the shop, location, and last order so you can add fresh ratings.',
+      confirmText: 'Log Return Visit',
       onConfirm: () => {
         setConfirmAction(null);
-        onDuplicate?.(visit);
+        onLogReturnVisit?.(visit);
       },
     });
   };
@@ -214,6 +215,12 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
   const formattedDate = formatDate(visit.date);
   const relativeLabel = getRelativeLabel(visit.date);
+  const shopRepeatVisits = useMemo(() => getRepeatVisits(visits, visit), [visits, visit]);
+  const shopRepeatIndex = shopRepeatVisits.findIndex((v) => String(v.id) === String(visit.id));
+  const previousShopVisit = shopRepeatIndex > 0 ? shopRepeatVisits[shopRepeatIndex - 1] : null;
+  const bestShopVisit = shopRepeatVisits.reduce((best, candidate) => (
+    !best || Number(candidate.composite_score) > Number(best.composite_score) ? candidate : best
+  ), null);
 
   const hasCoordinates = Number.isFinite(Number(visit.coffee_shop_lat)) && Number.isFinite(Number(visit.coffee_shop_lng));
 
@@ -377,11 +384,11 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                       {sharing ? 'Generating...' : 'Share Card'}
                     </button>
                     <button
-                      onClick={handleDuplicate}
+                      onClick={handleLogReturnVisit}
                       className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors flex items-center gap-3"
                     >
                       <svg className="w-4 h-4 text-stone-400 dark:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                      Duplicate Visit
+                      Log Return Visit
                     </button>
                     <div className="border-t border-stone-100 dark:border-stone-700" />
                     <button
@@ -472,6 +479,17 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                   </p>
                 </div>
               </div>
+            )}
+
+            {shopRepeatVisits.length > 1 && (
+              <RepeatHistoryCard
+                visit={visit}
+                visits={shopRepeatVisits}
+                visitNumber={shopRepeatIndex + 1}
+                previousVisit={previousShopVisit}
+                bestVisit={bestShopVisit}
+                onLogReturnVisit={onLogReturnVisit}
+              />
             )}
 
             {/* Map */}
@@ -649,6 +667,71 @@ function ScoreCell({ label, score, isTotal = false }) {
         className="mt-2 h-[3px] rounded-full"
         style={{ backgroundColor: accent, width: isTotal ? '2.5rem' : '2rem' }}
       />
+    </div>
+  );
+}
+
+function RepeatHistoryCard({ visit, visits, visitNumber, previousVisit, bestVisit, onLogReturnVisit }) {
+  const previousDelta = previousVisit
+    ? Number(visit.composite_score) - Number(previousVisit.composite_score)
+    : null;
+  const deltaLabel = previousDelta == null
+    ? null
+    : `${previousDelta >= 0 ? '+' : ''}${previousDelta.toFixed(1)}`;
+  const bestScore = Number(bestVisit?.composite_score);
+  const bestDate = bestVisit?.date ? formatDate(bestVisit.date) : null;
+
+  return (
+    <div className="mt-5 rounded-2xl p-4 sm:p-5" style={{ backgroundColor: 'var(--paper-tint)' }}>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <p className="eyebrow mb-1 text-[0.65rem]">Repeat history</p>
+          <p className="text-lg font-semibold" style={{ color: 'var(--ink)' }}>
+            {DEFAULT_VISITOR_NAME}'s visit #{visitNumber} here
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onLogReturnVisit?.(visit)}
+          className="self-start rounded-xl px-3 py-2 text-xs font-semibold transition-colors bg-white/70 dark:bg-stone-800/70 text-stone-700 dark:text-stone-200 hover:bg-white dark:hover:bg-stone-800 border border-stone-200/70 dark:border-stone-600/70"
+        >
+          Log Return Visit
+        </button>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <RepeatMetric label="Total visits" value={visits.length} />
+        {bestVisit && (
+          <RepeatMetric
+            label="Best here"
+            value={`${bestScore.toFixed(1)}/20`}
+            detail={bestDate}
+            accent={getCompositeColor(bestScore)}
+          />
+        )}
+        {previousVisit && (
+          <RepeatMetric
+            label="Since previous"
+            value={deltaLabel}
+            detail={`${Number(previousVisit.composite_score).toFixed(1)}/20 last time`}
+            accent={previousDelta >= 0 ? '#16a34a' : '#dc2626'}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RepeatMetric({ label, value, detail, accent }) {
+  return (
+    <div className="rounded-xl bg-white/55 dark:bg-stone-800/55 px-3.5 py-3 border border-stone-200/50 dark:border-stone-700/50">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-stone-400 dark:text-stone-500 mb-1">
+        {label}
+      </p>
+      <p className="text-lg font-black" style={{ color: accent || 'var(--ink)' }}>
+        {value}
+      </p>
+      {detail && <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">{detail}</p>}
     </div>
   );
 }

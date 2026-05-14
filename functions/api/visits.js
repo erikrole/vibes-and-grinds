@@ -1,6 +1,10 @@
 // GET /api/visits - Get all visits
 // POST /api/visits - Create a new visit
 
+function normalizeOptionalText(value) {
+  return (value || '').trim() || null;
+}
+
 export async function onRequestGet({ env }) {
   try {
     const { results } = await env.DB.prepare(
@@ -62,18 +66,18 @@ export async function onRequestPost({ request, env }) {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       date,
-      coffee_shop_name,
-      city || null,
-      opponent || null,
+      coffee_shop_name.trim(),
+      normalizeOptionalText(city),
+      normalizeOptionalText(opponent),
       sport || null,
       coffee_shop_address || null,
       coffee_shop_place_id || null,
       coffee_shop_lat || null,
       coffee_shop_lng || null,
-      coffee_order || null,
+      normalizeOptionalText(coffee_order),
       vibe_rating,
       coffee_rating,
-      notes || null,
+      normalizeOptionalText(notes),
       photo_url || null
     ).run();
 

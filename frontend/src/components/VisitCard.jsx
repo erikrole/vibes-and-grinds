@@ -3,7 +3,7 @@ import RatingBadge from './RatingBadge';
 import CompositeBadge from './CompositeBadge';
 import { formatDate, getRelativeLabel } from '../utils/dates';
 
-export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visitCount = 1 }) {
+export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLogReturnVisit, visitCount = 1 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const menuRef = useRef(null);
@@ -76,7 +76,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
               )}
               {visitCount > 1 && (
                 <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[0.7rem] font-medium" style={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)' }}>
-                  {visitCount}× regular
+                  {visitCount}x regular
                 </span>
               )}
             </div>
@@ -107,6 +107,17 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, visi
                     role="menuitem"
                   >
                     Edit Visit
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onLogReturnVisit?.(visit);
+                      setShowMenu(false);
+                    }}
+                    className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors border-b border-stone-100 dark:border-stone-700"
+                    role="menuitem"
+                  >
+                    Log Return Visit
                   </button>
                   {confirmingDelete ? (
                     <div className="px-4 py-3">

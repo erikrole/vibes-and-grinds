@@ -13,9 +13,9 @@ import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
 import { getRatingColor, getCompositeColor } from './utils/colors';
-import { getTodayDateString } from './utils/dates';
 import { getCurrentSeason } from './utils/yearReview';
 import { computeBadges, detectNewBadges } from './utils/badges';
+import { buildReturnVisitDraft, getShopRepeatKey, getShopVisitCounts } from './utils/repeats';
 import useDarkMode from './hooks/useDarkMode';
 import useLocalStorage from './hooks/useLocalStorage';
 import useToast from './hooks/useToast';
@@ -31,6 +31,7 @@ export default function App() {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [visitDraft, setVisitDraft] = useState(null);
   const [editingVisit, setEditingVisit] = useState(null);
   const [viewingVisit, setViewingVisit] = useState(null);
   const [error, setError] = useState(null);
@@ -46,6 +47,7 @@ export default function App() {
     sortBy: 'date',
     searchQuery: '',
     sportFilter: '',
+    repeatFilter: '',
     appMode: isVestDomain ? APP_MODES.VEST : APP_MODES.VIBES,
   });
 
@@ -54,6 +56,7 @@ export default function App() {
   const sortAsc = viewPrefs.sortAsc || false;
   const searchQuery = viewPrefs.searchQuery || '';
   const sportFilter = viewPrefs.sportFilter || '';
+  const repeatFilter = viewPrefs.repeatFilter || '';
   const appMode = isVestDomain
     ? APP_MODES.VEST
     : (viewPrefs.appMode || APP_MODES.VIBES);
@@ -66,6 +69,7 @@ export default function App() {
   });
   const setSearchQuery = (v) => setViewPrefs((p) => ({ ...p, searchQuery: v }));
   const setSportFilter = (v) => setViewPrefs((p) => ({ ...p, sportFilter: v }));
+  const setRepeatFilter = (v) => setViewPrefs((p) => ({ ...p, repeatFilter: v }));
   const setViewTab = (v) => setViewPrefs((p) => ({ ...p, viewTab: v }));
   const setAppMode = (v) => setViewPrefs((p) => ({ ...p, appMode: typeof v === 'function' ? v(p.appMode) : v }));
 
@@ -96,7 +100,7 @@ export default function App() {
       } else if (e.key === '?') {
         setShowShortcuts((prev) => !prev);
       } else if (e.key.toLowerCase() === 'n' && appMode === APP_MODES.VIBES && !viewingVisit && !editingVisit) {
-        setShowForm(true);
+        handleOpenNewVisit();
       } else if (e.key.toLowerCase() === 'd') {
         toggleDarkMode();
       }
@@ -139,6 +143,7 @@ export default function App() {
       const newVisit = await createVisit(visitData);
       setVisits((prev) => [newVisit, ...prev]);
       setShowForm(false);
+      setVisitDraft(null);
       toastBag.show('Visit added.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
@@ -151,6 +156,7 @@ export default function App() {
   const handleEditVisit = (visit) => {
     setEditingVisit(visit);
     setShowForm(false);
+    setVisitDraft(null);
     setViewingVisit(null);
   };
 
@@ -195,25 +201,17 @@ export default function App() {
     }
   };
 
-  const handleDuplicateVisit = async (visit) => {
-    const duplicatedPayload = {
-      ...visit,
-      id: undefined,
-      date: getTodayDateString(),
-      notes: visit.notes ? `${visit.notes} (dup)` : '',
-    };
+  const handleOpenNewVisit = () => {
+    setVisitDraft(null);
+    setEditingVisit(null);
+    setShowForm(true);
+  };
 
-    try {
-      setError(null);
-      const duplicated = await createVisit(duplicatedPayload);
-      setVisits((prev) => [duplicated, ...prev]);
-      setViewingVisit(null);
-      setEditingVisit(duplicated);
-    } catch (err) {
-      setError('Failed to duplicate visit. Please try again.');
-      toastBag.show('Could not duplicate visit.', 'error');
-      console.error(err);
-    }
+  const handleLogReturnVisit = (visit) => {
+    setVisitDraft(buildReturnVisitDraft(visit));
+    setEditingVisit(null);
+    setViewingVisit(null);
+    setShowForm(true);
   };
 
   const handleModalUpdateVisit = async (id, updatedData) => {
@@ -232,13 +230,20 @@ export default function App() {
 
   const handleCancelForm = () => {
     setShowForm(false);
+    setVisitDraft(null);
     setEditingVisit(null);
   };
-
+  const shopVisitCounts = useMemo(() => getShopVisitCounts(visits), [visits]);
 
   const filteredVisits = visits.filter((visit) => {
     if (sportFilter && visit.sport !== sportFilter) {
       return false;
+    }
+
+    if (repeatFilter) {
+      const visitCount = shopVisitCounts[getShopRepeatKey(visit)] || 1;
+      if (repeatFilter === 'first' && visitCount > 1) return false;
+      if (repeatFilter === 'regular' && visitCount < 2) return false;
     }
 
     if (!searchQuery) return true;
@@ -269,7 +274,7 @@ export default function App() {
     }
   });
 
-  const hasActiveFilters = Boolean(searchQuery || sportFilter);
+  const hasActiveFilters = Boolean(searchQuery || sportFilter || repeatFilter);
   const modeLabel = appMode === APP_MODES.VEST ? 'VEST TRACKER' : 'VIBES & GRINDS';
 
   const avgVibe = useMemo(
@@ -305,15 +310,6 @@ export default function App() {
       .sort(([, a], [, b]) => b - a)
       .slice(0, 3)
       .map(([order, count]) => ({ order, count }));
-  }, [visits]);
-
-  const shopVisitCounts = useMemo(() => {
-    const counts = {};
-    visits.forEach((v) => {
-      const key = v.coffee_shop_name.toLowerCase();
-      counts[key] = (counts[key] || 0) + 1;
-    });
-    return counts;
   }, [visits]);
 
   return (
@@ -402,7 +398,7 @@ export default function App() {
                   )}
                 </button>
                 {appMode === APP_MODES.VIBES && !showForm && !editingVisit && (
-                  <button onClick={() => setShowForm(true)} className="btn-primary hidden md:block">
+                  <button onClick={handleOpenNewVisit} className="btn-primary hidden md:block">
                     Add Visit
                   </button>
                 )}
@@ -552,6 +548,20 @@ export default function App() {
                         </button>
                       </span>
                     )}
+                    {repeatFilter && (
+                      <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200 border border-stone-200 dark:border-stone-600">
+                        {repeatFilter === 'first' ? 'First-time shops' : 'Regular spots'}
+                        <button
+                          onClick={() => setRepeatFilter('')}
+                          className="ml-0.5 p-0.5 rounded-full hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors"
+                          aria-label="Clear repeat filter"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </span>
+                    )}
                     {searchQuery && (
                       <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200 border border-stone-200 dark:border-stone-600">
                         "{searchQuery}"
@@ -567,7 +577,7 @@ export default function App() {
                       </span>
                     )}
                     <button
-                      onClick={() => { setSearchQuery(''); setSportFilter(''); }}
+                      onClick={() => { setSearchQuery(''); setSportFilter(''); setRepeatFilter(''); }}
                       className="text-xs text-stone-400 dark:text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 underline underline-offset-2 transition-colors"
                     >
                       Clear all
@@ -613,6 +623,17 @@ export default function App() {
                   <option value="Football">Football</option>
                   <option value="Track & Field">Track & Field</option>
                   <option value="Cross Country">Cross Country</option>
+                </select>
+
+                <select
+                  value={repeatFilter}
+                  onChange={(e) => setRepeatFilter(e.target.value)}
+                  aria-label="Filter visits by repeat status"
+                  className="w-full sm:w-auto px-3 py-2.5 text-sm rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 cursor-pointer transition-colors sm:min-w-[170px]"
+                >
+                  <option value="">All visits</option>
+                  <option value="first">First-time shops</option>
+                  <option value="regular">Regular spots</option>
                 </select>
               </div>
             </div>
@@ -680,7 +701,8 @@ export default function App() {
             onEdit={handleEditVisit}
             onDelete={handleDeleteVisit}
             onViewDetails={setViewingVisit}
-            onAddVisit={() => setShowForm(true)}
+            onAddVisit={handleOpenNewVisit}
+            onLogReturnVisit={handleLogReturnVisit}
             hasActiveFilters={hasActiveFilters}
             shopVisitCounts={shopVisitCounts}
           />
@@ -707,7 +729,7 @@ export default function App() {
 
         {appMode === APP_MODES.VIBES && !showForm && !editingVisit && (
           <button
-            onClick={() => setShowForm(true)}
+            onClick={handleOpenNewVisit}
             className="fab-press fixed right-5 md:right-6 w-14 h-14 rounded-2xl flex items-center justify-center z-50"
             style={{ bottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
             aria-label="Add Visit"
@@ -728,20 +750,26 @@ export default function App() {
             onUpdate={handleModalUpdateVisit}
             onEdit={handleEditVisit}
             onDelete={handleDeleteVisit}
-            onDuplicate={handleDuplicateVisit}
+            onLogReturnVisit={handleLogReturnVisit}
           />
           </Suspense>
         )}
 
         {appMode === APP_MODES.VIBES && showForm && (
-          <FormModal title="Add Visit" onClose={handleCancelForm}>
-            <AddVisitForm onSubmit={handleAddVisit} onCancel={handleCancelForm} visits={visits} />
+          <FormModal title={visitDraft ? 'Log Return Visit' : 'Add Visit'} onClose={handleCancelForm}>
+            <AddVisitForm
+              initialData={visitDraft}
+              mode={visitDraft ? 'return' : 'add'}
+              onSubmit={handleAddVisit}
+              onCancel={handleCancelForm}
+              visits={visits}
+            />
           </FormModal>
         )}
 
         {appMode === APP_MODES.VIBES && editingVisit && (
           <FormModal title="Edit Visit" onClose={handleCancelForm}>
-            <AddVisitForm initialData={editingVisit} onSubmit={handleUpdateVisit} onCancel={handleCancelForm} visits={visits} />
+            <AddVisitForm initialData={editingVisit} mode="edit" onSubmit={handleUpdateVisit} onCancel={handleCancelForm} visits={visits} />
           </FormModal>
         )}
 

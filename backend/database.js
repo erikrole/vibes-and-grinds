@@ -119,7 +119,6 @@ async function initDatabase() {
       await db.exec(column.ddl);
     }
   }
-
   // Vest games migrations
   const vestColumns = await db.all('PRAGMA table_info(vest_games)');
   const vestColumnNames = new Set(vestColumns.map((column) => column.name));

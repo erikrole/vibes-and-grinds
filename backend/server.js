@@ -110,6 +110,10 @@ function validateVisit({ date, coffee_shop_name, vibe_rating, coffee_rating }) {
   return null;
 }
 
+function normalizeOptionalText(value) {
+  return (value || '').trim() || null;
+}
+
 /**
  * Fetch a URL with an AbortController timeout.
  * Returns the fetch Response. Caller is responsible for checking response.ok.
@@ -185,17 +189,17 @@ app.post('/api/visits', async (req, res) => {
       [
         date,
         trimmedName,
-        (city || '').trim() || null,
-        (opponent || '').trim() || null,
+        normalizeOptionalText(city),
+        normalizeOptionalText(opponent),
         sport || null,
         coffee_shop_address || null,
         coffee_shop_place_id || null,
         coffee_shop_lat,
         coffee_shop_lng,
-        (coffee_order || '').trim() || null,
+        normalizeOptionalText(coffee_order),
         vibe_rating,
         coffee_rating,
-        (notes || '').trim() || null,
+        normalizeOptionalText(notes),
         photo_url || null
       ]
     );
@@ -248,17 +252,17 @@ app.put('/api/visits/:id', async (req, res) => {
       [
         date,
         trimmedName,
-        (city || '').trim() || null,
-        (opponent || '').trim() || null,
+        normalizeOptionalText(city),
+        normalizeOptionalText(opponent),
         sport || null,
         coffee_shop_address || null,
         coffee_shop_place_id || null,
         coffee_shop_lat,
         coffee_shop_lng,
-        (coffee_order || '').trim() || null,
+        normalizeOptionalText(coffee_order),
         vibe_rating,
         coffee_rating,
-        (notes || '').trim() || null,
+        normalizeOptionalText(notes),
         photo_url || null,
         req.params.id
       ]
@@ -946,4 +950,3 @@ app.get('/api/places-details', async (req, res) => {
     });
   }
 });
-
