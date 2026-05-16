@@ -504,6 +504,13 @@ export default function VestTrackerDashboard({ showToast }) {
         onClearFilter={() => setSelectedOutfit(null)}
       />
 
+      <HeadlineTicker
+        wins={teamWins}
+        losses={teamLosses}
+        topOutfit={recommendation?.top?.outfit}
+        milestones={milestones}
+      />
+
       {(scoutingReport || recommendation) && (
         <VestNextGame
           scoutingReport={scoutingReport}
@@ -550,17 +557,60 @@ export default function VestTrackerDashboard({ showToast }) {
   );
 }
 
+function HeadlineTicker({ wins, losses, topOutfit, milestones }) {
+  const items = [
+    `Season ${wins}–${losses}`,
+    topOutfit ? `Top fit · ${topOutfit}` : null,
+    ...(milestones || []).map((m) => `${m.icon} ${m.text}`),
+    'Bucky 4ever',
+    '◆ Wisconsin Badgers · 2025–26',
+  ].filter(Boolean);
+
+  if (items.length < 2) return null;
+
+  // Repeat the strip twice so the marquee loop has no visible seam.
+  const strip = (
+    <>
+      {items.map((t, i) => (
+        <span key={`a-${i}`} className="vt-mono text-xs tracking-[0.22em] uppercase text-[color:var(--vt-ink-dim)]">
+          {t}{' '}
+          <span className="text-[color:var(--vt-crimson)] mx-2">◆</span>
+        </span>
+      ))}
+    </>
+  );
+
+  return (
+    <div className="vt-reveal vt-reveal-1 mb-6 sm:mb-7 relative rounded-md overflow-hidden border border-[color:var(--vt-rule)] bg-[rgba(0,0,0,0.45)]">
+      <div
+        className="absolute inset-y-0 left-0 w-12 z-10 pointer-events-none"
+        style={{ background: 'linear-gradient(90deg, rgba(0,0,0,0.85), transparent)' }}
+      />
+      <div
+        className="absolute inset-y-0 right-0 w-12 z-10 pointer-events-none"
+        style={{ background: 'linear-gradient(270deg, rgba(0,0,0,0.85), transparent)' }}
+      />
+      <div className="overflow-hidden py-2.5">
+        <div className="vt-marquee-track">
+          {strip}
+          {strip}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TabBar({ value, onChange }) {
   return (
-    <div className="mb-5 sm:mb-6 flex rounded-xl border border-stone-300 dark:border-stone-600 overflow-hidden">
+    <div className="vt-reveal mb-5 sm:mb-6 flex rounded-md overflow-hidden border border-[color:var(--vt-rule)] bg-[rgba(0,0,0,0.35)]">
       {TABS.map((tab) => (
         <button
           key={tab.value}
           onClick={() => onChange(tab.value)}
-          className={`flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium transition-colors border-r last:border-r-0 border-stone-300 dark:border-stone-600 ${
+          className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 vt-anton text-sm tracking-[0.16em] uppercase border-r last:border-r-0 border-[color:var(--vt-rule)] transition-colors ${
             value === tab.value
-              ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
-              : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
+              ? 'bg-[color:var(--vt-crimson)] text-white shadow-[0_0_20px_-4px_var(--vt-crimson-glow)]'
+              : 'text-[color:var(--vt-ink-dim)] hover:text-[color:var(--vt-ink)] hover:bg-white/[0.04]'
           }`}
         >
           {tab.label}
@@ -573,8 +623,8 @@ function TabBar({ value, onChange }) {
 function LoadingPanel() {
   return (
     <div className="text-center py-12">
-      <span className="inline-block w-5 h-5 border-2 border-stone-400 border-t-transparent rounded-full animate-spin mr-2 align-middle" />
-      <span className="text-sm text-stone-500">Loading…</span>
+      <span className="inline-block w-5 h-5 border-2 border-[color:var(--vt-crimson)] border-t-transparent rounded-full animate-spin mr-2 align-middle" />
+      <span className="vt-mono text-sm text-[color:var(--vt-ink-dim)] tracking-wider uppercase">Loading…</span>
     </div>
   );
 }
@@ -582,23 +632,23 @@ function LoadingPanel() {
 function NetStatusFooter({ netStatus, count }) {
   if (netStatus === 'loaded') {
     return (
-      <p className="text-xs text-stone-500 dark:text-stone-400 mb-6 -mt-2 px-1">
-        NET feed loaded: {count} teams (target ~365).
+      <p className="vt-mono text-[10px] tracking-[0.22em] uppercase text-[color:var(--vt-cyan)] mb-6 -mt-1 px-1">
+        ◆ NET feed locked · {count} teams (target ~365)
       </p>
     );
   }
   if (netStatus === 'loading') {
     return (
-      <p className="text-xs text-stone-500 dark:text-stone-400 mb-6 -mt-2 px-1">
-        <span className="inline-block w-3 h-3 border-2 border-stone-400 border-t-transparent rounded-full animate-spin mr-1.5 align-middle" />
-        Loading live NET rankings…
+      <p className="vt-mono text-[10px] tracking-[0.22em] uppercase text-[color:var(--vt-gold)] mb-6 -mt-1 px-1">
+        <span className="inline-block w-3 h-3 border-2 border-[color:var(--vt-gold)] border-t-transparent rounded-full animate-spin mr-1.5 align-middle" />
+        Tuning the NET feed…
       </p>
     );
   }
   if (netStatus === 'error') {
     return (
-      <p className="text-xs text-stone-500 dark:text-stone-400 mb-6 -mt-2 px-1">
-        Unable to load NET rankings. Quadrant stats are temporarily unavailable.
+      <p className="vt-mono text-[10px] tracking-[0.22em] uppercase text-[color:var(--vt-ink-faint)] mb-6 -mt-1 px-1">
+        ✕ NET feed offline · Quadrant stats temporarily unavailable
       </p>
     );
   }

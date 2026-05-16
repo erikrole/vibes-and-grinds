@@ -1,90 +1,133 @@
 import { memo } from 'react';
 
-// Editorial scoreboard hero — bold W-L on charcoal, streak chip, optional
-// filter chip when the user has narrowed to a single outfit.
+// 70s retro-futurist scoreboard hero — Monoton chrome numerals on cosmic
+// gradient, foil-border card, secondary stat pills as racing-stripe chips.
 function VestScoreboard({ wins, losses, streak, secondary, filterLabel, onClearFilter }) {
   const total = wins + losses;
   const winPct = total > 0 ? Math.round((wins / total) * 100) : null;
 
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-red-900/40 bg-neutral-900 text-neutral-100 shadow-sm mb-6">
-      {/* Stadium dot pattern */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.04]"
-        style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '14px 14px' }}
-      />
+    <section className="vt-reveal vt-foil-border mb-6 sm:mb-7">
+      <div className="vt-card relative overflow-hidden">
+        {/* Top racing-stripe ribbon */}
+        <div className="vt-stripe h-1.5 w-full opacity-90" aria-hidden />
 
-      <div className="relative px-5 sm:px-7 py-5 sm:py-6">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-red-300/70 font-semibold">
-              {filterLabel ? `${filterLabel} · Record` : 'Season Record'}
-            </p>
-            <div className="flex items-baseline gap-3 mt-1.5">
-              <h2 className="text-5xl sm:text-6xl font-black tracking-tight tabular-nums leading-none">
-                {wins}<span className="text-neutral-500 font-bold">–</span>{losses}
-              </h2>
-              {winPct != null && (
-                <span className="text-sm font-semibold text-neutral-400 tabular-nums">
-                  {winPct}%
-                </span>
-              )}
-              {streak && streak.count >= 2 && (
-                <StreakChip streak={streak} />
-              )}
+        {/* Halftone dot field as decorative corner */}
+        <div
+          aria-hidden
+          className="vt-halftone pointer-events-none absolute -right-12 -top-12 h-56 w-56 opacity-20 rotate-12"
+        />
+
+        {/* Sunburst accent */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 h-72 w-[160%]"
+          style={{
+            background: 'radial-gradient(ellipse 60% 100% at 50% 100%, rgba(255,45,123,0.35) 0%, rgba(255,45,123,0) 70%)',
+          }}
+        />
+
+        <div className="relative px-5 sm:px-8 pt-5 sm:pt-6 pb-6">
+          {/* Series label — top tag bar */}
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-4 sm:mb-5">
+            <div className="flex items-center gap-2 vt-mono text-[10px] tracking-[0.24em] text-[color:var(--vt-ink-dim)] uppercase">
+              <span className="inline-block w-2 h-2 rounded-full bg-[color:var(--vt-crimson)] shadow-[0_0_10px_var(--vt-crimson-glow)]" />
+              <span>Series · 2025–26</span>
+              <span className="text-[color:var(--vt-ink-faint)]">·</span>
+              <span className="vt-mojo text-[color:var(--vt-cyan)]">{filterLabel ? '01 of 01' : `01 of ${total || '—'}`}</span>
             </div>
+            {filterLabel ? (
+              <button
+                onClick={onClearFilter}
+                className="vt-pill vt-pill-crimson hover:bg-[rgba(255,23,76,0.2)] transition-colors group"
+              >
+                <span className="text-[9px] tracking-[0.18em] opacity-80">Filter</span>
+                <span className="font-bold not-italic">{filterLabel}</span>
+                <svg className="w-3 h-3 opacity-80 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            ) : (
+              <span className="vt-pill vt-pill-gold">
+                <span className="text-[9px] tracking-[0.18em] opacity-80">Season</span>
+                <span className="vt-mojo">Record</span>
+              </span>
+            )}
           </div>
 
-          {filterLabel && (
-            <button
-              onClick={onClearFilter}
-              className="inline-flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full bg-neutral-800/80 border border-neutral-700 hover:border-neutral-500 hover:bg-neutral-800 transition-colors"
-            >
-              <span className="text-neutral-400">Filtered</span>
-              <span className="font-semibold text-neutral-100 truncate max-w-[180px]">{filterLabel}</span>
-              <svg className="w-3 h-3 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+          {/* Hero scoreboard */}
+          <div className="flex items-end justify-between gap-4 flex-wrap">
+            <div className="min-w-0">
+              <p className="vt-mono text-[10px] uppercase tracking-[0.3em] text-[color:var(--vt-cyan)] mb-1.5">
+                {filterLabel ? `${filterLabel} · Record` : 'Season Record'}
+              </p>
+              <h2 className="vt-monoton vt-numeral-emboss vt-pulse text-[64px] sm:text-[96px] lg:text-[120px] leading-[0.85] vt-text-foil tabular-nums">
+                {wins}<span className="text-[color:var(--vt-crimson)] vt-text-neon-crimson mx-1">·</span>{losses}
+              </h2>
+              {winPct != null && (
+                <div className="flex items-center gap-3 mt-2">
+                  <span className="vt-anton text-2xl sm:text-3xl vt-text-chrome tabular-nums">{winPct}%</span>
+                  <span className="vt-mono text-[10px] tracking-[0.2em] text-[color:var(--vt-ink-faint)] uppercase">
+                    Win Pct
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {streak && streak.count >= 2 && (
+              <StreakBadge streak={streak} />
+            )}
+          </div>
+
+          {/* Secondary stat strip */}
+          {secondary?.length > 0 && (
+            <div className="mt-6 flex gap-2 flex-wrap items-stretch">
+              {secondary.map((pill) => (
+                <StatPill key={pill.label} label={pill.label} value={pill.value} />
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Secondary scoreboard pills: Q1+Q2 record, road record, OT record */}
-        {secondary?.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {secondary.map((pill) => (
-              <div
-                key={pill.label}
-                className="rounded-lg bg-neutral-800/60 border border-neutral-700/60 px-3 py-1.5"
-              >
-                <span className="block text-[9px] uppercase tracking-[0.14em] text-neutral-500 font-semibold">
-                  {pill.label}
-                </span>
-                <span className="text-sm font-bold tabular-nums text-neutral-100">
-                  {pill.value}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Bottom racing stripe */}
+        <div className="vt-stripe h-1 w-full opacity-70" aria-hidden />
       </div>
     </section>
   );
 }
 
-function StreakChip({ streak }) {
+function StreakBadge({ streak }) {
   const isWin = streak.result === 'W';
   return (
-    <span
-      className={`text-xs font-bold px-2.5 py-1 rounded-full tabular-nums ${
+    <div
+      className={`vt-hex relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center ${
         isWin
-          ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-          : 'bg-red-500/15 text-red-300 border border-red-500/30'
+          ? 'bg-[color:var(--vt-crimson)] text-white'
+          : 'bg-[#2a3550] text-[#a6c4ff]'
       }`}
+      style={{
+        boxShadow: isWin
+          ? '0 0 28px var(--vt-crimson-glow), 0 0 0 2px rgba(255,255,255,0.15) inset'
+          : '0 0 24px rgba(38, 80, 156, 0.5), 0 0 0 2px rgba(255,255,255,0.10) inset',
+      }}
+      title={`${streak.count}-game ${isWin ? 'win' : 'loss'} streak`}
     >
-      {isWin ? '🔥 ' : '❄️ '}{streak.count} {isWin ? 'W' : 'L'} streak
-    </span>
+      <div className="flex flex-col items-center leading-none">
+        <span className="vt-anton text-4xl sm:text-5xl tabular-nums">{streak.count}</span>
+        <span className="vt-mono text-[9px] tracking-[0.2em] mt-1 opacity-90">
+          {isWin ? 'W STREAK' : 'L STREAK'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function StatPill({ label, value }) {
+  return (
+    <div className="vt-mono px-3 py-2 rounded-md bg-[rgba(0,0,0,0.35)] border border-[color:var(--vt-rule)] flex flex-col gap-0.5 min-w-[72px]">
+      <span className="text-[9px] tracking-[0.24em] uppercase text-[color:var(--vt-ink-faint)]">{label}</span>
+      <span className="vt-anton text-xl text-[color:var(--vt-ink)] tabular-nums leading-tight">{value}</span>
+    </div>
   );
 }
 

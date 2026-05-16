@@ -15,24 +15,13 @@ const TIER_LABEL = {
   decent: 'decent sample',
   solid: 'solid sample',
 };
+const TIER_DOTS = { untested: 0, tiny: 1, small: 2, decent: 3, solid: 4 };
+const RANK_GLYPH = ['★', '✦', '✧', '◆', '◇'];
 
-const TIER_DOTS = {
-  untested: 0,
-  tiny: 1,
-  small: 2,
-  decent: 3,
-  solid: 4,
-};
-
-// Outfit leaderboard — Bayesian-smoothed rate, Wilson lower bound for ranking,
-// wins above expected, sample-tier signaling. Click an outfit to filter.
-function VestLeaderboard({
-  stats,
-  badges,
-  selectedOutfit,
-  onSelectOutfit,
-  netStatus,
-}) {
+// Outfit leaderboard as a deck of trading cards. Each row is a foil-border
+// card with stat blocks, sample tier dots, quadrant micro-table, and a
+// rank glyph that ramps from solid star → outline diamond.
+function VestLeaderboard({ stats, badges, selectedOutfit, onSelectOutfit, netStatus }) {
   const [sortBy, setSortBy] = useState('wilson');
 
   const sorted = [...stats].sort((a, b) => {
@@ -44,27 +33,32 @@ function VestLeaderboard({
 
   if (!stats.length) {
     return (
-      <section className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 shadow-sm mb-6 text-center text-sm text-stone-500 dark:text-stone-400">
-        Add a few games to see the outfit leaderboard.
+      <section className="vt-card mb-6 p-6 text-center">
+        <p className="vt-mono text-sm text-[color:var(--vt-ink-dim)] tracking-wider">
+          ◌ Log a few games to fill the deck.
+        </p>
       </section>
     );
   }
 
   return (
-    <section className="mb-6">
-      <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-        <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">
-          Outfit Leaderboard
-        </h3>
-        <div className="flex items-center gap-1 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 p-0.5">
+    <section className="vt-reveal vt-reveal-3 mb-6 sm:mb-7">
+      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        <div className="flex items-center gap-3">
+          <span className="vt-monoton text-2xl sm:text-3xl vt-text-foil">DECK</span>
+          <span className="vt-mojo text-[10px] tracking-[0.32em] text-[color:var(--vt-cyan)] uppercase">
+            ◆ {sorted.length} cards
+          </span>
+        </div>
+        <div className="flex items-center gap-0.5 rounded-md border border-[color:var(--vt-rule)] bg-[rgba(0,0,0,0.35)] p-0.5">
           {SORT_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               onClick={() => setSortBy(opt.value)}
-              className={`text-[10px] uppercase tracking-[0.08em] font-bold px-2.5 py-1.5 rounded-md transition-colors ${
+              className={`vt-mono text-[9px] uppercase tracking-[0.12em] px-2.5 py-1.5 rounded transition-colors ${
                 sortBy === opt.value
-                  ? 'bg-stone-900 text-stone-50 dark:bg-stone-100 dark:text-stone-900'
-                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'
+                  ? 'bg-[color:var(--vt-crimson)] text-white shadow-[0_0_12px_var(--vt-crimson-glow)]'
+                  : 'text-[color:var(--vt-ink-dim)] hover:text-[color:var(--vt-ink)]'
               }`}
             >
               {opt.label}
@@ -73,12 +67,12 @@ function VestLeaderboard({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-        {sorted.map((stat, rank) => (
-          <OutfitCard
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+        {sorted.map((stat, idx) => (
+          <DeckCard
             key={stat.outfit}
             stat={stat}
-            rank={rank + 1}
+            rank={idx + 1}
             isSelected={selectedOutfit === stat.outfit}
             onSelect={onSelectOutfit}
             badges={badges[stat.outfit] || []}
@@ -91,123 +85,177 @@ function VestLeaderboard({
   );
 }
 
-function OutfitCard({ stat, rank, isSelected, onSelect, badges, netStatus, sortBy }) {
+function DeckCard({ stat, rank, isSelected, onSelect, badges, netStatus, sortBy }) {
   const winPct = stat.winRatePct;
   const woeSign = stat.winsAboveExpected >= 0 ? '+' : '';
-  const woeColor =
+  const accentColor =
     stat.winsAboveExpected > 0.5
-      ? 'text-emerald-700 dark:text-emerald-400'
+      ? 'var(--vt-cyan)'
       : stat.winsAboveExpected < -0.5
-      ? 'text-red-700 dark:text-red-400'
-      : 'text-stone-600 dark:text-stone-300';
+      ? 'var(--vt-crimson)'
+      : 'var(--vt-gold)';
 
   const primaryMetric =
     sortBy === 'woe'
-      ? { label: 'vs Expected', value: `${woeSign}${stat.winsAboveExpected.toFixed(1)}`, color: woeColor }
+      ? { label: 'vs Exp', value: `${woeSign}${stat.winsAboveExpected.toFixed(1)}`, accent: accentColor }
       : sortBy === 'wilson'
-      ? { label: 'Confidence', value: `${stat.wilsonPct}%`, color: 'text-stone-900 dark:text-stone-100' }
+      ? { label: 'Conf', value: `${stat.wilsonPct}%`, accent: 'var(--vt-gold)' }
       : sortBy === 'games'
-      ? { label: 'Games', value: `${stat.games}`, color: 'text-stone-900 dark:text-stone-100' }
-      : { label: 'Smoothed', value: `${stat.smoothedRatePct}%`, color: 'text-stone-900 dark:text-stone-100' };
+      ? { label: 'Games', value: `${stat.games}`, accent: 'var(--vt-cyan)' }
+      : { label: 'Smooth', value: `${stat.smoothedRatePct}%`, accent: 'var(--vt-gold)' };
+
+  const glyph = RANK_GLYPH[Math.min(rank - 1, RANK_GLYPH.length - 1)];
 
   return (
     <button
       onClick={() => onSelect(isSelected ? null : stat.outfit)}
-      className={`bg-white dark:bg-stone-800 border rounded-2xl p-4 shadow-sm text-left transition-all hover:shadow-md hover:-translate-y-px active:scale-[0.99] ${
-        isSelected
-          ? 'border-red-500 dark:border-red-500 ring-2 ring-red-500/20'
-          : 'border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
+      className={`relative text-left rounded-lg overflow-hidden transition-all hover:-translate-y-0.5 active:scale-[0.99] ${
+        isSelected ? 'vt-foil-border' : ''
       }`}
+      style={{
+        background: isSelected ? 'transparent' : 'linear-gradient(180deg, var(--vt-card-2) 0%, var(--vt-card) 100%)',
+        boxShadow: isSelected
+          ? '0 16px 40px -16px rgba(255,23,76,0.5)'
+          : '0 1px 0 rgba(255,255,255,0.04) inset, 0 12px 30px -16px rgba(0,0,0,0.5)',
+        border: isSelected ? 'none' : `1px solid ${rank === 1 ? 'rgba(244,197,66,0.45)' : 'var(--vt-rule)'}`,
+      }}
     >
-      <div className="flex items-start justify-between gap-3 mb-2.5">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] uppercase tracking-[0.12em] text-stone-400 dark:text-stone-500 font-bold tabular-nums">
-              #{rank}
-            </span>
+      <div className={isSelected ? 'vt-card relative' : 'relative'}>
+        {/* Rank ribbon */}
+        <div
+          className="absolute top-0 left-4 w-12 h-7 flex items-center justify-center text-[#0a0418] vt-anton text-sm shadow-md"
+          style={{
+            background: rank === 1 ? 'var(--vt-foil)' : rank <= 3 ? 'var(--vt-chrome)' : 'rgba(255,255,255,0.12)',
+            color: rank <= 3 ? '#0a0418' : 'var(--vt-ink)',
+            clipPath: 'polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%)',
+          }}
+        >
+          <span className="tabular-nums">#{rank}</span>
+        </div>
+
+        {/* Rank glyph corner */}
+        <div className="absolute top-2.5 right-3 vt-mojo text-xl text-[color:var(--vt-ink-faint)] opacity-60">
+          {glyph}
+        </div>
+
+        <div className="px-4 pt-10 pb-4">
+          {/* Outfit name + sample dots */}
+          <div className="flex items-center gap-2 mb-1">
             <SampleTier tier={stat.tier} />
-          </div>
-          <h4 className="text-base font-bold text-stone-900 dark:text-stone-100 mt-1 truncate">
-            {stat.outfit}
-          </h4>
-          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             {stat.form === 'hot' && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">
-                🔥 HOT
+              <span className="vt-mono text-[9px] tracking-[0.16em] px-1.5 py-0.5 rounded bg-[rgba(255,23,76,0.18)] text-[color:var(--vt-crimson)] vt-text-neon-crimson uppercase">
+                ◉ Hot
               </span>
             )}
             {stat.form === 'cold' && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
-                ❄️ COLD
+              <span className="vt-mono text-[9px] tracking-[0.16em] px-1.5 py-0.5 rounded bg-[rgba(0,229,255,0.12)] text-[color:var(--vt-cyan)] uppercase">
+                ❄ Cold
               </span>
             )}
-            {badges.slice(0, 2).map((badge) => (
-              <span
-                key={badge}
-                className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 truncate max-w-[140px]"
-              >
-                {badge}
-              </span>
-            ))}
           </div>
-        </div>
-        <div className="text-right shrink-0">
-          <div className="text-[9px] uppercase tracking-[0.12em] text-stone-400 dark:text-stone-500 font-bold">
-            {primaryMetric.label}
-          </div>
-          <div className={`text-2xl font-black tabular-nums leading-none mt-0.5 ${primaryMetric.color}`}>
-            {primaryMetric.value}
-          </div>
-          <div className="text-[10px] text-stone-500 dark:text-stone-400 mt-0.5 tabular-nums">
-            {stat.wins}–{stat.losses}
-          </div>
-        </div>
-      </div>
+          <h4 className="vt-anton text-xl sm:text-2xl text-[color:var(--vt-ink)] leading-[1.05] truncate">
+            {stat.outfit.toUpperCase()}
+          </h4>
 
-      {/* Win/loss bar */}
-      <div
-        className="h-2 rounded-full bg-stone-100 dark:bg-stone-700 overflow-hidden flex"
-        title={`${stat.wins}W – ${stat.losses}L (raw ${winPct}%)`}
-      >
-        <div className="h-full bg-emerald-500" style={{ width: `${winPct}%` }} />
-        <div className="h-full bg-red-400 dark:bg-red-500" style={{ width: `${100 - winPct}%` }} />
-      </div>
+          {/* Badges */}
+          {badges.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {badges.slice(0, 2).map((badge) => (
+                <span
+                  key={badge}
+                  className="vt-mono text-[9px] tracking-[0.12em] px-1.5 py-0.5 rounded bg-[rgba(244,197,66,0.10)] text-[color:var(--vt-gold)] truncate max-w-[160px]"
+                >
+                  {badge}
+                </span>
+              ))}
+            </div>
+          )}
 
-      {/* Footer metrics */}
-      <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-stone-500 dark:text-stone-400 tabular-nums">
-        <span>
-          last: {formatLocationLabel(stat.lastSeenLocation)} {stat.lastSeen}
-        </span>
-        {stat.avgNet && netStatus === 'loaded' && <span>SoS #{stat.avgNet}</span>}
-      </div>
-
-      {/* Quadrant micro-table */}
-      {netStatus === 'loaded' && (
-        <div className="mt-2 grid grid-cols-4 gap-1 text-[9px] font-bold text-stone-600 dark:text-stone-300 tabular-nums">
-          {[1, 2, 3, 4].map((q) => {
-            const w = stat.quadrants[q].wins;
-            const l = stat.quadrants[q].losses;
-            const empty = w + l === 0;
-            return (
-              <div
-                key={q}
-                className={`rounded px-1.5 py-1 text-center ${
-                  empty ? 'bg-stone-50 text-stone-300 dark:bg-stone-700/30 dark:text-stone-600' : 'bg-stone-100 dark:bg-stone-700/60'
-                }`}
-              >
-                <span className="text-stone-400 dark:text-stone-500">Q{q}</span>{' '}
-                {empty ? '—' : `${w}–${l}`}
+          {/* Primary stat block */}
+          <div className="mt-3 flex items-end justify-between gap-3 pb-2 border-b border-[color:var(--vt-rule)]">
+            <div>
+              <div className="vt-mono text-[9px] uppercase tracking-[0.24em] text-[color:var(--vt-ink-faint)]">
+                W–L
               </div>
-            );
-          })}
+              <div className="vt-anton text-2xl text-[color:var(--vt-ink)] tabular-nums leading-none mt-0.5">
+                {stat.wins}–{stat.losses}
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="vt-mono text-[9px] uppercase tracking-[0.22em]" style={{ color: primaryMetric.accent }}>
+                {primaryMetric.label}
+              </div>
+              <div
+                className="vt-monoton text-3xl tabular-nums leading-none mt-1"
+                style={{
+                  color: primaryMetric.accent,
+                  textShadow: `0 0 14px ${primaryMetric.accent}`,
+                }}
+              >
+                {primaryMetric.value}
+              </div>
+            </div>
+          </div>
+
+          {/* Win/loss bar */}
+          <div
+            className="mt-3 h-1.5 rounded-full bg-[rgba(255,255,255,0.06)] overflow-hidden flex"
+            title={`${stat.wins}W – ${stat.losses}L (raw ${winPct}%)`}
+          >
+            <div
+              className="h-full bg-[color:var(--vt-cyan)]"
+              style={{ width: `${winPct}%`, boxShadow: '0 0 6px var(--vt-cyan-glow)' }}
+            />
+            <div
+              className="h-full bg-[color:var(--vt-crimson)]"
+              style={{ width: `${100 - winPct}%`, boxShadow: '0 0 6px var(--vt-crimson-glow)' }}
+            />
+          </div>
+
+          {/* Footer / quadrants */}
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <span className="vt-mono text-[9px] uppercase tracking-[0.18em] text-[color:var(--vt-ink-faint)] truncate">
+              last: {formatLocationLabel(stat.lastSeenLocation)} {stat.lastSeen}
+            </span>
+            {stat.avgNet && netStatus === 'loaded' && (
+              <span className="vt-mono text-[9px] uppercase tracking-[0.18em] text-[color:var(--vt-cyan)] tabular-nums">
+                SoS #{stat.avgNet}
+              </span>
+            )}
+          </div>
+
+          {netStatus === 'loaded' && (
+            <div className="mt-2 grid grid-cols-4 gap-1">
+              {[1, 2, 3, 4].map((q) => {
+                const w = stat.quadrants[q].wins;
+                const l = stat.quadrants[q].losses;
+                const empty = w + l === 0;
+                return (
+                  <div
+                    key={q}
+                    className="rounded vt-mono text-center py-1 tabular-nums"
+                    style={{
+                      background: empty ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.3)',
+                      border: `1px solid ${empty ? 'var(--vt-rule)' : 'rgba(255,255,255,0.12)'}`,
+                      color: empty ? 'var(--vt-ink-faint)' : 'var(--vt-ink)',
+                    }}
+                  >
+                    <span className="text-[9px] tracking-[0.16em] text-[color:var(--vt-ink-faint)]">Q{q}</span>{' '}
+                    <span className="text-[10px]">{empty ? '—' : `${w}–${l}`}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Card bottom foil edge */}
+        <div className="vt-stripe h-[3px] w-full opacity-70" aria-hidden />
+      </div>
     </button>
   );
 }
 
-// Visual sample-size indicator: 0–4 dots. More dots = larger sample,
-// which makes the win rate more trustworthy.
 function SampleTier({ tier }) {
   const count = TIER_DOTS[tier] ?? 0;
   return (
@@ -219,9 +267,11 @@ function SampleTier({ tier }) {
       {[0, 1, 2, 3].map((i) => (
         <span
           key={i}
-          className={`block w-1 h-1 rounded-full ${
-            i < count ? 'bg-stone-700 dark:bg-stone-300' : 'bg-stone-200 dark:bg-stone-600'
-          }`}
+          className="block w-1.5 h-1.5 rounded-sm"
+          style={{
+            background: i < count ? 'var(--vt-cyan)' : 'rgba(255,255,255,0.10)',
+            boxShadow: i < count ? '0 0 4px var(--vt-cyan-glow)' : 'none',
+          }}
         />
       ))}
     </span>

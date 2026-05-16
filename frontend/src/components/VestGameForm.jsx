@@ -11,13 +11,13 @@ const EMPTY_FORM = {
   overtime: false,
 };
 
-// Clean add/edit form. Collapsed to a single CTA by default; expands inline.
+// Add/edit form styled as a retro broadcast operator console.
+// Collapsed to a single neon CTA by default; expands inline.
 function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel }) {
   const [open, setOpen] = useState(false);
   const [formState, setFormState] = useState(EMPTY_FORM);
   const [addingOutfit, setAddingOutfit] = useState(false);
 
-  // Hydrate from editing target whenever it changes.
   useEffect(() => {
     if (editingGame) {
       setOpen(true);
@@ -48,16 +48,14 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
   const handleSubmit = (event) => {
     event.preventDefault();
     const opponent = formState.opponent.trim();
-    const outfit = formState.outfit.trim();
-    const ranking = formState.ranking.trim();
     if (!opponent) return;
 
     onSave({
       date: toIsoDate(formState.date),
       location: formState.location,
       opponent,
-      ranking: ranking ? parseInt(ranking, 10) : null,
-      outfit,
+      ranking: formState.ranking.trim() ? parseInt(formState.ranking, 10) : null,
+      outfit: formState.outfit.trim(),
       result: formState.result,
       overtime: Boolean(formState.overtime),
     });
@@ -71,35 +69,43 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
     }
   };
 
-  // Collapsed pill — invites a click but stays out of the way.
   if (!open && !editingGame) {
     return (
-      <section className="mb-6">
+      <section className="vt-reveal vt-reveal-5 mb-6">
         <button
           onClick={() => setOpen(true)}
-          className="w-full bg-white dark:bg-stone-800 border border-dashed border-stone-300 dark:border-stone-600 rounded-2xl p-4 text-sm font-semibold text-stone-600 dark:text-stone-300 hover:border-red-400 dark:hover:border-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50/30 dark:hover:bg-red-900/10 transition-colors"
+          className="group w-full rounded-lg border border-dashed py-4 px-5 transition-all text-center hover:bg-[rgba(255,23,76,0.04)]"
+          style={{
+            borderColor: 'var(--vt-rule)',
+            background: 'rgba(0,0,0,0.25)',
+          }}
         >
-          + Add Game
+          <span className="vt-anton text-base sm:text-lg tracking-[0.18em] text-[color:var(--vt-ink-dim)] group-hover:text-[color:var(--vt-crimson)] transition-colors">
+            ✦ Log a Game ✦
+          </span>
+          <span className="block vt-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--vt-ink-faint)] mt-1">
+            Add a new card to the deck
+          </span>
         </button>
       </section>
     );
   }
 
   return (
-    <section className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 shadow-sm mb-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">
-          {editingGame ? 'Edit Game' : 'Add Game'}
+    <section className="vt-reveal vt-card mb-6 overflow-hidden">
+      <div className="flex items-center justify-between px-5 sm:px-6 py-3 border-b border-[color:var(--vt-rule)] bg-[rgba(0,0,0,0.35)]">
+        <h3 className="vt-anton text-lg sm:text-xl text-[color:var(--vt-ink)] tracking-[0.06em]">
+          {editingGame ? '⌗ Edit Game' : '⌗ Log Game'}
         </h3>
         <button
           onClick={handleCancel}
-          className="text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
+          className="vt-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--vt-ink-faint)] hover:text-[color:var(--vt-crimson)] transition-colors"
         >
           Cancel
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-3">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Field label="Date">
             <input
@@ -116,9 +122,9 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
               onChange={(e) => setFormState((p) => ({ ...p, location: e.target.value }))}
               className={`${inputCls} cursor-pointer`}
             >
-              <option value="vs">Home (vs)</option>
-              <option value="@">Away (@)</option>
-              <option value="N">Neutral (N)</option>
+              <option value="vs">Home · vs</option>
+              <option value="@">Away · @</option>
+              <option value="N">Neutral · N</option>
             </select>
           </Field>
 
@@ -196,21 +202,26 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
           </Field>
 
           <label className="flex items-end">
-            <div className="flex items-center gap-2.5 w-full rounded-xl border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-900 px-3 py-2.5 cursor-pointer">
+            <div className="flex items-center gap-2.5 w-full rounded-md border border-[color:var(--vt-rule)] bg-[rgba(0,0,0,0.4)] px-3 py-2.5 cursor-pointer">
               <input
                 type="checkbox"
                 checked={formState.overtime}
                 onChange={(e) => setFormState((p) => ({ ...p, overtime: e.target.checked }))}
-                className="rounded border-stone-300 dark:border-stone-600"
+                className="accent-[color:var(--vt-crimson)]"
               />
-              <span className="text-sm text-stone-700 dark:text-stone-200">OT</span>
+              <span className="vt-mono text-xs text-[color:var(--vt-ink)] tracking-wider uppercase">
+                Overtime
+              </span>
             </div>
           </label>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          <button type="submit" className="btn-primary text-sm px-6 py-2.5">
-            {editingGame ? 'Save Changes' : 'Add Game'}
+        <div className="flex flex-wrap items-center gap-2 pt-2">
+          <button
+            type="submit"
+            className="vt-anton text-sm tracking-[0.16em] uppercase px-6 py-2.5 rounded-md bg-[color:var(--vt-crimson)] text-white shadow-[0_0_28px_-6px_var(--vt-crimson-glow)] hover:translate-y-[-1px] active:translate-y-0 transition-transform"
+          >
+            {editingGame ? '◆ Save Changes' : '◆ Add Game'}
           </button>
           {editingGame && onDelete && (
             <button
@@ -222,7 +233,7 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
                   setOpen(false);
                 }
               }}
-              className="text-sm px-4 py-2.5 rounded-xl text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              className="vt-mono text-xs tracking-[0.16em] uppercase px-4 py-2.5 rounded-md text-[color:var(--vt-crimson)] border border-[color:var(--vt-rule)] hover:bg-[rgba(255,23,76,0.08)] transition-colors"
             >
               Delete
             </button>
@@ -234,12 +245,12 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
 }
 
 const inputCls =
-  'mt-1 w-full rounded-xl border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-900 px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-red-400 dark:focus:ring-red-500 transition-colors';
+  'mt-1 w-full rounded-md border px-3 py-2.5 text-sm vt-mono focus:outline-none focus:ring-1 focus:ring-[color:var(--vt-crimson)] transition-colors';
 
 function Field({ label, children, className = '' }) {
   return (
     <label className={`block ${className}`}>
-      <span className="text-[10px] uppercase tracking-[0.1em] text-stone-400 dark:text-stone-500 font-bold">
+      <span className="vt-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--vt-cyan)]">
         {label}
       </span>
       {children}

@@ -1,10 +1,10 @@
 import { memo, useState } from 'react';
 import { formatDate, formatLocationLabel, toSuperscript } from '../utils/vestTrackerMath';
 
-// Merged Next Game card — scouting + recommendation in one editorial unit.
-// Top: opponent banner with date, location, NET, quadrant, all-time record.
-// Middle: recommended outfit with score breakdown.
-// Bottom: ranked alternatives + jinx alert + AI take.
+// Trading-card style Next Game / Top Pick card.
+// Header reads as a vintage card series number, the opponent banner is
+// the "subject of the card", and the recommendation block is the spec sheet
+// with a hexagonal foil score badge.
 function VestNextGame({
   scoutingReport,
   recommendation,
@@ -23,212 +23,274 @@ function VestNextGame({
   const rec = recommendation?.top;
 
   return (
-    <section className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl shadow-sm mb-6 overflow-hidden">
-      {/* Opponent banner */}
-      {game && (
-        <div className="bg-gradient-to-r from-stone-50 to-white dark:from-stone-800/60 dark:to-stone-800 border-b border-stone-100 dark:border-stone-700 px-5 sm:px-6 py-4">
-          <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-stone-400 dark:text-stone-500 font-semibold">
-                Next Game
-              </p>
-              <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-stone-900 dark:text-stone-50 mt-0.5">
-                {formatLocationLabel(game.location, 'full')}{' '}
-                {game.netRank ? <span className="text-stone-400 dark:text-stone-500 text-xl">{toSuperscript(game.netRank)}</span> : null}
-                {game.opponent}
-              </h3>
-              {game.date && (
-                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-                  {formatDate(game.date)}
+    <section className="vt-reveal vt-reveal-1 vt-foil-border mb-6 sm:mb-7">
+      <div className="vt-card relative overflow-hidden">
+        {/* Card series header */}
+        <div className="flex items-center justify-between px-5 sm:px-6 pt-4 pb-3 border-b border-[color:var(--vt-rule)]">
+          <div className="vt-mojo text-[10px] tracking-[0.3em] text-[color:var(--vt-cyan)] uppercase">
+            {game ? '› Next Up · Card 01' : '› Season MVP · Foil Pull'}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--vt-crimson)] shadow-[0_0_8px_var(--vt-crimson-glow)]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--vt-gold)] shadow-[0_0_8px_rgba(244,197,66,0.6)]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--vt-cyan)] shadow-[0_0_8px_var(--vt-cyan-glow)]" />
+          </div>
+        </div>
+
+        {/* Opponent banner */}
+        {game && (
+          <div className="relative px-5 sm:px-6 pt-5 pb-5">
+            <div
+              aria-hidden
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background:
+                  'radial-gradient(ellipse 60% 80% at 20% 50%, rgba(255,23,76,0.18) 0%, transparent 60%), radial-gradient(ellipse 50% 80% at 90% 50%, rgba(0,229,255,0.12) 0%, transparent 60%)',
+              }}
+            />
+            <div className="relative flex items-start justify-between gap-4 flex-wrap">
+              <div className="min-w-0 flex-1">
+                <p className="vt-mono text-[10px] uppercase tracking-[0.28em] text-[color:var(--vt-gold)] mb-1.5">
+                  Opponent · {formatLocationLabel(game.location, 'Adjective')}
+                </p>
+                <h3 className="vt-anton text-3xl sm:text-5xl leading-[0.95] text-[color:var(--vt-ink)]">
+                  {formatLocationLabel(game.location, 'full').toUpperCase()}{' '}
+                  {game.netRank ? (
+                    <span className="vt-mono text-base sm:text-lg text-[color:var(--vt-cyan)] vt-text-neon-cyan align-top">
+                      #{game.netRank}
+                    </span>
+                  ) : null}
+                  <br />
+                  <span className="vt-text-foil">{game.opponent.toUpperCase()}</span>
+                </h3>
+                {game.date && (
+                  <p className="vt-mono text-xs text-[color:var(--vt-ink-dim)] mt-2 tracking-wider">
+                    {formatDate(game.date)?.toUpperCase()}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2 items-start">
+                {game.netRank && (
+                  <ScoutBlock label="NET" value={`#${game.netRank}`} accent="cyan" />
+                )}
+                {game.quadrant && (
+                  <ScoutBlock
+                    label="Quadrant"
+                    value={`Q${game.quadrant}`}
+                    accent={game.quadrant <= 2 ? 'crimson' : 'gold'}
+                  />
+                )}
+                {game.allTimeRecord && (
+                  <ScoutBlock
+                    label="All-time"
+                    value={`${game.allTimeRecord.wins}–${game.allTimeRecord.losses}`}
+                    accent="gold"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Spec sheet — recommendation */}
+        {rec && (
+          <div className="relative px-5 sm:px-6 pt-5 pb-5 border-t border-[color:var(--vt-rule)]">
+            <div className="flex items-start justify-between gap-5 flex-wrap">
+              <div className="min-w-0 flex-1">
+                <p className="vt-mono text-[10px] uppercase tracking-[0.28em] text-[color:var(--vt-crimson)] mb-1.5">
+                  {game ? '✦ Wear This' : '✦ Season Top Pick'}
+                </p>
+                <h4 className="vt-anton text-2xl sm:text-4xl vt-text-foil leading-[0.95]">
+                  {rec.outfit.toUpperCase()}
+                </h4>
+                <p className="vt-mono text-xs text-[color:var(--vt-ink-dim)] mt-2 tracking-wider">
+                  {rec.wins}–{rec.losses} · {rec.smoothedRatePct}% smoothed
+                  {rec.avgNet ? ` · SoS #${rec.avgNet}` : ''}
+                </p>
+              </div>
+
+              {/* Hex foil score badge */}
+              <ScoreHex score={rec.score} />
+            </div>
+
+            {/* Component bars */}
+            <div className="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-2">
+              <ComponentMeter label="Smoothed" value={rec.scoreComponents.smoothed} weight="45%" accent="crimson" />
+              <ComponentMeter label="vs Expected" value={rec.scoreComponents.woe} weight="25%" accent="cyan" />
+              <ComponentMeter label="Form" value={rec.scoreComponents.form} weight="20%" accent="gold" />
+              <ComponentMeter label="Recency" value={rec.scoreComponents.recency} weight="10%" accent="magenta" />
+            </div>
+
+            {/* Quadrant stripe */}
+            {netStatus === 'loaded' && (
+              <div className="mt-3 grid grid-cols-4 gap-1.5">
+                {[1, 2, 3, 4].map((q) => (
+                  <div
+                    key={q}
+                    className="rounded-md bg-[rgba(0,0,0,0.4)] border border-[color:var(--vt-rule)] px-2 py-1.5 text-center vt-mono"
+                  >
+                    <span className="text-[9px] tracking-[0.18em] text-[color:var(--vt-ink-faint)] uppercase">Q{q}</span>{' '}
+                    <span className="vt-anton text-sm text-[color:var(--vt-ink)] tabular-nums">
+                      {rec.quadrants[q].wins}–{rec.quadrants[q].losses}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Alternatives ticker */}
+            {recommendation.alternatives?.length > 0 && (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="vt-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--vt-cyan)]">
+                  Also In Rotation
+                </span>
+                {recommendation.alternatives.map((alt) => (
+                  <span key={alt.outfit} className="vt-pill vt-pill-cyan">
+                    <span className="font-bold">{alt.outfit}</span>
+                    <span className="vt-mojo text-[color:var(--vt-gold)]">{Math.round(alt.score)}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {jinxAlert && (
+              <div className="mt-4 rounded-md border-l-4 border-[color:var(--vt-gold)] bg-[rgba(244,197,66,0.06)] px-3 py-2.5">
+                <p className="vt-mono text-xs text-[color:var(--vt-gold)] tracking-wider">
+                  <span className="vt-anton text-sm mr-2">▲ UNTESTED</span>
+                  {jinxAlert.outfit} has never been worn in a Q{jinxAlert.quadrant} game.
+                </p>
+              </div>
+            )}
+
+            {/* AI blurb row */}
+            <div className="mt-4 flex items-start gap-3 flex-wrap">
+              <button
+                onClick={onGenerateBlurb}
+                disabled={aiBlurbLoading}
+                className="vt-pill vt-pill-crimson hover:scale-[1.03] active:scale-[0.98] transition-transform disabled:opacity-50"
+              >
+                <span className="vt-anton text-sm">{aiBlurbLoading ? '◌ Thinking' : '✦ AI Take'}</span>
+              </button>
+              {aiBlurb && (
+                <p className="vt-mono text-sm text-[color:var(--vt-ink-dim)] italic flex-1 min-w-0">
+                  &ldquo;{aiBlurb}&rdquo;
                 </p>
               )}
             </div>
-
-            <div className="flex flex-wrap gap-2">
-              {game.netRank && (
-                <ScoutPill label="NET" value={`#${game.netRank}`} />
-              )}
-              {game.quadrant && (
-                <ScoutPill
-                  label="Quadrant"
-                  value={`Q${game.quadrant}`}
-                  tone={game.quadrant <= 2 ? 'hot' : 'cool'}
-                />
-              )}
-              {game.allTimeRecord && (
-                <ScoutPill
-                  label="All-time"
-                  value={`${game.allTimeRecord.wins}–${game.allTimeRecord.losses}`}
-                />
-              )}
-            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Recommendation */}
-      {rec && (
-        <div className="px-5 sm:px-6 py-5">
-          <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-red-600 dark:text-red-400 font-semibold">
-                {game ? 'Wear This' : 'Season Top Pick'}
-              </p>
-              <h4 className="text-xl sm:text-2xl font-black tracking-tight text-stone-900 dark:text-stone-50 mt-0.5">
-                {rec.outfit}
-              </h4>
-              <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
-                {rec.wins}–{rec.losses} · {rec.smoothedRatePct}% smoothed
-                {rec.avgNet ? ` · SoS #${rec.avgNet}` : ''}
-              </p>
-            </div>
-            <div className="shrink-0 text-right">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-stone-400 dark:text-stone-500 font-semibold">
-                Score
-              </div>
-              <div className="text-2xl font-black tabular-nums text-stone-900 dark:text-stone-100">
-                {Math.round(rec.score)}
-              </div>
-            </div>
-          </div>
-
-          {/* Score component breakdown */}
-          <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-            <ComponentBar label="Smoothed" value={rec.scoreComponents.smoothed} weight="45%" />
-            <ComponentBar label="vs Expected" value={rec.scoreComponents.woe} weight="25%" />
-            <ComponentBar label="Form" value={rec.scoreComponents.form} weight="20%" />
-            <ComponentBar label="Recency" value={rec.scoreComponents.recency} weight="10%" />
-          </div>
-
-          {/* Quadrant breakdown for recommended outfit */}
-          {netStatus === 'loaded' && (
-            <div className="mt-3 grid grid-cols-4 gap-1.5 text-[10px] font-semibold text-stone-600 dark:text-stone-300">
-              {[1, 2, 3, 4].map((q) => (
-                <div
-                  key={q}
-                  className="rounded-lg bg-stone-50 dark:bg-stone-700/40 px-2 py-1.5 text-center tabular-nums"
-                >
-                  <span className="text-stone-400 dark:text-stone-500">Q{q}</span>{' '}
-                  {rec.quadrants[q].wins}–{rec.quadrants[q].losses}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Alternatives */}
-          {recommendation.alternatives?.length > 0 && (
-            <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
-              <span className="text-stone-400 dark:text-stone-500 uppercase tracking-[0.1em] font-semibold">
-                Also good
-              </span>
-              {recommendation.alternatives.map((alt) => (
-                <span
-                  key={alt.outfit}
-                  className="px-2.5 py-1 rounded-full bg-stone-100 dark:bg-stone-700/50 text-stone-700 dark:text-stone-200 font-medium"
-                >
-                  {alt.outfit}
-                  <span className="ml-1 text-stone-400 dark:text-stone-500 tabular-nums">
-                    {Math.round(alt.score)}
-                  </span>
-                </span>
-              ))}
-            </div>
-          )}
-
-          {jinxAlert && (
-            <div className="mt-4 rounded-xl border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 px-3 py-2.5 text-xs text-amber-800 dark:text-amber-200">
-              <span className="font-bold">⚠ Untested:</span>{' '}
-              <span className="font-semibold">{jinxAlert.outfit}</span> has never been worn in a Q{jinxAlert.quadrant} game.
-            </div>
-          )}
-
-          {/* AI Take */}
-          <div className="mt-4 flex items-start gap-3 flex-wrap">
+        {/* Advisor accordion */}
+        {advisor?.length > 0 && game?.quadrant && (
+          <div className="border-t border-[color:var(--vt-rule)]">
             <button
-              onClick={onGenerateBlurb}
-              disabled={aiBlurbLoading}
-              className="text-[10px] uppercase tracking-[0.14em] font-bold text-red-700 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => setExpandAdvisor((v) => !v)}
+              className="w-full px-5 sm:px-6 py-3.5 flex items-center justify-between text-left vt-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--vt-cyan)] hover:bg-white/[0.02] transition-colors"
             >
-              {aiBlurbLoading ? '✨ Thinking…' : '✨ AI take'}
+              <span>
+                <span className="text-[color:var(--vt-gold)] mr-2">▾</span>
+                Full Advisor · Q{game.quadrant} {formatLocationLabel(game.location, 'adjective')}
+              </span>
+              <span
+                className={`vt-anton text-base text-[color:var(--vt-ink-faint)] transition-transform ${
+                  expandAdvisor ? 'rotate-180' : ''
+                }`}
+              >
+                ▾
+              </span>
             </button>
-            {aiBlurb && (
-              <p className="text-sm text-stone-700 dark:text-stone-200 italic flex-1 min-w-0">
-                {aiBlurb}
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Vest Advisor (collapsible) */}
-      {advisor?.length > 0 && game?.quadrant && (
-        <div className="border-t border-stone-100 dark:border-stone-700">
-          <button
-            onClick={() => setExpandAdvisor((v) => !v)}
-            className="w-full px-5 sm:px-6 py-3 flex items-center justify-between text-left hover:bg-stone-50 dark:hover:bg-stone-700/30 transition-colors"
-          >
-            <span className="text-[11px] uppercase tracking-[0.12em] font-bold text-stone-500 dark:text-stone-400">
-              Full Advisor · all outfits in Q{game.quadrant} {formatLocationLabel(game.location, 'adjective')}
-            </span>
-            <svg
-              className={`w-4 h-4 text-stone-400 transition-transform ${expandAdvisor ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          {expandAdvisor && (
-            <div className="px-5 sm:px-6 pb-5 pt-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {expandAdvisor && (
+              <div className="px-5 sm:px-6 pb-5 pt-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {advisor.map((a) => (
                   <AdvisorRow key={a.outfit} entry={a} location={game.location} quadrant={game.quadrant} />
                 ))}
               </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
+
+        {/* Card foil edge */}
+        <div className="vt-stripe h-1 w-full opacity-80" aria-hidden />
+      </div>
     </section>
   );
 }
 
-function ScoutPill({ label, value, tone }) {
-  const toneClass =
-    tone === 'hot'
-      ? 'text-red-700 dark:text-red-400'
-      : tone === 'cool'
-      ? 'text-sky-700 dark:text-sky-400'
-      : 'text-stone-900 dark:text-stone-100';
+const ACCENT_BAR = {
+  crimson: 'bg-[color:var(--vt-crimson)]',
+  cyan: 'bg-[color:var(--vt-cyan)]',
+  gold: 'bg-[color:var(--vt-gold)]',
+  magenta: 'bg-[color:var(--vt-magenta)]',
+};
+const ACCENT_GLOW = {
+  crimson: 'shadow-[0_0_8px_var(--vt-crimson-glow)]',
+  cyan: 'shadow-[0_0_8px_var(--vt-cyan-glow)]',
+  gold: 'shadow-[0_0_8px_rgba(244,197,66,0.6)]',
+  magenta: 'shadow-[0_0_8px_rgba(255,45,123,0.55)]',
+};
+const ACCENT_TEXT = {
+  crimson: 'text-[color:var(--vt-crimson)]',
+  cyan: 'text-[color:var(--vt-cyan)]',
+  gold: 'text-[color:var(--vt-gold)]',
+  magenta: 'text-[color:var(--vt-magenta)]',
+};
+
+function ScoutBlock({ label, value, accent = 'gold' }) {
   return (
-    <div className="rounded-lg bg-white dark:bg-stone-700/50 border border-stone-200 dark:border-stone-600 px-3 py-1.5">
-      <div className="text-[9px] uppercase tracking-[0.14em] text-stone-400 dark:text-stone-500 font-semibold">
+    <div className="rounded-md bg-[rgba(0,0,0,0.4)] border border-[color:var(--vt-rule)] px-3 py-2 min-w-[78px]">
+      <div className={`vt-mono text-[9px] uppercase tracking-[0.24em] ${ACCENT_TEXT[accent]} opacity-80`}>
         {label}
       </div>
-      <div className={`text-sm font-bold tabular-nums ${toneClass}`}>{value}</div>
+      <div className={`vt-anton text-lg sm:text-xl tabular-nums leading-tight ${ACCENT_TEXT[accent]}`}>
+        {value}
+      </div>
     </div>
   );
 }
 
-function ComponentBar({ label, value, weight }) {
+function ScoreHex({ score }) {
+  const rounded = Math.round(score);
+  return (
+    <div className="relative shrink-0">
+      <div
+        className="vt-hex w-28 h-28 sm:w-32 sm:h-32 p-[2px]"
+        style={{ background: 'var(--vt-foil)' }}
+      >
+        <div className="vt-hex w-full h-full bg-[#0a0418] flex flex-col items-center justify-center">
+          <span className="vt-mono text-[9px] uppercase tracking-[0.24em] text-[color:var(--vt-gold)] mb-0.5">
+            Score
+          </span>
+          <span className="vt-monoton vt-text-foil text-4xl sm:text-5xl leading-none tabular-nums">
+            {rounded}
+          </span>
+          <span className="vt-mono text-[8px] uppercase tracking-[0.22em] text-[color:var(--vt-ink-faint)] mt-1">
+            /100
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ComponentMeter({ label, value, weight, accent }) {
   const clamped = Math.max(0, Math.min(100, value));
   return (
-    <div className="rounded-lg bg-stone-50 dark:bg-stone-700/40 px-2.5 py-1.5">
+    <div className="rounded-md bg-[rgba(0,0,0,0.3)] border border-[color:var(--vt-rule)] px-3 py-2">
       <div className="flex items-baseline justify-between gap-1">
-        <span className="text-[9px] uppercase tracking-[0.1em] text-stone-500 dark:text-stone-400 font-semibold">
+        <span className={`vt-mono text-[9px] uppercase tracking-[0.18em] ${ACCENT_TEXT[accent]} opacity-90`}>
           {label}
         </span>
-        <span className="text-[9px] text-stone-400 dark:text-stone-500 tabular-nums">{weight}</span>
+        <span className="vt-mojo text-[9px] text-[color:var(--vt-ink-faint)] tabular-nums">{weight}</span>
       </div>
-      <div className="flex items-center gap-1.5 mt-1">
-        <div className="flex-1 h-1.5 rounded-full bg-stone-200 dark:bg-stone-600 overflow-hidden">
+      <div className="flex items-center gap-2 mt-1.5">
+        <div className="flex-1 h-1.5 rounded-full bg-[rgba(255,255,255,0.06)] overflow-hidden">
           <div
-            className="h-full bg-red-500 dark:bg-red-400 transition-all"
+            className={`h-full ${ACCENT_BAR[accent]} ${ACCENT_GLOW[accent]} transition-all`}
             style={{ width: `${clamped}%` }}
           />
         </div>
-        <span className="text-[10px] font-bold tabular-nums text-stone-700 dark:text-stone-200 w-6 text-right">
+        <span className="vt-anton text-base text-[color:var(--vt-ink)] tabular-nums w-7 text-right">
           {Math.round(clamped)}
         </span>
       </div>
@@ -237,34 +299,31 @@ function ComponentBar({ label, value, weight }) {
 }
 
 const CONFIDENCE_STYLE = {
-  high: 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/20',
-  medium: 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20',
-  low: 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/20',
-  untested: 'border-stone-300 bg-stone-50 dark:border-stone-600 dark:bg-stone-700/30',
-  unknown: 'border-stone-300 bg-stone-50 dark:border-stone-600 dark:bg-stone-700/30',
+  high: { bar: 'var(--vt-cyan)', glow: 'rgba(0,229,255,0.55)', text: 'text-[color:var(--vt-cyan)]' },
+  medium: { bar: 'var(--vt-gold)', glow: 'rgba(244,197,66,0.55)', text: 'text-[color:var(--vt-gold)]' },
+  low: { bar: 'var(--vt-crimson)', glow: 'rgba(255,23,76,0.55)', text: 'text-[color:var(--vt-crimson)]' },
+  untested: { bar: 'rgba(255,255,255,0.18)', glow: 'transparent', text: 'text-[color:var(--vt-ink-faint)]' },
+  unknown: { bar: 'rgba(255,255,255,0.18)', glow: 'transparent', text: 'text-[color:var(--vt-ink-faint)]' },
 };
-const CONFIDENCE_LABEL = { high: 'HIGH', medium: 'MED', low: 'LOW', untested: 'UNTESTED', unknown: '—' };
-const CONFIDENCE_TEXT = {
-  high: 'text-emerald-700 dark:text-emerald-400',
-  medium: 'text-amber-700 dark:text-amber-400',
-  low: 'text-red-700 dark:text-red-400',
-  untested: 'text-stone-500 dark:text-stone-400',
-  unknown: 'text-stone-500 dark:text-stone-400',
-};
+const CONFIDENCE_LABEL = { high: 'HIGH', medium: 'MED', low: 'LOW', untested: 'NEW', unknown: '—' };
 
 function AdvisorRow({ entry, location, quadrant }) {
+  const style = CONFIDENCE_STYLE[entry.confidence];
   return (
-    <div className={`rounded-xl border px-3 py-2 text-sm ${CONFIDENCE_STYLE[entry.confidence]}`}>
+    <div
+      className="rounded-md bg-[rgba(0,0,0,0.4)] border border-[color:var(--vt-rule)] px-3 py-2"
+      style={{ boxShadow: `inset 4px 0 0 ${style.bar}, 0 0 12px -4px ${style.glow}` }}
+    >
       <div className="flex items-center justify-between gap-2">
-        <span className="font-semibold text-stone-800 dark:text-stone-100 truncate">{entry.outfit}</span>
-        <span className={`text-[10px] font-bold tabular-nums ${CONFIDENCE_TEXT[entry.confidence]}`}>
+        <span className="vt-anton text-sm text-[color:var(--vt-ink)] truncate">{entry.outfit}</span>
+        <span className={`vt-mono text-[9px] tracking-[0.18em] font-bold ${style.text}`}>
           {CONFIDENCE_LABEL[entry.confidence]}
         </span>
       </div>
-      <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5 tabular-nums">
-        Q{quadrant}: {entry.qRecord}
-        {entry.locRecord && ` · ${formatLocationLabel(location, 'Adjective')}: ${entry.locRecord}`}
-        {entry.form === 'hot' ? ' · 🔥' : entry.form === 'cold' ? ' · ❄️' : ''}
+      <div className="vt-mono text-[10px] text-[color:var(--vt-ink-faint)] mt-0.5 tabular-nums tracking-wider">
+        Q{quadrant} {entry.qRecord}
+        {entry.locRecord && ` · ${location} ${entry.locRecord}`}
+        {entry.form === 'hot' ? ' · ◉' : entry.form === 'cold' ? ' · ❄' : ''}
       </div>
     </div>
   );
