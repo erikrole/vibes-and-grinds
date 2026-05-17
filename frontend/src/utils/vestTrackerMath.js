@@ -380,13 +380,74 @@ export const computeRecommendation = (outfitStats, completedGames) => {
     .sort((a, b) => b.score - a.score);
 
   if (!scored.length) return null;
+
+  // Score average for benchmark display (avg vs +X).
+  const scoreAvg =
+    scored.reduce((sum, s) => sum + s.score, 0) / scored.length;
+  const annotated = scored.map((s) => ({
+    ...s,
+    scoreAvg,
+    scoreField: scored.length,
+  }));
+
   return {
-    top: scored[0],
-    alternatives: scored.slice(1, 3),
-    all: scored,
+    top: annotated[0],
+    alternatives: annotated.slice(1, 3),
+    all: annotated,
     blockedOutfit: lastOutfit,
+    scoreAvg,
   };
 };
+
+// Generate a short, plain-English narrative explaining why an outfit is the
+// top pick. Pulls signal from the score components and a few stat fields —
+// no LLM call, deterministic and free.
+export const buildWhySentence = (rec, scoutingReport) => {
+  if (!rec?.top) return null;
+  const top = rec.top;
+  const c = top.scoreComponents;
+  if (!c) return null;
+
+  const parts = [];
+
+  // Headline finding — strongest non-recency component.
+  const findings = [
+    { key: 'smoothed', value: c.smoothed, phrase: top.smoothedRatePct >= 70 ? `${top.smoothedRatePct}% win rate (smoothed)` : null },
+    { key: 'woe', value: c.woe, phrase: top.winsAboveExpected >= 1 ? `${top.winsAboveExpected.toFixed(1)} wins above what the schedule should have produced` : null },
+    { key: 'form', value: c.form, phrase: c.form >= 75 && top.form === 'hot' ? 'on a current heater' : null },
+  ].filter((f) => f.phrase);
+
+  const lead = findings.sort((a, b) => b.value - a.value)[0];
+  if (lead) parts.push(`${capitalize(lead.phrase)}.`);
+  else parts.push(`${top.wins}-${top.losses} on the year.`);
+
+  // Weakness or caveat.
+  if (top.games <= 2) {
+    parts.push(`Small sample — only ${top.games} game${top.games === 1 ? '' : 's'} on record.`);
+  } else if (c.form < 40) {
+    parts.push('Recent form has cooled.');
+  } else if (top.isLastWorn) {
+    parts.push('Worn in the last game though — consider rotating.');
+  } else if (c.recency > 60) {
+    parts.push(`Last seen ${top.recencyDistance} games ago — due for a re-up.`);
+  }
+
+  // Opponent angle.
+  if (scoutingReport?.quadrant) {
+    const q = scoutingReport.quadrant;
+    const qW = top.quadrants[q].wins;
+    const qL = top.quadrants[q].losses;
+    if (qW + qL > 0) {
+      parts.push(`Q${q} record in this fit: ${qW}-${qL}.`);
+    } else {
+      parts.push(`Untested in Q${q} games.`);
+    }
+  }
+
+  return parts.join(' ');
+};
+
+const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
 // Per-game quality score normalized by sample size. Positive = above
 // expectation (good wins / avoided bad losses), negative = below.

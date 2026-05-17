@@ -4,9 +4,11 @@ import { fetchVestGames, syncVestGames, fetchVisits, fetchVestBlurb } from '../u
 import {
   buildNetLookup,
   buildOutfitStats,
+  buildWhySentence,
   computeRecommendation,
   countTrailingStreak,
   findNetRankForOpponent,
+  formatDate,
   formatLocationLabel,
   getQuadrant,
   normalizeNetResponse,
@@ -20,6 +22,7 @@ import VestTimeline from './VestTimeline';
 import VestLeaderboard from './VestLeaderboard';
 import VestExtras from './VestExtras';
 import VestGameForm from './VestGameForm';
+import VestLockInPick from './VestLockInPick';
 
 const GameStatsPanel = lazy(() => import('./GameStatsPanel'));
 
@@ -252,8 +255,13 @@ export default function VestTrackerDashboard({ showToast }) {
   }, [outfitStats]);
 
   // Next game scouting report.
+  const upcomingGame = useMemo(
+    () => sortedGames.find((g) => !g.result || (g.result !== 'W' && g.result !== 'L')) || null,
+    [sortedGames]
+  );
+
   const scoutingReport = useMemo(() => {
-    const upcoming = sortedGames.find((g) => !g.result || (g.result !== 'W' && g.result !== 'L'));
+    const upcoming = upcomingGame;
     if (!upcoming) return null;
     const rank = findNetRankForOpponent(netLookup, upcoming.opponent);
     const quadrant = getQuadrant(upcoming.location || 'vs', rank);
@@ -269,7 +277,7 @@ export default function VestTrackerDashboard({ showToast }) {
       quadrant,
       allTimeRecord: vsOpponent.length ? { wins: vsWins, losses: vsOpponent.length - vsWins } : null,
     };
-  }, [sortedGames, netLookup, completedGames]);
+  }, [upcomingGame, netLookup, completedGames]);
 
   // Per-outfit advisor for the upcoming game's quadrant + location.
   const advisor = useMemo(() => {
@@ -502,14 +510,21 @@ export default function VestTrackerDashboard({ showToast }) {
         secondary={scoreboardSecondary}
         filterLabel={selectedOutfit}
         onClearFilter={() => setSelectedOutfit(null)}
+        identity={{ team: "Wisconsin Badgers", season: '25–26', who: "AJ's pick" }}
+        status={
+          scoutingReport
+            ? {
+                kind: 'next',
+                label: `${formatLocationLabel(scoutingReport.location, 'full')} ${scoutingReport.opponent}`,
+                date: scoutingReport.date ? formatDate(scoutingReport.date) : null,
+              }
+            : { kind: 'final' }
+        }
       />
 
-      <HeadlineTicker
-        wins={teamWins}
-        losses={teamLosses}
-        topOutfit={recommendation?.top?.outfit}
-        milestones={milestones}
-      />
+      <StorylineStrip milestones={milestones} />
+
+      <NetDegradedBanner netStatus={netStatus} />
 
       {(scoutingReport || recommendation) && (
         <VestNextGame
@@ -521,6 +536,18 @@ export default function VestTrackerDashboard({ showToast }) {
           aiBlurbLoading={aiBlurbLoading}
           onGenerateBlurb={generateBlurb}
           netStatus={netStatus}
+          whyText={buildWhySentence(recommendation, scoutingReport)}
+        />
+      )}
+
+      {upcomingGame && (
+        <VestLockInPick
+          upcomingGame={upcomingGame}
+          existingOutfits={existingOutfits}
+          recommendedOutfit={recommendation?.top?.outfit}
+          onUpdate={(id, patch) =>
+            setGames((prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)))
+          }
         />
       )}
 
@@ -537,7 +564,9 @@ export default function VestTrackerDashboard({ showToast }) {
         netStatus={netStatus}
       />
 
-      <NetStatusFooter netStatus={netStatus} count={netRankings.length} />
+      {netStatus === 'loaded' && (
+        <NetStatusFooter netStatus={netStatus} count={netRankings.length} />
+      )}
 
       <VestExtras
         milestones={milestones}
@@ -557,61 +586,68 @@ export default function VestTrackerDashboard({ showToast }) {
   );
 }
 
-function HeadlineTicker({ wins, losses, topOutfit, milestones }) {
-  const items = [
-    `Season ${wins}–${losses}`,
-    topOutfit ? `Top fit · ${topOutfit}` : null,
-    ...(milestones || []).map((m) => `${m.icon} ${m.text}`),
-    'Bucky 4ever',
-    '◆ Wisconsin Badgers · 2025–26',
-  ].filter(Boolean);
-
-  if (items.length < 2) return null;
-
-  // Repeat the strip twice so the marquee loop has no visible seam.
-  const strip = (
-    <>
-      {items.map((t, i) => (
-        <span key={`a-${i}`} className="vt-mono text-xs tracking-[0.22em] uppercase text-[color:var(--vt-ink-dim)]">
-          {t}{' '}
-          <span className="text-[color:var(--vt-crimson)] mx-2">◆</span>
-        </span>
+function StorylineStrip({ milestones }) {
+  // Surface the top 3 storylines as one prominent strip so the page's narrative
+  // is visible above the fold instead of buried in a drawer.
+  if (!milestones?.length) return null;
+  const top = milestones.slice(0, 3);
+  return (
+    <div className="vt-card mb-6 px-5 py-3 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5">
+      {top.map((m, i) => (
+        <div
+          key={i}
+          className="flex items-baseline gap-2 sm:gap-3"
+          style={
+            i > 0
+              ? { borderLeftWidth: '1px', borderLeftStyle: 'solid', borderLeftColor: 'var(--vt-rule)', paddingLeft: '1rem' }
+              : undefined
+          }
+        >
+          <span className="text-sm shrink-0" aria-hidden>{m.icon}</span>
+          <span className="vt-mono text-xs text-[color:var(--vt-ink-dim)] leading-snug">
+            {m.text}
+          </span>
+        </div>
       ))}
-    </>
+    </div>
   );
+}
+
+function NetDegradedBanner({ netStatus }) {
+  if (netStatus === 'loaded') return null;
+
+  const message =
+    netStatus === 'loading'
+      ? { label: 'Loading NET feed', detail: 'Quadrant breakdowns will appear once available.' }
+      : { label: 'NET feed offline', detail: 'Quadrant records, advisor confidence, and strength-of-schedule are unavailable. The "Quality" component falls back to a location baseline.' };
 
   return (
-    <div className="vt-reveal vt-reveal-1 mb-6 sm:mb-7 relative rounded-md overflow-hidden border border-[color:var(--vt-rule)] bg-[rgba(0,0,0,0.45)]">
-      <div
-        className="absolute inset-y-0 left-0 w-12 z-10 pointer-events-none"
-        style={{ background: 'linear-gradient(90deg, rgba(0,0,0,0.85), transparent)' }}
-      />
-      <div
-        className="absolute inset-y-0 right-0 w-12 z-10 pointer-events-none"
-        style={{ background: 'linear-gradient(270deg, rgba(0,0,0,0.85), transparent)' }}
-      />
-      <div className="overflow-hidden py-2.5">
-        <div className="vt-marquee-track">
-          {strip}
-          {strip}
-        </div>
-      </div>
+    <div
+      className="mb-6 px-4 py-3 rounded border-l-2 flex items-start gap-3"
+      style={{
+        background: 'rgba(197, 5, 12, 0.06)',
+        borderLeftColor: 'var(--vt-red)',
+        borderRight: '1px solid var(--vt-rule)',
+        borderTop: '1px solid var(--vt-rule)',
+        borderBottom: '1px solid var(--vt-rule)',
+      }}
+    >
+      <span className="vt-label vt-label-red shrink-0">⚠ {message.label}</span>
+      <span className="vt-mono text-[11px] text-[color:var(--vt-ink-mute)] leading-snug">
+        {message.detail}
+      </span>
     </div>
   );
 }
 
 function TabBar({ value, onChange }) {
   return (
-    <div className="vt-reveal mb-5 sm:mb-6 flex rounded-md overflow-hidden border border-[color:var(--vt-rule)] bg-[rgba(0,0,0,0.35)]">
+    <div className="mb-5 sm:mb-6 flex border-b border-[color:var(--vt-rule)]">
       {TABS.map((tab) => (
         <button
           key={tab.value}
           onClick={() => onChange(tab.value)}
-          className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 vt-anton text-sm tracking-[0.16em] uppercase border-r last:border-r-0 border-[color:var(--vt-rule)] transition-colors ${
-            value === tab.value
-              ? 'bg-[color:var(--vt-crimson)] text-white shadow-[0_0_20px_-4px_var(--vt-crimson-glow)]'
-              : 'text-[color:var(--vt-ink-dim)] hover:text-[color:var(--vt-ink)] hover:bg-white/[0.04]'
-          }`}
+          className={`vt-tab ${value === tab.value ? 'is-active' : ''}`}
         >
           {tab.label}
         </button>
@@ -623,8 +659,8 @@ function TabBar({ value, onChange }) {
 function LoadingPanel() {
   return (
     <div className="text-center py-12">
-      <span className="inline-block w-5 h-5 border-2 border-[color:var(--vt-crimson)] border-t-transparent rounded-full animate-spin mr-2 align-middle" />
-      <span className="vt-mono text-sm text-[color:var(--vt-ink-dim)] tracking-wider uppercase">Loading…</span>
+      <span className="inline-block w-5 h-5 border-2 border-[color:var(--vt-red)] border-t-transparent rounded-full animate-spin mr-2 align-middle" />
+      <span className="vt-label">Loading</span>
     </div>
   );
 }
@@ -632,23 +668,23 @@ function LoadingPanel() {
 function NetStatusFooter({ netStatus, count }) {
   if (netStatus === 'loaded') {
     return (
-      <p className="vt-mono text-[10px] tracking-[0.22em] uppercase text-[color:var(--vt-cyan)] mb-6 -mt-1 px-1">
-        ◆ NET feed locked · {count} teams (target ~365)
+      <p className="vt-label mb-6 -mt-1 px-1 vt-label-red">
+        NET feed locked · {count} teams (target ~365)
       </p>
     );
   }
   if (netStatus === 'loading') {
     return (
-      <p className="vt-mono text-[10px] tracking-[0.22em] uppercase text-[color:var(--vt-gold)] mb-6 -mt-1 px-1">
-        <span className="inline-block w-3 h-3 border-2 border-[color:var(--vt-gold)] border-t-transparent rounded-full animate-spin mr-1.5 align-middle" />
-        Tuning the NET feed…
+      <p className="vt-label mb-6 -mt-1 px-1">
+        <span className="inline-block w-3 h-3 border-2 border-[color:var(--vt-ink-mute)] border-t-transparent rounded-full animate-spin mr-1.5 align-middle" />
+        Loading NET feed
       </p>
     );
   }
   if (netStatus === 'error') {
     return (
-      <p className="vt-mono text-[10px] tracking-[0.22em] uppercase text-[color:var(--vt-ink-faint)] mb-6 -mt-1 px-1">
-        ✕ NET feed offline · Quadrant stats temporarily unavailable
+      <p className="vt-label mb-6 -mt-1 px-1">
+        NET feed offline · Quadrant stats unavailable
       </p>
     );
   }

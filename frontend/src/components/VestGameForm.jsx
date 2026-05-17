@@ -11,8 +11,7 @@ const EMPTY_FORM = {
   overtime: false,
 };
 
-// Add/edit form styled as a retro broadcast operator console.
-// Collapsed to a single neon CTA by default; expands inline.
+// Add/edit form. Collapses to a dashed-rule CTA until expanded.
 function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel }) {
   const [open, setOpen] = useState(false);
   const [formState, setFormState] = useState(EMPTY_FORM);
@@ -71,20 +70,13 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
 
   if (!open && !editingGame) {
     return (
-      <section className="vt-reveal vt-reveal-5 mb-6">
+      <section className="mb-6">
         <button
           onClick={() => setOpen(true)}
-          className="group w-full rounded-lg border border-dashed py-4 px-5 transition-all text-center hover:bg-[rgba(255,23,76,0.04)]"
-          style={{
-            borderColor: 'var(--vt-rule)',
-            background: 'rgba(0,0,0,0.25)',
-          }}
+          className="w-full border border-dashed border-[color:var(--vt-rule-strong)] rounded py-3.5 px-5 hover:border-[color:var(--vt-red)] hover:bg-[color:var(--vt-red-soft)] transition-colors group"
         >
-          <span className="vt-anton text-base sm:text-lg tracking-[0.18em] text-[color:var(--vt-ink-dim)] group-hover:text-[color:var(--vt-crimson)] transition-colors">
-            ✦ Log a Game ✦
-          </span>
-          <span className="block vt-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--vt-ink-faint)] mt-1">
-            Add a new card to the deck
+          <span className="vt-condensed text-sm tracking-[0.18em] uppercase text-[color:var(--vt-ink-mute)] group-hover:text-[color:var(--vt-red)]">
+            + Add Game
           </span>
         </button>
       </section>
@@ -92,14 +84,12 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
   }
 
   return (
-    <section className="vt-reveal vt-card mb-6 overflow-hidden">
-      <div className="flex items-center justify-between px-5 sm:px-6 py-3 border-b border-[color:var(--vt-rule)] bg-[rgba(0,0,0,0.35)]">
-        <h3 className="vt-anton text-lg sm:text-xl text-[color:var(--vt-ink)] tracking-[0.06em]">
-          {editingGame ? '⌗ Edit Game' : '⌗ Log Game'}
-        </h3>
+    <section className="vt-card mb-6 overflow-hidden">
+      <div className="vt-section-head">
+        <span className="vt-label">{editingGame ? 'Edit Game' : 'Add Game'}</span>
         <button
           onClick={handleCancel}
-          className="vt-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--vt-ink-faint)] hover:text-[color:var(--vt-crimson)] transition-colors"
+          className="vt-condensed text-xs tracking-[0.16em] uppercase text-[color:var(--vt-ink-mute)] hover:text-[color:var(--vt-ink)] transition-colors"
         >
           Cancel
         </button>
@@ -112,7 +102,7 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
               type="date"
               value={formState.date}
               onChange={(e) => setFormState((p) => ({ ...p, date: e.target.value }))}
-              className={inputCls}
+              className="text-sm"
             />
           </Field>
 
@@ -120,7 +110,7 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
             <select
               value={formState.location}
               onChange={(e) => setFormState((p) => ({ ...p, location: e.target.value }))}
-              className={`${inputCls} cursor-pointer`}
+              className="text-sm cursor-pointer"
             >
               <option value="vs">Home · vs</option>
               <option value="@">Away · @</option>
@@ -132,7 +122,7 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
             <input
               value={formState.opponent}
               onChange={(e) => setFormState((p) => ({ ...p, opponent: e.target.value }))}
-              className={inputCls}
+              className="text-sm"
               placeholder="e.g. Indiana"
               required
             />
@@ -145,7 +135,7 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
               max="25"
               value={formState.ranking}
               onChange={(e) => setFormState((p) => ({ ...p, ranking: e.target.value }))}
-              className={inputCls}
+              className="text-sm"
               placeholder="#"
             />
           </Field>
@@ -158,7 +148,7 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
                 autoFocus
                 value={formState.outfit}
                 onChange={(e) => setFormState((p) => ({ ...p, outfit: e.target.value }))}
-                className={inputCls}
+                className="text-sm"
                 placeholder="e.g. Red Vest"
                 onKeyDown={(e) => {
                   if (e.key === 'Escape') {
@@ -178,7 +168,7 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
                     setFormState((p) => ({ ...p, outfit: e.target.value }));
                   }
                 }}
-                className={`${inputCls} cursor-pointer`}
+                className="text-sm cursor-pointer"
               >
                 <option value="">Select outfit</option>
                 {existingOutfits.map((o) => (
@@ -193,7 +183,7 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
             <select
               value={formState.result}
               onChange={(e) => setFormState((p) => ({ ...p, result: e.target.value }))}
-              className={`${inputCls} cursor-pointer`}
+              className="text-sm cursor-pointer"
             >
               <option value="W">Win</option>
               <option value="L">Loss</option>
@@ -202,14 +192,14 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
           </Field>
 
           <label className="flex items-end">
-            <div className="flex items-center gap-2.5 w-full rounded-md border border-[color:var(--vt-rule)] bg-[rgba(0,0,0,0.4)] px-3 py-2.5 cursor-pointer">
+            <div className="flex items-center gap-2.5 w-full vt-card-inset px-3 py-2.5 cursor-pointer">
               <input
                 type="checkbox"
                 checked={formState.overtime}
                 onChange={(e) => setFormState((p) => ({ ...p, overtime: e.target.checked }))}
-                className="accent-[color:var(--vt-crimson)]"
+                className="accent-[color:var(--vt-red)]"
               />
-              <span className="vt-mono text-xs text-[color:var(--vt-ink)] tracking-wider uppercase">
+              <span className="vt-condensed text-sm tracking-[0.12em] uppercase text-[color:var(--vt-ink-dim)]">
                 Overtime
               </span>
             </div>
@@ -217,11 +207,8 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
         </div>
 
         <div className="flex flex-wrap items-center gap-2 pt-2">
-          <button
-            type="submit"
-            className="vt-anton text-sm tracking-[0.16em] uppercase px-6 py-2.5 rounded-md bg-[color:var(--vt-crimson)] text-white shadow-[0_0_28px_-6px_var(--vt-crimson-glow)] hover:translate-y-[-1px] active:translate-y-0 transition-transform"
-          >
-            {editingGame ? '◆ Save Changes' : '◆ Add Game'}
+          <button type="submit" className="vt-btn-primary text-sm">
+            {editingGame ? 'Save Changes' : 'Add Game'}
           </button>
           {editingGame && onDelete && (
             <button
@@ -233,7 +220,8 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
                   setOpen(false);
                 }
               }}
-              className="vt-mono text-xs tracking-[0.16em] uppercase px-4 py-2.5 rounded-md text-[color:var(--vt-crimson)] border border-[color:var(--vt-rule)] hover:bg-[rgba(255,23,76,0.08)] transition-colors"
+              className="vt-btn-ghost text-xs"
+              style={{ color: 'var(--vt-red)', borderColor: 'var(--vt-rule-strong)' }}
             >
               Delete
             </button>
@@ -244,16 +232,11 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
   );
 }
 
-const inputCls =
-  'mt-1 w-full rounded-md border px-3 py-2.5 text-sm vt-mono focus:outline-none focus:ring-1 focus:ring-[color:var(--vt-crimson)] transition-colors';
-
 function Field({ label, children, className = '' }) {
   return (
     <label className={`block ${className}`}>
-      <span className="vt-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--vt-cyan)]">
-        {label}
-      </span>
-      {children}
+      <span className="vt-label">{label}</span>
+      <div className="mt-1">{children}</div>
     </label>
   );
 }

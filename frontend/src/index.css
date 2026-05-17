@@ -463,302 +463,296 @@ a:focus-visible,
   }
 }
 
+/* Vest mode pages adopt the scoreboard ground end-to-end. */
+.vest-tracker-page {
+  background-color: #0a0a0b !important;
+  color: #ffffff;
+}
+.vest-tracker-header {
+  background-color: #0a0a0b !important;
+  border-bottom: 1px solid #26262c;
+  position: relative;
+}
+.vest-tracker-header::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 2px;
+  background: #c5050c;
+}
+.vest-tracker-header h1,
+.vest-tracker-header button {
+  color: #ffffff;
+}
+.vest-tracker-header .coffee-shop-name {
+  color: #ffffff;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.vest-tracker-header svg { color: #8a8a92; }
+
 /* ──────────────────────────────────────────────────────────────────────────
- * VEST TRACKER — 70s retro-futurist trading-card theme
+ * VEST TRACKER — Arena scoreboard theme
+ * Black ground, one accent (Wisconsin red), heavy condensed sans for stats,
+ * tabular numerals everywhere. No textures, no gradients, no costume.
  * Scoped to .vest-tracker so it doesn't bleed into Vibes & Grinds mode.
  * ────────────────────────────────────────────────────────────────────────── */
 .vest-tracker {
-  --vt-bg-0: #0a0418;
-  --vt-bg-1: #140a2e;
-  --vt-bg-2: #1f1144;
-  --vt-card: #16092e;
-  --vt-card-2: #1d0e3b;
-  --vt-ink: #fbe8d3;
-  --vt-ink-dim: rgba(251, 232, 211, 0.72);
-  --vt-ink-faint: rgba(251, 232, 211, 0.48);
-  --vt-rule: rgba(251, 232, 211, 0.16);
-  --vt-crimson: #ff174c;
-  --vt-crimson-glow: rgba(255, 23, 76, 0.65);
-  --vt-cyan: #00e5ff;
-  --vt-cyan-glow: rgba(0, 229, 255, 0.55);
-  --vt-magenta: #ff2d7b;
-  --vt-gold: #f4c542;
-  --vt-gold-deep: #c5961a;
-  --vt-foil: linear-gradient(135deg, #f4c542 0%, #fff3b8 28%, #c5961a 52%, #fff3b8 74%, #f4c542 100%);
-  --vt-chrome: linear-gradient(135deg, #c9d1e0 0%, #ffffff 32%, #6b7791 50%, #ffffff 68%, #c9d1e0 100%);
-  --vt-sunset: linear-gradient(135deg, #ff174c 0%, #ff6b35 38%, #f4c542 72%, #00e5ff 100%);
-  --vt-cosmic: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255, 23, 76, 0.28) 0%, transparent 55%),
-               radial-gradient(ellipse 70% 50% at 10% 90%, rgba(0, 229, 255, 0.18) 0%, transparent 55%),
-               radial-gradient(ellipse 70% 50% at 90% 90%, rgba(244, 197, 66, 0.14) 0%, transparent 55%),
-               linear-gradient(180deg, #0a0418 0%, #140a2e 60%, #1f1144 100%);
+  --vt-bg: #0a0a0b;
+  --vt-surface: #131316;
+  --vt-surface-2: #1a1a1f;
+  --vt-rule: #26262c;
+  --vt-rule-strong: #3a3a44;
+  --vt-ink: #ffffff;
+  --vt-ink-dim: #c7c7cd;
+  --vt-ink-mute: #8a8a92;
+  --vt-ink-faint: #5a5a62;
+  --vt-red: #c5050c;
+  --vt-red-hot: #e51020;
+  --vt-red-soft: rgba(197, 5, 12, 0.12);
+  --vt-win: #ffffff;
+  --vt-loss: #5a5a62;
 
-  background: var(--vt-cosmic);
+  background: var(--vt-bg);
   color: var(--vt-ink);
-  font-family: 'Space Mono', 'JetBrains Mono', ui-monospace, monospace;
-  position: relative;
-  isolation: isolate;
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-feature-settings: 'tnum', 'cv11';
   min-height: calc(100vh - 80px);
 }
 
-/* Scanline overlay — adds CRT texture without taxing performance */
-.vest-tracker::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent 0,
-    transparent 2px,
-    rgba(0, 0, 0, 0.10) 2px,
-    rgba(0, 0, 0, 0.10) 3px
-  );
-  z-index: 1;
-  opacity: 0.5;
-  mix-blend-mode: overlay;
-}
-
-/* Grain texture for that 70s print feel */
-.vest-tracker::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  opacity: 0.10;
-  mix-blend-mode: overlay;
-  z-index: 2;
-}
-
-.vest-tracker > * { position: relative; z-index: 3; }
-
 /* Typography roles */
-.vt-monoton {
-  font-family: 'Monoton', cursive;
-  font-weight: 400;
+.vt-display {
+  font-family: 'Barlow Condensed', 'Anton', system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.005em;
+  line-height: 0.95;
+}
+.vt-display-tight {
+  font-family: 'Barlow Condensed', 'Anton', system-ui, sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  line-height: 0.9;
+}
+.vt-condensed {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 600;
   letter-spacing: 0.04em;
+}
+.vt-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-feature-settings: 'tnum'; }
+.vt-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
+  font-size: 11px;
+  color: var(--vt-ink-mute);
 }
-.vt-anton {
-  font-family: 'Anton', 'Bebas Neue', sans-serif;
-  font-weight: 400;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.vt-mono { font-family: 'Space Mono', 'JetBrains Mono', ui-monospace, monospace; }
-.vt-mojo { font-family: 'Major Mono Display', monospace; letter-spacing: 0.06em; }
+.vt-label-red { color: var(--vt-red-hot); }
+.vt-label-win { color: var(--vt-win); }
 
-/* Chrome / foil text effects */
-.vt-text-chrome {
-  background: var(--vt-chrome);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.15));
-}
-.vt-text-foil {
-  background: var(--vt-foil);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.4));
-}
-.vt-text-sunset {
-  background: var(--vt-sunset);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-.vt-text-neon-crimson {
-  color: var(--vt-crimson);
-  text-shadow:
-    0 0 12px var(--vt-crimson-glow),
-    0 0 28px rgba(255, 23, 76, 0.35);
-}
-.vt-text-neon-cyan {
-  color: var(--vt-cyan);
-  text-shadow:
-    0 0 12px var(--vt-cyan-glow),
-    0 0 28px rgba(0, 229, 255, 0.30);
-}
-
-/* Letterpress / embossed numeral effect on Monoton headlines */
-.vt-numeral-emboss {
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.18),
-    0 -1px 0 rgba(0, 0, 0, 0.7),
-    0 6px 18px rgba(255, 23, 76, 0.35),
-    0 12px 32px rgba(0, 0, 0, 0.45);
-}
-
-/* Trading-card surface — base card with subtle vignette + inner glow */
+/* Surface primitives */
 .vt-card {
-  position: relative;
-  background:
-    radial-gradient(ellipse 80% 60% at 30% 0%, rgba(255, 23, 76, 0.10) 0%, transparent 60%),
-    linear-gradient(180deg, var(--vt-card-2) 0%, var(--vt-card) 100%);
-  border-radius: 18px;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 24px 50px -24px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(255, 255, 255, 0.04);
-  overflow: hidden;
+  background: var(--vt-surface);
+  border: 1px solid var(--vt-rule);
+  border-radius: 6px;
+}
+.vt-card-inset {
+  background: var(--vt-surface-2);
+  border: 1px solid var(--vt-rule);
+  border-radius: 4px;
 }
 
-/* Conic foil border — wraps any container in a chrome/foil glow.
- * Implemented as a 2px padded background where the inner content sits in
- * front of a conic gradient, masked to a border ring. No animation — the
- * static gradient looks like a still chrome edge. */
-.vt-foil-border {
+/* Top red rail — used as the section "this matters" marker */
+.vt-rail-top {
   position: relative;
-  background: var(--vt-card);
-  border-radius: 18px;
   overflow: hidden;
 }
-.vt-foil-border::before {
+.vt-rail-top::before {
   content: '';
   position: absolute;
-  inset: 0;
-  padding: 1.5px;
-  border-radius: inherit;
-  background: conic-gradient(
-    from 210deg,
-    var(--vt-crimson) 0deg,
-    var(--vt-gold) 70deg,
-    var(--vt-cyan) 150deg,
-    var(--vt-magenta) 230deg,
-    var(--vt-gold) 310deg,
-    var(--vt-crimson) 360deg
-  );
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-  pointer-events: none;
-  z-index: 0;
-}
-.vt-foil-border > * { position: relative; z-index: 1; }
-
-/* Crimson neon border for active/highlighted surfaces */
-.vt-neon-border {
-  border: 1px solid var(--vt-crimson);
-  box-shadow:
-    0 0 0 1px rgba(255, 23, 76, 0.25),
-    0 0 24px -4px var(--vt-crimson-glow),
-    0 0 1px 1px rgba(255, 23, 76, 0.3) inset;
-}
-.vt-cyan-border {
-  border: 1px solid var(--vt-cyan);
-  box-shadow:
-    0 0 24px -4px var(--vt-cyan-glow),
-    0 0 1px 1px rgba(0, 229, 255, 0.25) inset;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: var(--vt-red);
 }
 
-/* Pill / hex / racing-stripe details */
-.vt-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.85rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  font-family: 'Space Mono', monospace;
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
+/* Section header — broadcast caption */
+.vt-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid var(--vt-rule);
+  background: var(--vt-surface);
+}
+
+/* Stat block — label above big tabular numeral */
+.vt-stat {
+  padding: 0.75rem 1rem;
+  background: var(--vt-surface-2);
+  border: 1px solid var(--vt-rule);
+  border-radius: 4px;
+  min-width: 84px;
+}
+.vt-stat-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
+  font-size: 10px;
+  color: var(--vt-ink-mute);
+  display: block;
+}
+.vt-stat-value {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--vt-ink);
+  display: block;
+  font-feature-settings: 'tnum';
+  margin-top: 4px;
+}
+
+/* Hero numerals — big jumbotron count */
+.vt-hero-num {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 900;
+  font-feature-settings: 'tnum';
+  letter-spacing: -0.02em;
+  line-height: 0.85;
   color: var(--vt-ink);
 }
-.vt-pill-crimson {
-  background: rgba(255, 23, 76, 0.12);
-  border-color: rgba(255, 23, 76, 0.45);
-  color: #ffd0dc;
+
+/* Result chip — W is white inverse, L is muted outline */
+.vt-result-w {
+  background: var(--vt-ink);
+  color: var(--vt-bg);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.04em;
 }
-.vt-pill-cyan {
-  background: rgba(0, 229, 255, 0.10);
-  border-color: rgba(0, 229, 255, 0.40);
-  color: #b8f5ff;
+.vt-result-l {
+  background: transparent;
+  color: var(--vt-loss);
+  border: 1px solid var(--vt-rule-strong);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.04em;
 }
-.vt-pill-gold {
-  background: rgba(244, 197, 66, 0.10);
-  border-color: rgba(244, 197, 66, 0.45);
-  color: #ffe8a0;
+.vt-result-pending {
+  background: transparent;
+  color: var(--vt-ink-faint);
+  border: 1px dashed var(--vt-rule-strong);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 600;
 }
 
-/* Racing stripe — diagonal hatched accent for card edges */
-.vt-stripe {
-  background-image: repeating-linear-gradient(
-    -45deg,
-    var(--vt-crimson) 0,
-    var(--vt-crimson) 6px,
-    var(--vt-gold) 6px,
-    var(--vt-gold) 12px,
-    var(--vt-cyan) 12px,
-    var(--vt-cyan) 18px
-  );
+/* Bar primitive — thin gray track with red (or white) fill */
+.vt-bar-track {
+  height: 4px;
+  background: var(--vt-rule);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.vt-bar-fill-red {
+  background: var(--vt-red);
+  height: 100%;
+}
+.vt-bar-fill-white {
+  background: var(--vt-ink);
+  height: 100%;
 }
 
-/* Halftone dot field — applied as decorative corner accent */
-.vt-halftone {
-  background-image: radial-gradient(circle at 1px 1px, var(--vt-ink-faint) 1px, transparent 0);
-  background-size: 8px 8px;
+/* Tab strip */
+.vt-tab {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 13px;
+  padding: 0.75rem 1.25rem;
+  color: var(--vt-ink-mute);
+  background: transparent;
+  border-bottom: 2px solid transparent;
+  transition: color 120ms, border-color 120ms;
 }
-
-/* Hexagonal score badge clip — for trophy-style accents */
-.vt-hex {
-  clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
-}
-
-/* Marquee / ticker scroll */
-@keyframes vt-marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-.vt-marquee-track {
-  display: inline-flex;
-  gap: 2.5rem;
-  animation: vt-marquee 40s linear infinite;
-  white-space: nowrap;
-}
-@media (prefers-reduced-motion: reduce) {
-  .vt-marquee-track { animation: none; }
-}
-
-/* Page-load reveal — staggered fade-up */
-@keyframes vt-reveal {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.vt-reveal {
-  animation: vt-reveal 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-.vt-reveal-1 { animation-delay: 60ms; }
-.vt-reveal-2 { animation-delay: 160ms; }
-.vt-reveal-3 { animation-delay: 280ms; }
-.vt-reveal-4 { animation-delay: 400ms; }
-.vt-reveal-5 { animation-delay: 520ms; }
-
-/* Numeral pulse for the hero score */
-@keyframes vt-pulse-glow {
-  0%, 100% { filter: drop-shadow(0 0 18px rgba(255, 23, 76, 0.35)); }
-  50%      { filter: drop-shadow(0 0 32px rgba(255, 23, 76, 0.55)); }
-}
-.vt-pulse { animation: vt-pulse-glow 4s ease-in-out infinite; }
-
-/* Reset Tailwind defaults that fight the theme */
-.vest-tracker .bg-white { background-color: transparent !important; }
-.vest-tracker .dark\:bg-stone-800 { background-color: transparent !important; }
-.vest-tracker input, .vest-tracker select, .vest-tracker textarea {
+.vt-tab:hover { color: var(--vt-ink-dim); }
+.vt-tab[aria-selected="true"],
+.vt-tab.is-active {
   color: var(--vt-ink);
-  background-color: rgba(0, 0, 0, 0.35);
-  border-color: var(--vt-rule) !important;
-  font-family: 'Space Mono', monospace;
+  border-bottom-color: var(--vt-red);
+}
+
+/* Form inputs */
+.vest-tracker input,
+.vest-tracker select,
+.vest-tracker textarea {
+  background: var(--vt-bg);
+  color: var(--vt-ink);
+  border: 1px solid var(--vt-rule);
+  border-radius: 4px;
+  font-family: 'Inter', system-ui, sans-serif;
+  padding: 0.625rem 0.75rem;
+  transition: border-color 120ms;
+}
+.vest-tracker input:focus,
+.vest-tracker select:focus,
+.vest-tracker textarea:focus {
+  outline: none;
+  border-color: var(--vt-red);
 }
 .vest-tracker input::placeholder { color: var(--vt-ink-faint); }
 
-/* Selection color */
-.vest-tracker ::selection {
-  background: var(--vt-crimson);
-  color: #fff;
+/* Primary button */
+.vt-btn-primary {
+  background: var(--vt-red);
+  color: var(--vt-ink);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  transition: background-color 120ms;
 }
+.vt-btn-primary:hover { background: var(--vt-red-hot); }
+
+.vt-btn-ghost {
+  background: transparent;
+  color: var(--vt-ink-dim);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.625rem 1rem;
+  border: 1px solid var(--vt-rule);
+  border-radius: 4px;
+  transition: border-color 120ms, color 120ms;
+}
+.vt-btn-ghost:hover {
+  color: var(--vt-ink);
+  border-color: var(--vt-rule-strong);
+}
+
+/* Tabular numerals everywhere for the scoreboard feel */
+.vt-tabular { font-feature-settings: 'tnum'; font-variant-numeric: tabular-nums; }
+
+/* Subtle row entry animation */
+@keyframes vt-row-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.vt-row-in { animation: vt-row-in 280ms ease-out both; }
+
+/* Reset Tailwind defaults the components still emit */
+.vest-tracker .bg-white { background-color: transparent !important; }
+.vest-tracker .dark\:bg-stone-800 { background-color: transparent !important; }
+
+.vest-tracker ::selection {
+  background: var(--vt-red);
+  color: var(--vt-ink);
+}
+

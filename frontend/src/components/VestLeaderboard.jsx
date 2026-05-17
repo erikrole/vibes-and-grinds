@@ -15,14 +15,15 @@ const TIER_LABEL = {
   decent: 'decent sample',
   solid: 'solid sample',
 };
-const TIER_DOTS = { untested: 0, tiny: 1, small: 2, decent: 3, solid: 4 };
-const RANK_GLYPH = ['★', '✦', '✧', '◆', '◇'];
 
-// Outfit leaderboard as a deck of trading cards. Each row is a foil-border
-// card with stat blocks, sample tier dots, quadrant micro-table, and a
-// rank glyph that ramps from solid star → outline diamond.
+// Outfit leaderboard rendered as a dense, scannable table — broadcast stat
+// sheet feel, not a deck of trading cards. Selected row highlights with the
+// red left rail; sortable by Wilson/rate/WoE/games. Outfits with zero wins
+// collapse into a "Buried" group at the bottom so the leaderboard surfaces
+// only meaningful signal by default.
 function VestLeaderboard({ stats, badges, selectedOutfit, onSelectOutfit, netStatus }) {
   const [sortBy, setSortBy] = useState('wilson');
+  const [showBuried, setShowBuried] = useState(false);
 
   const sorted = [...stats].sort((a, b) => {
     if (sortBy === 'rate') return b.smoothedRate - a.smoothedRate || b.games - a.games;
@@ -31,35 +32,29 @@ function VestLeaderboard({ stats, badges, selectedOutfit, onSelectOutfit, netSta
     return b.wilson - a.wilson || b.winsAboveExpected - a.winsAboveExpected;
   });
 
+  const active = sorted.filter((s) => s.wins > 0);
+  const buried = sorted.filter((s) => s.wins === 0);
+
   if (!stats.length) {
     return (
       <section className="vt-card mb-6 p-6 text-center">
-        <p className="vt-mono text-sm text-[color:var(--vt-ink-dim)] tracking-wider">
-          ◌ Log a few games to fill the deck.
+        <p className="vt-mono text-sm text-[color:var(--vt-ink-mute)]">
+          Log a few games to fill the leaderboard.
         </p>
       </section>
     );
   }
 
   return (
-    <section className="vt-reveal vt-reveal-3 mb-6 sm:mb-7">
-      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-        <div className="flex items-center gap-3">
-          <span className="vt-monoton text-2xl sm:text-3xl vt-text-foil">DECK</span>
-          <span className="vt-mojo text-[10px] tracking-[0.32em] text-[color:var(--vt-cyan)] uppercase">
-            ◆ {sorted.length} cards
-          </span>
-        </div>
-        <div className="flex items-center gap-0.5 rounded-md border border-[color:var(--vt-rule)] bg-[rgba(0,0,0,0.35)] p-0.5">
+    <section className="vt-card mb-6 overflow-hidden">
+      <div className="vt-section-head">
+        <span className="vt-label">Outfit Leaderboard</span>
+        <div className="flex gap-0 -mr-3">
           {SORT_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               onClick={() => setSortBy(opt.value)}
-              className={`vt-mono text-[9px] uppercase tracking-[0.12em] px-2.5 py-1.5 rounded transition-colors ${
-                sortBy === opt.value
-                  ? 'bg-[color:var(--vt-crimson)] text-white shadow-[0_0_12px_var(--vt-crimson-glow)]'
-                  : 'text-[color:var(--vt-ink-dim)] hover:text-[color:var(--vt-ink)]'
-              }`}
+              className={`vt-tab text-[11px] px-3 py-1 ${sortBy === opt.value ? 'is-active' : ''}`}
             >
               {opt.label}
             </button>
@@ -67,9 +62,9 @@ function VestLeaderboard({ stats, badges, selectedOutfit, onSelectOutfit, netSta
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
-        {sorted.map((stat, idx) => (
-          <DeckCard
+      <ul role="list">
+        {active.map((stat, idx) => (
+          <LeaderboardRow
             key={stat.outfit}
             stat={stat}
             rank={idx + 1}
@@ -80,200 +75,170 @@ function VestLeaderboard({ stats, badges, selectedOutfit, onSelectOutfit, netSta
             sortBy={sortBy}
           />
         ))}
-      </div>
+      </ul>
+
+      {buried.length > 0 && (
+        <>
+          <button
+            onClick={() => setShowBuried((v) => !v)}
+            className="w-full px-5 py-3 border-t border-[color:var(--vt-rule)] flex items-center justify-between hover:bg-white/[0.025] transition-colors"
+          >
+            <span className="vt-label">
+              {showBuried ? '▾' : '▸'} Buried · {buried.length} winless
+            </span>
+            <span className="vt-mono text-[10px] text-[color:var(--vt-ink-faint)] vt-tabular">
+              tap to {showBuried ? 'collapse' : 'reveal'}
+            </span>
+          </button>
+          {showBuried && (
+            <ul role="list">
+              {buried.map((stat, idx) => (
+                <LeaderboardRow
+                  key={stat.outfit}
+                  stat={stat}
+                  rank={active.length + idx + 1}
+                  isSelected={selectedOutfit === stat.outfit}
+                  onSelect={onSelectOutfit}
+                  badges={badges[stat.outfit] || []}
+                  netStatus={netStatus}
+                  sortBy={sortBy}
+                  dim
+                />
+              ))}
+            </ul>
+          )}
+        </>
+      )}
     </section>
   );
 }
 
-function DeckCard({ stat, rank, isSelected, onSelect, badges, netStatus, sortBy }) {
+function LeaderboardRow({ stat, rank, isSelected, onSelect, badges, netStatus, sortBy, dim }) {
   const winPct = stat.winRatePct;
   const woeSign = stat.winsAboveExpected >= 0 ? '+' : '';
-  const accentColor =
-    stat.winsAboveExpected > 0.5
-      ? 'var(--vt-cyan)'
-      : stat.winsAboveExpected < -0.5
-      ? 'var(--vt-crimson)'
-      : 'var(--vt-gold)';
-
-  const primaryMetric =
+  const primaryLabel =
+    sortBy === 'woe' ? 'vs Exp' : sortBy === 'games' ? 'Games' : sortBy === 'rate' ? 'Win %' : 'Conf';
+  const primary =
     sortBy === 'woe'
-      ? { label: 'vs Exp', value: `${woeSign}${stat.winsAboveExpected.toFixed(1)}`, accent: accentColor }
-      : sortBy === 'wilson'
-      ? { label: 'Conf', value: `${stat.wilsonPct}%`, accent: 'var(--vt-gold)' }
+      ? `${woeSign}${stat.winsAboveExpected.toFixed(1)}`
+      : sortBy === 'rate'
+      ? `${stat.smoothedRatePct}%`
       : sortBy === 'games'
-      ? { label: 'Games', value: `${stat.games}`, accent: 'var(--vt-cyan)' }
-      : { label: 'Smooth', value: `${stat.smoothedRatePct}%`, accent: 'var(--vt-gold)' };
-
-  const glyph = RANK_GLYPH[Math.min(rank - 1, RANK_GLYPH.length - 1)];
+      ? `${stat.games}`
+      : `${stat.wilsonPct}%`;
 
   return (
-    <button
-      onClick={() => onSelect(isSelected ? null : stat.outfit)}
-      className={`relative text-left rounded-lg overflow-hidden transition-all hover:-translate-y-0.5 active:scale-[0.99] ${
-        isSelected ? 'vt-foil-border' : ''
-      }`}
-      style={{
-        background: isSelected ? 'transparent' : 'linear-gradient(180deg, var(--vt-card-2) 0%, var(--vt-card) 100%)',
-        boxShadow: isSelected
-          ? '0 16px 40px -16px rgba(255,23,76,0.5)'
-          : '0 1px 0 rgba(255,255,255,0.04) inset, 0 12px 30px -16px rgba(0,0,0,0.5)',
-        border: isSelected ? 'none' : `1px solid ${rank === 1 ? 'rgba(244,197,66,0.45)' : 'var(--vt-rule)'}`,
-      }}
-    >
-      <div className={isSelected ? 'vt-card relative' : 'relative'}>
-        {/* Rank ribbon */}
-        <div
-          className="absolute top-0 left-4 w-12 h-7 flex items-center justify-center text-[#0a0418] vt-anton text-sm shadow-md"
-          style={{
-            background: rank === 1 ? 'var(--vt-foil)' : rank <= 3 ? 'var(--vt-chrome)' : 'rgba(255,255,255,0.12)',
-            color: rank <= 3 ? '#0a0418' : 'var(--vt-ink)',
-            clipPath: 'polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%)',
-          }}
-        >
-          <span className="tabular-nums">#{rank}</span>
-        </div>
-
-        {/* Rank glyph corner */}
-        <div className="absolute top-2.5 right-3 vt-mojo text-xl text-[color:var(--vt-ink-faint)] opacity-60">
-          {glyph}
-        </div>
-
-        <div className="px-4 pt-10 pb-4">
-          {/* Outfit name + sample dots */}
-          <div className="flex items-center gap-2 mb-1">
-            <SampleTier tier={stat.tier} />
-            {stat.form === 'hot' && (
-              <span className="vt-mono text-[9px] tracking-[0.16em] px-1.5 py-0.5 rounded bg-[rgba(255,23,76,0.18)] text-[color:var(--vt-crimson)] vt-text-neon-crimson uppercase">
-                ◉ Hot
-              </span>
-            )}
-            {stat.form === 'cold' && (
-              <span className="vt-mono text-[9px] tracking-[0.16em] px-1.5 py-0.5 rounded bg-[rgba(0,229,255,0.12)] text-[color:var(--vt-cyan)] uppercase">
-                ❄ Cold
-              </span>
-            )}
-          </div>
-          <h4 className="vt-anton text-xl sm:text-2xl text-[color:var(--vt-ink)] leading-[1.05] truncate">
-            {stat.outfit.toUpperCase()}
-          </h4>
-
-          {/* Badges */}
-          {badges.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1.5">
-              {badges.slice(0, 2).map((badge) => (
-                <span
-                  key={badge}
-                  className="vt-mono text-[9px] tracking-[0.12em] px-1.5 py-0.5 rounded bg-[rgba(244,197,66,0.10)] text-[color:var(--vt-gold)] truncate max-w-[160px]"
-                >
-                  {badge}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Primary stat block */}
-          <div className="mt-3 flex items-end justify-between gap-3 pb-2 border-b border-[color:var(--vt-rule)]">
-            <div>
-              <div className="vt-mono text-[9px] uppercase tracking-[0.24em] text-[color:var(--vt-ink-faint)]">
-                W–L
-              </div>
-              <div className="vt-anton text-2xl text-[color:var(--vt-ink)] tabular-nums leading-none mt-0.5">
-                {stat.wins}–{stat.losses}
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="vt-mono text-[9px] uppercase tracking-[0.22em]" style={{ color: primaryMetric.accent }}>
-                {primaryMetric.label}
-              </div>
-              <div
-                className="vt-monoton text-3xl tabular-nums leading-none mt-1"
-                style={{
-                  color: primaryMetric.accent,
-                  textShadow: `0 0 14px ${primaryMetric.accent}`,
-                }}
-              >
-                {primaryMetric.value}
-              </div>
-            </div>
-          </div>
-
-          {/* Win/loss bar */}
-          <div
-            className="mt-3 h-1.5 rounded-full bg-[rgba(255,255,255,0.06)] overflow-hidden flex"
-            title={`${stat.wins}W – ${stat.losses}L (raw ${winPct}%)`}
+    <li>
+      <button
+        onClick={() => onSelect(isSelected ? null : stat.outfit)}
+        className={`w-full text-left px-4 sm:px-5 py-3 border-b border-[color:var(--vt-rule)] last:border-b-0 hover:bg-white/[0.025] transition-colors block ${
+          dim ? 'opacity-60' : ''
+        }`}
+        style={
+          isSelected
+            ? {
+                borderLeftWidth: '3px',
+                borderLeftColor: 'var(--vt-red)',
+                borderLeftStyle: 'solid',
+                paddingLeft: 'calc(1rem - 3px)',
+                background: 'var(--vt-red-soft)',
+              }
+            : undefined
+        }
+      >
+        {/* Mobile + desktop share the same row structure */}
+        <div className="flex items-center gap-3 sm:gap-4">
+          {/* Rank */}
+          <span
+            className="vt-display text-xl sm:text-2xl vt-tabular shrink-0 w-7 sm:w-9"
+            style={{
+              color: rank === 1 ? 'var(--vt-red)' : rank <= 3 ? 'var(--vt-ink)' : 'var(--vt-ink-mute)',
+            }}
           >
-            <div
-              className="h-full bg-[color:var(--vt-cyan)]"
-              style={{ width: `${winPct}%`, boxShadow: '0 0 6px var(--vt-cyan-glow)' }}
-            />
-            <div
-              className="h-full bg-[color:var(--vt-crimson)]"
-              style={{ width: `${100 - winPct}%`, boxShadow: '0 0 6px var(--vt-crimson-glow)' }}
-            />
-          </div>
+            {String(rank).padStart(2, '0')}
+          </span>
 
-          {/* Footer / quadrants */}
-          <div className="mt-2 flex items-center justify-between gap-2">
-            <span className="vt-mono text-[9px] uppercase tracking-[0.18em] text-[color:var(--vt-ink-faint)] truncate">
-              last: {formatLocationLabel(stat.lastSeenLocation)} {stat.lastSeen}
-            </span>
-            {stat.avgNet && netStatus === 'loaded' && (
-              <span className="vt-mono text-[9px] uppercase tracking-[0.18em] text-[color:var(--vt-cyan)] tabular-nums">
-                SoS #{stat.avgNet}
+          {/* Outfit name + sample */}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="vt-display text-base sm:text-lg text-[color:var(--vt-ink)] uppercase tracking-tight truncate">
+                {stat.outfit}
               </span>
-            )}
+              <SampleTag stat={stat} />
+              {stat.form === 'hot' && (
+                <span className="vt-label text-[9px] vt-label-red">Hot</span>
+              )}
+              {stat.form === 'cold' && (
+                <span className="vt-label text-[9px]">Cold</span>
+              )}
+            </div>
+            <div className="vt-mono text-[10px] text-[color:var(--vt-ink-mute)] mt-0.5 truncate">
+              last: {formatLocationLabel(stat.lastSeenLocation)} {stat.lastSeen}
+              {stat.avgNet && netStatus === 'loaded' ? ` · SoS #${stat.avgNet}` : ''}
+            </div>
           </div>
 
-          {netStatus === 'loaded' && (
-            <div className="mt-2 grid grid-cols-4 gap-1">
-              {[1, 2, 3, 4].map((q) => {
-                const w = stat.quadrants[q].wins;
-                const l = stat.quadrants[q].losses;
-                const empty = w + l === 0;
-                return (
-                  <div
-                    key={q}
-                    className="rounded vt-mono text-center py-1 tabular-nums"
-                    style={{
-                      background: empty ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.3)',
-                      border: `1px solid ${empty ? 'var(--vt-rule)' : 'rgba(255,255,255,0.12)'}`,
-                      color: empty ? 'var(--vt-ink-faint)' : 'var(--vt-ink)',
-                    }}
-                  >
-                    <span className="text-[9px] tracking-[0.16em] text-[color:var(--vt-ink-faint)]">Q{q}</span>{' '}
-                    <span className="text-[10px]">{empty ? '—' : `${w}–${l}`}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          {/* W-L */}
+          <div className="shrink-0 text-right">
+            <span className="vt-label text-[9px] block">W–L</span>
+            <span className="vt-display text-base sm:text-lg text-[color:var(--vt-ink)] vt-tabular">
+              {stat.wins}–{stat.losses}
+            </span>
+          </div>
+
+          {/* Primary metric */}
+          <div className="shrink-0 text-right w-14 sm:w-20">
+            <span className="vt-label text-[9px] block">{primaryLabel}</span>
+            <span
+              className="vt-display text-xl sm:text-2xl vt-tabular"
+              style={{ color: rank === 1 ? 'var(--vt-red)' : 'var(--vt-ink)' }}
+            >
+              {primary}
+            </span>
+          </div>
         </div>
 
-        {/* Card bottom foil edge */}
-        <div className="vt-stripe h-[3px] w-full opacity-70" aria-hidden />
-      </div>
-    </button>
+        {/* Bar row beneath, shows the underlying raw win % */}
+        <div className="mt-2 flex items-center gap-2">
+          <div className="vt-bar-track flex-1">
+            <div className="vt-bar-fill-white" style={{ width: `${winPct}%` }} />
+          </div>
+          <span className="vt-mono text-[10px] text-[color:var(--vt-ink-mute)] vt-tabular shrink-0">
+            {winPct}%
+          </span>
+        </div>
+
+        {badges.length > 0 && (
+          <div className="vt-mono text-[10px] text-[color:var(--vt-ink-mute)] mt-1.5 truncate">
+            {badges.slice(0, 3).join(' · ')}
+          </div>
+        )}
+      </button>
+    </li>
   );
 }
 
-function SampleTier({ tier }) {
-  const count = TIER_DOTS[tier] ?? 0;
+// Sample size tag. Reads as broadcast stat ("n=8") with subtle color shift
+// based on tier so analysts can see at a glance how trustworthy the row is.
+function SampleTag({ stat }) {
+  const tone =
+    stat.tier === 'untested' || stat.tier === 'tiny'
+      ? 'var(--vt-ink-faint)'
+      : stat.tier === 'small'
+      ? 'var(--vt-ink-mute)'
+      : 'var(--vt-ink-dim)';
   return (
     <span
-      className="inline-flex items-center gap-0.5"
-      title={TIER_LABEL[tier]}
-      aria-label={TIER_LABEL[tier]}
+      className="vt-mono text-[10px] vt-tabular px-1.5 py-0.5 rounded border"
+      style={{
+        color: tone,
+        borderColor: 'var(--vt-rule)',
+        background: 'var(--vt-bg)',
+      }}
+      title={`${TIER_LABEL[stat.tier]} (n=${stat.games})`}
+      aria-label={`${TIER_LABEL[stat.tier]}, n=${stat.games}`}
     >
-      {[0, 1, 2, 3].map((i) => (
-        <span
-          key={i}
-          className="block w-1.5 h-1.5 rounded-sm"
-          style={{
-            background: i < count ? 'var(--vt-cyan)' : 'rgba(255,255,255,0.10)',
-            boxShadow: i < count ? '0 0 4px var(--vt-cyan-glow)' : 'none',
-          }}
-        />
-      ))}
+      n={stat.games}
     </span>
   );
 }

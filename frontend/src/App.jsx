@@ -314,10 +314,10 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-    <div className={`min-h-screen transition-colors duration-200 ${appMode === APP_MODES.VEST ? 'bg-stone-50 dark:bg-stone-900' : ''}`}>
+    <div className={`min-h-screen transition-colors duration-200 ${appMode === APP_MODES.VEST ? 'vest-tracker-page' : ''}`}>
         <header className={`safe-top transition-colors duration-200 ${
           appMode === APP_MODES.VEST
-            ? 'bg-white dark:bg-stone-800 border-b border-stone-200 dark:border-stone-700'
+            ? 'vest-tracker-header'
             : ''
         }`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
