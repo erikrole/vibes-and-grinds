@@ -23,6 +23,7 @@ import VestLeaderboard from './VestLeaderboard';
 import VestExtras from './VestExtras';
 import VestGameForm from './VestGameForm';
 import VestLockInPick from './VestLockInPick';
+import VestPostGame from './VestPostGame';
 
 const GameStatsPanel = lazy(() => import('./GameStatsPanel'));
 
@@ -260,6 +261,13 @@ export default function VestTrackerDashboard({ showToast }) {
     [sortedGames]
   );
 
+  // Once the game day arrives (date <= today) and an outfit is locked,
+  // switch from the lock-in card to the post-game result card.
+  const todayStr = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
+  const showPostGame = Boolean(
+    upcomingGame?.outfit && upcomingGame?.date && upcomingGame.date <= todayStr
+  );
+
   const scoutingReport = useMemo(() => {
     const upcoming = upcomingGame;
     if (!upcoming) return null;
@@ -477,6 +485,13 @@ export default function VestTrackerDashboard({ showToast }) {
     setEditingGame(null);
   };
 
+  // Quick-log result from PostGame card or Timeline inline buttons.
+  const handleLogResult = (id, result, overtime) => {
+    setGames((prev) =>
+      prev.map((g) => (g.id === id ? { ...g, result, overtime: Boolean(overtime) } : g))
+    );
+  };
+
   // ── Tab routing for the sub-pages ──
   if (vestTab === 'rankings') {
     return (
@@ -541,19 +556,27 @@ export default function VestTrackerDashboard({ showToast }) {
       )}
 
       {upcomingGame && (
-        <VestLockInPick
-          upcomingGame={upcomingGame}
-          existingOutfits={existingOutfits}
-          recommendedOutfit={recommendation?.top?.outfit}
-          onUpdate={(id, patch) =>
-            setGames((prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)))
-          }
-        />
+        showPostGame ? (
+          <VestPostGame
+            game={upcomingGame}
+            onLogResult={handleLogResult}
+          />
+        ) : (
+          <VestLockInPick
+            upcomingGame={upcomingGame}
+            existingOutfits={existingOutfits}
+            recommendedOutfit={recommendation?.top?.outfit}
+            onUpdate={(id, patch) =>
+              setGames((prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)))
+            }
+          />
+        )
       )}
 
       <VestTimeline
         games={visibleTimelineGames}
         onEditGame={setEditingGame}
+        onLogResult={handleLogResult}
       />
 
       <VestLeaderboard
