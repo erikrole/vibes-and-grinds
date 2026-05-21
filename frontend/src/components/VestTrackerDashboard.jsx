@@ -15,6 +15,7 @@ import {
   normalizeTeamName,
   toIsoDate,
 } from '../utils/vestTrackerMath';
+import { getTodayDateString } from '../utils/dates';
 import NetRankingsPage from './NetRankingsPage';
 import VestScoreboard from './VestScoreboard';
 import VestNextGame from './VestNextGame';
@@ -263,7 +264,7 @@ export default function VestTrackerDashboard({ showToast }) {
 
   // Once the game day arrives (date <= today) and an outfit is locked,
   // switch from the lock-in card to the post-game result card.
-  const todayStr = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
+  const todayStr = useMemo(() => getTodayDateString(), []);
   const showPostGame = Boolean(
     upcomingGame?.outfit && upcomingGame?.date && upcomingGame.date <= todayStr
   );

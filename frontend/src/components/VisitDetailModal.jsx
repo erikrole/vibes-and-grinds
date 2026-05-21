@@ -42,7 +42,9 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
     }
   }, [showMenu, handleClose]);
 
-  useFocusTrap(modalRef, { onEscape: handleEscape });
+  // Disable this trap while the share-card modal is open so Escape/Tab only
+  // act on the child modal, not both.
+  useFocusTrap(modalRef, { onEscape: handleEscape, enabled: !showShareCard });
 
   // Prev/next navigation
   const currentIndex = useMemo(() => visits.findIndex((v) => v.id === visit.id), [visits, visit.id]);

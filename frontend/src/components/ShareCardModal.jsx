@@ -55,7 +55,7 @@ export default function ShareCardModal({ visit, onClose }) {
   return (
     <div
       className="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-black/70 dark:bg-black/80 backdrop-blur-sm"
-      onClick={onClose}
+      onClick={(e) => { e.stopPropagation(); onClose(); }}
       role="dialog"
       aria-modal="true"
       aria-label={`Share card for ${visit.coffee_shop_name}`}

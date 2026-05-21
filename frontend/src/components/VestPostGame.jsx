@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { formatDate, formatLocationLabel } from '../utils/vestTrackerMath';
 
 // Closes the result loop: surfaces after the game date passes so the user can
@@ -6,6 +6,12 @@ import { formatDate, formatLocationLabel } from '../utils/vestTrackerMath';
 // Replaces VestLockInPick once the game day arrives.
 function VestPostGame({ game, onLogResult }) {
   const [overtime, setOvertime] = useState(false);
+
+  // Reset the OT toggle when the card advances to a different game so a prior
+  // game's OT selection can't carry into the next result.
+  useEffect(() => {
+    setOvertime(false);
+  }, [game?.id]);
 
   if (!game) return null;
 
