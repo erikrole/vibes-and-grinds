@@ -264,7 +264,9 @@ export default function VestTrackerDashboard({ showToast }) {
 
   // Once the game day arrives (date <= today) and an outfit is locked,
   // switch from the lock-in card to the post-game result card.
-  const todayStr = useMemo(() => getTodayDateString(), []);
+  // Recompute each render (cheap) rather than memoizing forever, so the
+  // post-game switch reflects the correct day if the tab is left open past midnight.
+  const todayStr = getTodayDateString();
   const showPostGame = Boolean(
     upcomingGame?.outfit && upcomingGame?.date && upcomingGame.date <= todayStr
   );

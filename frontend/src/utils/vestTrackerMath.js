@@ -217,9 +217,12 @@ export const buildOutfitStats = ({
   teamWins,
   teamGames,
 }) => {
+  // Reduce over the full completedGames array (skipping outfit-less games) so
+  // `lastIndex` stays in the same index space that computeRecommendation uses
+  // (completedGames.length - lastIndex). Filtering first would shift indices.
   const grouped = completedGames
-    .filter((g) => g.outfit)
     .reduce((acc, game, index) => {
+      if (!game.outfit) return acc;
       const key = game.outfit;
       if (!acc[key]) {
         acc[key] = {
