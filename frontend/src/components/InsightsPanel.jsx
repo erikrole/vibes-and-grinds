@@ -1,641 +1,164 @@
 import { useMemo, useState } from 'react';
-import {
-  ResponsiveContainer, LineChart, Line, BarChart, Bar,
-  XAxis, YAxis, Tooltip, CartesianGrid,
-} from 'recharts';
-import {
-  detectStreak, personalBests, milestones,
-  leaderboard, sportDayAnalysis,
-  rollingAverage, monthlyFrequency, ratingDistribution,
-  cityStats, dayOfWeekPatterns, trendComparison,
-  orderProfile, repeatShopInsights,
-} from '../utils/insights';
-import { getRatingColor, getCompositeColor } from '../utils/colors';
-import BadgesPanel from './BadgesPanel';
+import { leaderboard, sportDayAnalysis, trendComparison, repeatShopInsights } from '../utils/insights';
 
-// Chart colors that work in both light and dark mode
-const VIBE_COLOR = '#f59e0b';   // amber-500
-const COFFEE_COLOR = '#8b5cf6'; // violet-500
-const BAR_COLOR = '#78716c';    // stone-500
+const average = (items, key) => items.length
+  ? items.reduce((sum, item) => sum + Number(item[key] || 0), 0) / items.length
+  : 0;
+
+const normalize = (value = '') => value.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+function normalizedLeaderboard(visits, field, minVisits = 2) {
+  const labels = new Map();
+  visits.forEach((visit) => {
+    const raw = visit[field]?.trim();
+    const key = normalize(raw);
+    if (key && !labels.has(key)) labels.set(key, raw);
+  });
+  return leaderboard(visits, (visit) => normalize(visit[field]), minVisits)
+    .map((item) => ({ ...item, key: labels.get(item.key) || item.key }));
+}
 
 export default function InsightsPanel({ visits }) {
-  const [activeSection, setActiveSection] = useState('streaks');
+  const [compareBy, setCompareBy] = useState('coffee_shop_name');
+  const [minimumSample, setMinimumSample] = useState(2);
 
-  const sorted = useMemo(
-    () => [...visits].sort((a, b) => new Date(a.date) - new Date(b.date)),
+  const recent = useMemo(
+    () => [...visits].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5),
+    [visits]
+  );
+  const previous = useMemo(
+    () => [...visits].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(5, 10),
+    [visits]
+  );
+  const comparisons = useMemo(
+    () => normalizedLeaderboard(visits, compareBy, minimumSample).slice(0, 12),
+    [visits, compareBy, minimumSample]
+  );
+  const sportDays = useMemo(() => sportDayAnalysis(visits), [visits]);
+  const trend = useMemo(() => trendComparison(visits), [visits]);
+  const repeat = useMemo(() => repeatShopInsights(visits), [visits]);
+  const best = useMemo(
+    () => visits.reduce((winner, visit) => !winner || visit.composite_score > winner.composite_score ? visit : winner, null),
     [visits]
   );
 
-  // ── Streaks & Milestones ──
-  const vibeStreak = useMemo(() => detectStreak(sorted, v => v.vibe_rating, 8), [sorted]);
-  const compositeStreak = useMemo(() => detectStreak(sorted, v => v.composite_score, 16), [sorted]);
-  const bests = useMemo(() => personalBests(sorted), [sorted]);
-  const badges = useMemo(() => milestones(sorted), [sorted]);
+  if (!visits.length) return <p className="empty-state">Add a few visits to unlock patterns.</p>;
 
-  // ── Leaderboards ──
-  const topShops = useMemo(() => leaderboard(visits, v => v.coffee_shop_name, 2).slice(0, 10), [visits]);
-  const topCities = useMemo(() => leaderboard(visits, v => v.city, 2).slice(0, 10), [visits]);
-  const topOrders = useMemo(() => leaderboard(visits, v => v.coffee_order, 2).slice(0, 10), [visits]);
-  const sportDay = useMemo(() => sportDayAnalysis(visits), [visits]);
-
-  // ── Trends ──
-  const rolling = useMemo(() => rollingAverage(visits, 5), [visits]);
-  const monthly = useMemo(() => monthlyFrequency(visits), [visits]);
-  const vibeDist = useMemo(() => ratingDistribution(visits, v => v.vibe_rating), [visits]);
-  const coffeeDist = useMemo(() => ratingDistribution(visits, v => v.coffee_rating), [visits]);
-
-  // ── Deep Dives ──
-  const cities = useMemo(() => cityStats(visits), [visits]);
-  const dowPatterns = useMemo(() => dayOfWeekPatterns(visits), [visits]);
-  const trend = useMemo(() => trendComparison(visits), [visits]);
-
-  // ── Order Profile & Repeat Visits ──
-  const orders = useMemo(() => orderProfile(visits), [visits]);
-  const repeats = useMemo(() => repeatShopInsights(visits), [visits]);
-
-  if (!visits.length) {
-    return (
-      <div className="text-center py-16 text-stone-400 dark:text-stone-500">
-        <svg className="w-10 h-10 mx-auto mb-3 text-stone-300 dark:text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-        <p className="text-lg font-medium">No visits yet</p>
-        <p className="text-sm mt-1">Add some visits to unlock insights.</p>
-      </div>
-    );
-  }
-
-  const sections = [
-    { id: 'streaks', label: 'Streaks' },
-    { id: 'leaders', label: 'Leaders' },
-    { id: 'trends', label: 'Trends' },
-    { id: 'dives', label: 'Deep Dives' },
-    { id: 'badges', label: 'Badges' },
-  ];
+  const recentDelta = previous.length
+    ? average(recent, 'composite_score') - average(previous, 'composite_score')
+    : null;
+  const ratingGap = average(visits, 'vibe_rating') - average(visits, 'coffee_rating');
+  const returningShops = repeat?.shops?.length || 0;
+  const historyDelta = trend ? trend.secondHalf.avgComposite - trend.firstHalf.avgComposite : null;
 
   return (
-    <div className="space-y-6">
-      {/* Section tabs */}
-      <div className="flex rounded-xl border border-stone-300 dark:border-stone-600 overflow-hidden">
-        {sections.map(s => (
-          <button
-            key={s.id}
-            onClick={() => setActiveSection(s.id)}
-            className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors border-r last:border-r-0 border-stone-300 dark:border-stone-600 ${
-              activeSection === s.id
-                ? 'bg-stone-800 dark:bg-stone-700 text-stone-50'
-                : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300'
-            }`}
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
+    <div className="insights-workbench">
+      <header className="section-intro">
+        <p className="eyebrow">Highlights</p>
+        <h2>What the journal is saying</h2>
+        <p>Patterns use the full history. Every comparison shows its sample size so a lucky one-off does not win.</p>
+      </header>
 
-      {activeSection === 'streaks' && (
-        <StreaksSection
-          vibeStreak={vibeStreak}
-          compositeStreak={compositeStreak}
-          bests={bests}
-          badges={badges}
+      <section className="insight-highlight-grid" aria-label="Journal highlights">
+        <Highlight
+          label="Recent form"
+          value={`${average(recent, 'composite_score').toFixed(1)}/20`}
+          detail={recentDelta == null ? `Last ${recent.length} visits` : `${signed(recentDelta)} vs the previous ${previous.length}`}
         />
-      )}
-
-      {activeSection === 'leaders' && (
-        <LeaderboardsSection
-          topShops={topShops}
-          topCities={topCities}
-          topOrders={topOrders}
-          sportDay={sportDay}
+        <Highlight
+          label="The balance"
+          value={ratingGap >= 0 ? 'Vibe leads' : 'Coffee leads'}
+          detail={`${Math.abs(ratingGap).toFixed(1)} points on average across ${visits.length} visits`}
         />
-      )}
-
-      {activeSection === 'trends' && (
-        <TrendsSection
-          rolling={rolling}
-          monthly={monthly}
-          vibeDist={vibeDist}
-          coffeeDist={coffeeDist}
+        <Highlight
+          label="Best stop"
+          value={best?.coffee_shop_name || 'Not enough data'}
+          detail={best ? `${Number(best.composite_score).toFixed(1)}/20 in ${best.city || 'the journal'}` : ''}
         />
-      )}
-
-      {activeSection === 'dives' && (
-        <DeepDivesSection
-          cities={cities}
-          dowPatterns={dowPatterns}
-          trend={trend}
-          sportDay={sportDay}
-          orders={orders}
-          repeats={repeats}
+        <Highlight
+          label="Regular rotation"
+          value={`${returningShops} repeat ${returningShops === 1 ? 'shop' : 'shops'}`}
+          detail={`${new Set(visits.map((visit) => normalize(visit.coffee_shop_name))).size} distinct shops logged`}
         />
-      )}
+      </section>
 
-      {activeSection === 'badges' && (
-        <BadgesPanel visits={visits} />
-      )}
-    </div>
-  );
-}
+      <section className="insight-context-grid">
+        <ContextCard title="Game-day effect">
+          {sportDays ? (
+            <>
+              <strong>{signed(sportDays.gameDay.avgComposite - sportDays.nonGameDay.avgComposite)} overall</strong>
+              <p>{sportDays.gameDay.count} game-day visits compared with {sportDays.nonGameDay.count} other visits.</p>
+            </>
+          ) : <p>Log both game-day and non-game-day stops to compare them.</p>}
+        </ContextCard>
+        <ContextCard title="Rating direction">
+          {trend ? (
+            <>
+              <strong>{signed(historyDelta)} overall</strong>
+              <p>Second half of the journal compared with the first half.</p>
+            </>
+          ) : <p>Four visits are needed before direction becomes meaningful.</p>}
+        </ContextCard>
+      </section>
 
-// ── Section Components ──────────────────────────────────────────────────────
-
-function StreaksSection({ vibeStreak, compositeStreak, bests, badges }) {
-  return (
-    <div className="space-y-4">
-      {/* Active Streaks */}
-      <SectionCard title="Active Streaks">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <StreakCard
-            label="Vibe 8+"
-            current={vibeStreak.current.length}
-            longest={vibeStreak.longest.length}
-            emoji="🔥"
-          />
-          <StreakCard
-            label="Composite 16+"
-            current={compositeStreak.current.length}
-            longest={compositeStreak.longest.length}
-            emoji="⚡"
-          />
+      <section className="compare-panel">
+        <div className="compare-heading">
+          <div>
+            <p className="eyebrow">Explore and compare</p>
+            <h3>Rank like with like</h3>
+          </div>
+          <div className="compare-controls">
+            <label>
+              Compare
+              <select value={compareBy} onChange={(event) => setCompareBy(event.target.value)} className="control-field">
+                <option value="coffee_shop_name">Shops</option>
+                <option value="city">Cities</option>
+                <option value="coffee_order">Orders</option>
+              </select>
+            </label>
+            <label>
+              Minimum sample
+              <select value={minimumSample} onChange={(event) => setMinimumSample(Number(event.target.value))} className="control-field">
+                <option value={2}>2 visits</option>
+                <option value={3}>3 visits</option>
+                <option value={5}>5 visits</option>
+              </select>
+            </label>
+          </div>
         </div>
-      </SectionCard>
 
-      {/* Personal Bests */}
-      {bests && (
-        <SectionCard title="Personal Bests">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <BestCard label="Best Vibe" value={bests.bestVibe.vibe_rating.toFixed(1)} shop={bests.bestVibe.coffee_shop_name} color={getRatingColor(bests.bestVibe.vibe_rating)} />
-            <BestCard label="Best Coffee" value={bests.bestCoffee.coffee_rating.toFixed(1)} shop={bests.bestCoffee.coffee_shop_name} color={getRatingColor(bests.bestCoffee.coffee_rating)} />
-            <BestCard label="Best Overall" value={bests.bestComposite.composite_score.toFixed(1)} subtitle="/20" shop={bests.bestComposite.coffee_shop_name} color={getCompositeColor(bests.bestComposite.composite_score)} />
-            <BestCard label="Worst Overall" value={bests.worstComposite.composite_score.toFixed(1)} subtitle="/20" shop={bests.worstComposite.coffee_shop_name} color={getCompositeColor(bests.worstComposite.composite_score)} />
-          </div>
-        </SectionCard>
-      )}
-
-      {/* Milestones */}
-      {badges.length > 0 && (
-        <SectionCard title="Milestones">
-          <div className="flex flex-wrap gap-2">
-            {badges.map((b, i) => (
-              <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800/50">
-                {b.icon} {b.text}
-              </span>
-            ))}
-          </div>
-        </SectionCard>
-      )}
-    </div>
-  );
-}
-
-function LeaderboardsSection({ topShops, topCities, topOrders, sportDay }) {
-  return (
-    <div className="space-y-4">
-      <LeaderboardCard title="Top Coffee Shops" items={topShops} />
-      <LeaderboardCard title="Top Cities" items={topCities} />
-      <LeaderboardCard title="Top Orders" items={topOrders} />
-
-      {sportDay && (
-        <SectionCard title="Game Day Effect">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <StatBlock
-              label="Game Days"
-              value={sportDay.gameDay.avgVibe}
-              subtitle={`${sportDay.gameDay.count} visits · avg composite ${sportDay.gameDay.avgComposite}`}
-            />
-            <StatBlock
-              label="Non-Game Days"
-              value={sportDay.nonGameDay.avgVibe}
-              subtitle={`${sportDay.nonGameDay.count} visits · avg composite ${sportDay.nonGameDay.avgComposite}`}
-            />
-          </div>
-          <p className="mt-3 text-sm text-stone-600 dark:text-stone-300">
-            {sportDay.vibeDelta > 0
-              ? `Vibe ratings are ${sportDay.vibeDelta} higher on game days`
-              : sportDay.vibeDelta < 0
-              ? `Vibe ratings are ${Math.abs(sportDay.vibeDelta)} lower on game days`
-              : 'No difference between game and non-game days'}
-          </p>
-        </SectionCard>
-      )}
-    </div>
-  );
-}
-
-function TrendsSection({ rolling, monthly, vibeDist, coffeeDist }) {
-  const [distMode, setDistMode] = useState('vibe');
-  const activeDist = distMode === 'vibe' ? vibeDist : coffeeDist;
-
-  return (
-    <div className="space-y-4">
-      {/* Rolling Average */}
-      {rolling.length >= 3 && (
-        <SectionCard title="Rating Trend" subtitle="5-visit rolling average">
-          <div className="h-56 sm:h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={rolling} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-stone-200 dark:stroke-stone-700" />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fontSize: 11 }}
-                  className="fill-stone-500 dark:fill-stone-400"
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  domain={[0, 10]}
-                  tick={{ fontSize: 11 }}
-                  className="fill-stone-500 dark:fill-stone-400"
-                />
-                <Tooltip
-                  contentStyle={{ borderRadius: 12, border: 'none', fontSize: 13 }}
-                  wrapperClassName="!bg-white dark:!bg-stone-800 shadow-lg !border !border-stone-200 dark:!border-stone-700 !rounded-xl"
-                />
-                <Line type="monotone" dataKey="vibe" stroke={VIBE_COLOR} strokeWidth={2} dot={false} name="Vibe" />
-                <Line type="monotone" dataKey="coffee" stroke={COFFEE_COLOR} strokeWidth={2} dot={false} name="Coffee" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="flex items-center justify-center gap-4 mt-2 text-xs text-stone-500 dark:text-stone-400">
-            <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded-full" style={{ backgroundColor: VIBE_COLOR }} /> Vibe</span>
-            <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded-full" style={{ backgroundColor: COFFEE_COLOR }} /> Coffee</span>
-          </div>
-        </SectionCard>
-      )}
-
-      {/* Monthly Frequency */}
-      {monthly.length >= 2 && (
-        <SectionCard title="Visit Frequency" subtitle="Visits per month">
-          <div className="h-48 sm:h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthly} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-stone-200 dark:stroke-stone-700" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} className="fill-stone-500 dark:fill-stone-400" />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} className="fill-stone-500 dark:fill-stone-400" />
-                <Tooltip
-                  contentStyle={{ borderRadius: 12, border: 'none', fontSize: 13 }}
-                  wrapperClassName="!bg-white dark:!bg-stone-800 shadow-lg !border !border-stone-200 dark:!border-stone-700 !rounded-xl"
-                />
-                <Bar dataKey="count" fill={BAR_COLOR} radius={[4, 4, 0, 0]} name="Visits" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </SectionCard>
-      )}
-
-      {/* Rating Distribution */}
-      <SectionCard title="Rating Distribution">
-        <div className="flex gap-2 mb-3">
-          {['vibe', 'coffee'].map(m => (
-            <button
-              key={m}
-              onClick={() => setDistMode(m)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                distMode === m
-                  ? 'bg-stone-800 dark:bg-stone-600 text-stone-50'
-                  : 'bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300'
-              }`}
-            >
-              {m === 'vibe' ? 'Vibe' : 'Coffee'}
-            </button>
-          ))}
-        </div>
-        <div className="h-44 sm:h-52">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={activeDist} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-stone-200 dark:stroke-stone-700" />
-              <XAxis dataKey="range" tick={{ fontSize: 10 }} className="fill-stone-500 dark:fill-stone-400" interval={1} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} className="fill-stone-500 dark:fill-stone-400" />
-              <Tooltip
-                contentStyle={{ borderRadius: 12, border: 'none', fontSize: 13 }}
-                wrapperClassName="!bg-white dark:!bg-stone-800 shadow-lg !border !border-stone-200 dark:!border-stone-700 !rounded-xl"
-              />
-              <Bar dataKey="count" fill={distMode === 'vibe' ? VIBE_COLOR : COFFEE_COLOR} radius={[4, 4, 0, 0]} name="Visits" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </SectionCard>
-    </div>
-  );
-}
-
-function DeepDivesSection({ cities, dowPatterns, trend, sportDay, orders, repeats }) {
-  return (
-    <div className="space-y-4">
-      {/* Order Profile */}
-      {orders && <OrderProfileSection orders={orders} />}
-
-      {/* Repeat Visits */}
-      {repeats && repeats.shops.length > 0 && <RepeatVisitsSection repeats={repeats} />}
-
-      {/* Getting Pickier? */}
-      {trend && (
-        <SectionCard title="Getting Pickier?" subtitle="First half vs second half of visits">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl bg-stone-50 dark:bg-stone-700/40 p-3 sm:p-4">
-              <p className="text-[11px] uppercase tracking-wider text-stone-400 dark:text-stone-500 font-semibold mb-1">First {trend.firstHalf.count} visits</p>
-              <p className="text-2xl font-black text-stone-900 dark:text-stone-100">{trend.firstHalf.avgComposite}</p>
-              <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">avg composite</p>
+        {comparisons.length ? (
+          <div className="comparison-table" role="table" aria-label="Ranked journal comparison">
+            <div className="comparison-row comparison-header" role="row">
+              <span role="columnheader">Name</span><span role="columnheader">Sample</span><span role="columnheader">Vibe</span><span role="columnheader">Coffee</span><span role="columnheader">Overall</span>
             </div>
-            <div className="rounded-xl bg-stone-50 dark:bg-stone-700/40 p-3 sm:p-4">
-              <p className="text-[11px] uppercase tracking-wider text-stone-400 dark:text-stone-500 font-semibold mb-1">Last {trend.secondHalf.count} visits</p>
-              <p className="text-2xl font-black text-stone-900 dark:text-stone-100">{trend.secondHalf.avgComposite}</p>
-              <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">avg composite</p>
-            </div>
-          </div>
-          {(() => {
-            const delta = +(trend.secondHalf.avgComposite - trend.firstHalf.avgComposite).toFixed(1);
-            if (delta === 0) return <p className="mt-3 text-sm text-stone-500">Ratings have stayed consistent.</p>;
-            return (
-              <p className="mt-3 text-sm text-stone-600 dark:text-stone-300">
-                {delta > 0
-                  ? `Standards rising — composite up ${delta} in recent visits`
-                  : `Getting pickier — composite down ${Math.abs(delta)} in recent visits`}
-              </p>
-            );
-          })()}
-        </SectionCard>
-      )}
-
-      {/* Day of Week */}
-      {dowPatterns.length >= 3 && (
-        <SectionCard title="Day of Week" subtitle="Average vibe by day">
-          <div className="h-44 sm:h-52">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dowPatterns} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-stone-200 dark:stroke-stone-700" />
-                <XAxis dataKey="day" tick={{ fontSize: 11 }} className="fill-stone-500 dark:fill-stone-400" />
-                <YAxis domain={[0, 10]} tick={{ fontSize: 11 }} className="fill-stone-500 dark:fill-stone-400" />
-                <Tooltip
-                  contentStyle={{ borderRadius: 12, border: 'none', fontSize: 13 }}
-                  wrapperClassName="!bg-white dark:!bg-stone-800 shadow-lg !border !border-stone-200 dark:!border-stone-700 !rounded-xl"
-                />
-                <Bar dataKey="avgVibe" fill={VIBE_COLOR} radius={[4, 4, 0, 0]} name="Avg Vibe" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          {(() => {
-            const best = [...dowPatterns].sort((a, b) => b.avgVibe - a.avgVibe)[0];
-            if (!best) return null;
-            return (
-              <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">
-                Best vibes on <span className="font-semibold">{best.day}s</span> ({best.avgVibe} avg, {best.count} visits)
-              </p>
-            );
-          })()}
-        </SectionCard>
-      )}
-
-      {/* City Cards */}
-      {cities.length > 0 && (
-        <SectionCard title="City Breakdown">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {cities.slice(0, 8).map(c => (
-              <div key={c.city} className="rounded-xl border border-stone-200 dark:border-stone-600 p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-bold text-stone-900 dark:text-stone-100">{c.city}</h4>
-                  <span className="text-lg font-black text-stone-900 dark:text-stone-100">{c.avgComposite}</span>
-                </div>
-                <div className="space-y-1 text-xs text-stone-500 dark:text-stone-400">
-                  <p>{c.count} visits · {c.shops} shops</p>
-                  <p>Vibe {c.avgVibe} · Coffee {c.avgCoffee}</p>
-                  {c.topOrder && <p>Top order: {c.topOrder}</p>}
-                  <p className="text-[11px]">Best: {c.bestVisit.coffee_shop_name} ({c.bestVisit.composite_score.toFixed(1)})</p>
-                </div>
+            {comparisons.map((item, index) => (
+              <div className="comparison-row" role="row" key={item.key}>
+                <span role="cell"><b>{index + 1}</b>{item.key}</span>
+                <span role="cell">n={item.count}</span>
+                <span role="cell">{item.avgVibe.toFixed(1)}</span>
+                <span role="cell">{item.avgCoffee.toFixed(1)}</span>
+                <strong role="cell">{item.avgComposite.toFixed(1)}</strong>
               </div>
             ))}
           </div>
-        </SectionCard>
-      )}
-    </div>
-  );
-}
-
-// ── Order Profile & Repeat Visits ────────────────────────────────────────────
-
-function OrderProfileSection({ orders }) {
-  const maxCount = orders.topOrders[0]?.count || 1;
-
-  return (
-    <SectionCard title="Your Orders" subtitle="What you drink and how it rates">
-      {/* Top orders bar chart */}
-      <div className="space-y-2 mb-4">
-        {orders.topOrders.slice(0, 6).map(o => (
-          <div key={o.order} className="flex items-center gap-3">
-            <span className="text-sm text-stone-700 dark:text-stone-200 font-medium w-32 sm:w-40 truncate shrink-0">{o.order}</span>
-            <div className="flex-1 flex items-center gap-2">
-              <div className="flex-1 h-5 rounded-full bg-stone-100 dark:bg-stone-700 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{
-                    width: `${(o.count / maxCount) * 100}%`,
-                    backgroundColor: getCompositeColor(o.avgComposite),
-                  }}
-                />
-              </div>
-              <span className="text-xs text-stone-500 dark:text-stone-400 font-semibold shrink-0 w-6 text-right">{o.count}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Signature drink callout */}
-      {orders.signatureDrink && (
-        <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 p-3 mb-4">
-          <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wider mb-0.5">Signature Drink</p>
-          <p className="text-sm font-bold text-amber-900 dark:text-amber-100">{orders.signatureDrink.order} — ordered {orders.signatureDrink.count} times</p>
-        </div>
-      )}
-
-      {/* Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <div className="rounded-xl bg-stone-50 dark:bg-stone-700/40 p-3">
-          <p className="text-[11px] uppercase tracking-wider text-stone-400 dark:text-stone-500 font-semibold">Unique Orders</p>
-          <p className="text-2xl font-black text-stone-900 dark:text-stone-100 mt-1">{orders.uniqueOrders}</p>
-        </div>
-        <div className="rounded-xl bg-stone-50 dark:bg-stone-700/40 p-3">
-          <p className="text-[11px] uppercase tracking-wider text-stone-400 dark:text-stone-500 font-semibold">Diversity</p>
-          <p className="text-2xl font-black text-stone-900 dark:text-stone-100 mt-1">{orders.diversityScore}%</p>
-          <p className="text-[10px] text-stone-400 dark:text-stone-500">unique / total</p>
-        </div>
-        {orders.bestRated && (
-          <div className="rounded-xl bg-stone-50 dark:bg-stone-700/40 p-3">
-            <p className="text-[11px] uppercase tracking-wider text-stone-400 dark:text-stone-500 font-semibold">Best Rated</p>
-            <p className="text-sm font-bold text-stone-900 dark:text-stone-100 mt-1 truncate">{orders.bestRated.order}</p>
-            <p className="text-[10px] text-stone-400 dark:text-stone-500">{orders.bestRated.avgComposite} avg composite</p>
-          </div>
+        ) : (
+          <p className="compare-empty">No groups meet that sample size yet. Lower the minimum or keep logging.</p>
         )}
-      </div>
-    </SectionCard>
-  );
-}
-
-function RepeatVisitsSection({ repeats }) {
-  return (
-    <SectionCard title="Repeat Visits" subtitle={`${repeats.loyaltyRate}% of visits are to repeat shops`}>
-      <div className="space-y-3 mb-4">
-        {repeats.shops.slice(0, 8).map(shop => (
-          <div key={shop.name} className="rounded-xl border border-stone-200 dark:border-stone-600 p-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-sm font-bold text-stone-900 dark:text-stone-100 truncate">{shop.name}</span>
-                <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-stone-200 dark:bg-stone-600 text-stone-600 dark:text-stone-300">
-                  {shop.visitCount}x
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className={`text-xs font-semibold ${
-                  shop.trend === 'improving' ? 'text-emerald-600 dark:text-emerald-400' :
-                  shop.trend === 'declining' ? 'text-red-500 dark:text-red-400' :
-                  'text-stone-400 dark:text-stone-500'
-                }`}>
-                  {shop.trend === 'improving' ? '↑' : shop.trend === 'declining' ? '↓' : '→'}
-                </span>
-                <span className="text-sm font-black" style={{ color: getCompositeColor(shop.avgComposite) }}>
-                  {shop.avgComposite}
-                </span>
-              </div>
-            </div>
-
-            {/* Mini sparkline */}
-            <div className="flex items-end gap-0.5 h-6">
-              {shop.ratings.map((r, i) => (
-                <div
-                  key={i}
-                  className="flex-1 rounded-sm transition-all"
-                  style={{
-                    height: `${Math.max(4, (r.composite / 20) * 24)}px`,
-                    backgroundColor: getCompositeColor(r.composite),
-                    opacity: 0.7 + (i / shop.ratings.length) * 0.3,
-                  }}
-                  title={`${r.date}: ${r.composite}`}
-                />
-              ))}
-            </div>
-
-            {/* Consistency */}
-            <div className="flex items-center gap-2 mt-2">
-              <span className="text-[10px] text-stone-400 dark:text-stone-500">Consistency</span>
-              <div className="flex-1 h-1 rounded-full bg-stone-200 dark:bg-stone-600 overflow-hidden">
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${shop.consistency * 100}%`,
-                    backgroundColor: shop.consistency > 0.8 ? '#22c55e' : shop.consistency > 0.5 ? '#f59e0b' : '#ef4444',
-                  }}
-                />
-              </div>
-              <span className="text-[10px] text-stone-400 dark:text-stone-500 font-semibold">{Math.round(shop.consistency * 100)}%</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Callouts */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {repeats.mostImproved && (
-          <div className="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 p-3">
-            <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider mb-0.5">Most Improved</p>
-            <p className="text-sm font-bold text-emerald-900 dark:text-emerald-100">{repeats.mostImproved.name}</p>
-            <p className="text-[10px] text-emerald-600 dark:text-emerald-400">+{repeats.mostImproved.slope} per visit</p>
-          </div>
-        )}
-        {repeats.mostDeclining && (
-          <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 p-3">
-            <p className="text-xs font-semibold text-red-700 dark:text-red-300 uppercase tracking-wider mb-0.5">Declining</p>
-            <p className="text-sm font-bold text-red-900 dark:text-red-100">{repeats.mostDeclining.name}</p>
-            <p className="text-[10px] text-red-600 dark:text-red-400">{repeats.mostDeclining.slope} per visit</p>
-          </div>
-        )}
-      </div>
-    </SectionCard>
-  );
-}
-
-// ── Shared Sub-Components ───────────────────────────────────────────────────
-
-function SectionCard({ title, subtitle, children }) {
-  return (
-    <div className="bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 rounded-2xl p-4 sm:p-5 shadow-sm">
-      <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">{title}</h3>
-      {subtitle && <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5 mb-3">{subtitle}</p>}
-      {!subtitle && <div className="mb-3" />}
-      {children}
+      </section>
     </div>
   );
 }
 
-function StreakCard({ label, current, longest, emoji }) {
-  return (
-    <div className="rounded-xl bg-stone-50 dark:bg-stone-700/40 p-4">
-      <p className="text-[11px] uppercase tracking-wider text-stone-400 dark:text-stone-500 font-semibold">{label}</p>
-      <div className="flex items-baseline gap-2 mt-1">
-        <span className="text-3xl font-black text-stone-900 dark:text-stone-100">
-          {current || 0}
-        </span>
-        {current >= 3 && <span className="text-lg">{emoji}</span>}
-      </div>
-      <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-        {current > 0 ? 'active now' : 'no active streak'} · best: {longest}
-      </p>
-    </div>
-  );
+function Highlight({ label, value, detail }) {
+  return <article className="insight-highlight"><p className="eyebrow">{label}</p><h3>{value}</h3><p>{detail}</p></article>;
 }
 
-function BestCard({ label, value, subtitle, shop, color }) {
-  return (
-    <div className="rounded-xl bg-stone-50 dark:bg-stone-700/40 p-3 sm:p-4">
-      <p className="text-[11px] uppercase tracking-wider text-stone-400 dark:text-stone-500 font-semibold">{label}</p>
-      <p className="text-2xl font-black mt-1" style={{ color }}>
-        {value}<span className="text-sm font-semibold text-stone-400 dark:text-stone-500">{subtitle}</span>
-      </p>
-      <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5 truncate">{shop}</p>
-    </div>
-  );
+function ContextCard({ title, children }) {
+  return <article className="insight-context"><p className="eyebrow">{title}</p>{children}</article>;
 }
 
-function LeaderboardCard({ title, items }) {
-  if (!items.length) return null;
-
-  const maxComposite = items[0]?.avgComposite || 1;
-  const medals = ['🥇', '🥈', '🥉'];
-
-  return (
-    <SectionCard title={title}>
-      <div className="space-y-2">
-        {items.map((item, i) => (
-          <div key={item.key} className="flex items-center gap-3">
-            <span className="w-6 text-center text-sm shrink-0">
-              {i < 3 ? medals[i] : <span className="text-xs text-stone-400 dark:text-stone-500 font-semibold">{i + 1}</span>}
-            </span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">{item.key}</span>
-                <span className="text-sm font-bold text-stone-700 dark:text-stone-200 shrink-0">{item.avgComposite}</span>
-              </div>
-              <div className="h-1.5 rounded-full bg-stone-100 dark:bg-stone-700 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{
-                    width: `${(item.avgComposite / maxComposite) * 100}%`,
-                    backgroundColor: getCompositeColor(item.avgComposite),
-                  }}
-                />
-              </div>
-              <p className="text-[11px] text-stone-400 dark:text-stone-500 mt-0.5">{item.count} visits · vibe {item.avgVibe} · coffee {item.avgCoffee}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </SectionCard>
-  );
-}
-
-function StatBlock({ label, value, subtitle }) {
-  return (
-    <div className="rounded-xl bg-stone-50 dark:bg-stone-700/40 p-4">
-      <p className="text-[11px] uppercase tracking-wider text-stone-400 dark:text-stone-500 font-semibold">{label}</p>
-      <p className="text-2xl font-black text-stone-900 dark:text-stone-100 mt-1">{value}</p>
-      <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">{subtitle}</p>
-    </div>
-  );
+function signed(value) {
+  const number = Number(value || 0);
+  return `${number >= 0 ? '+' : ''}${number.toFixed(1)}`;
 }

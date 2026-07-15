@@ -1,7 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
 import PhotoCropper from './PhotoCropper';
 import { getRatingColor, getCompositeColor } from '../utils/colors';
 import { formatDate, getRelativeLabel } from '../utils/dates';
@@ -9,22 +6,15 @@ import { DEFAULT_VISITOR_NAME, getRepeatVisits } from '../utils/repeats';
 import ShareCardModal from './ShareCardModal';
 import useFocusTrap from '../hooks/useFocusTrap';
 
-const coffeeIcon = L.divIcon({
-  html: '<span style="font-size:28px;line-height:1;display:block;">☕</span>',
-  className: '',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-});
-
 export default function VisitDetailModal({ visit, visits, onClose, onNavigate, onUpdate, onEdit, onDelete, onLogReturnVisit }) {
   const modalRef = useRef(null);
+  const closeRef = useRef(null);
   const [showMenu, setShowMenu] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [photoError, setPhotoError] = useState(null);
   const [cropping, setCropping] = useState(false);
   const [imageToCrop, setImageToCrop] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
-  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
   const [showShareCard, setShowShareCard] = useState(false);
   const [closing, setClosing] = useState(false);
   const [draggingPhoto, setDraggingPhoto] = useState(false);
@@ -44,7 +34,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
   // Disable this trap while the share-card modal is open so Escape/Tab only
   // act on the child modal, not both.
-  useFocusTrap(modalRef, { onEscape: handleEscape, enabled: !showShareCard });
+  useFocusTrap(modalRef, { onEscape: handleEscape, enabled: !showShareCard, initialFocusRef: closeRef });
 
   // Prev/next navigation
   const currentIndex = useMemo(() => visits.findIndex((v) => v.id === visit.id), [visits, visit.id]);
@@ -63,14 +53,6 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
     window.addEventListener('keydown', onArrow);
     return () => window.removeEventListener('keydown', onArrow);
   }, [prevVisit, nextVisit, onNavigate]);
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsDark(document.documentElement.classList.contains('dark'));
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
 
   const handlePhotoUpload = async (file) => {
     if (!file) return;
@@ -216,11 +198,6 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
   const hasCoordinates = Number.isFinite(Number(visit.coffee_shop_lat)) && Number.isFinite(Number(visit.coffee_shop_lng));
 
-  const mapCenter = useMemo(() => {
-    if (!hasCoordinates) return null;
-    return [Number(visit.coffee_shop_lat), Number(visit.coffee_shop_lng)];
-  }, [hasCoordinates, visit.coffee_shop_lat, visit.coffee_shop_lng]);
-
   return (
     <div
       className={`dialog-shell ${closing ? 'animate-backdrop-out' : 'animate-backdrop-in'}`}
@@ -313,6 +290,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                 </svg>
               </button>
               <button
+                ref={closeRef}
                 onClick={handleClose}
                 className="bg-white/90 dark:bg-stone-800/90 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-50 p-3 rounded-full backdrop-blur-sm transition-all shadow-lg"
                 aria-label="Close"
@@ -484,34 +462,12 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
               />
             )}
 
-            {/* Map */}
-            {mapCenter && (
-              <div className="mt-5 relative rounded-3xl overflow-hidden h-40 sm:h-52 md:h-64 bg-stone-100 dark:bg-stone-700">
-                <div className="absolute inset-0 flex items-center justify-center z-0">
-                  <div className="animate-pulse text-stone-300 dark:text-stone-600 text-sm">Loading map...</div>
+            {hasCoordinates && (
+              <div className="detail-location-row">
+                <div>
+                  <p className="eyebrow">Location</p>
+                  <strong>{visit.city || 'Saved location'}</strong>
                 </div>
-                <MapContainer
-                  center={mapCenter}
-                  zoom={18}
-                  className="h-full w-full"
-                  scrollWheelZoom={false}
-                  zoomControl={false}
-                  key={mapCenter.join(',')}
-                >
-                  <TileLayer
-                    attribution='&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url={
-                      isDark
-                        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-                        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-                    }
-                  />
-                  <Marker position={mapCenter} icon={coffeeIcon}>
-                    <Tooltip permanent direction="top" offset={[0, -30]} className="map-shop-label">
-                      {visit.coffee_shop_name}
-                    </Tooltip>
-                  </Marker>
-                </MapContainer>
                 <a
                   href={
                     visit.coffee_shop_place_id
@@ -520,13 +476,12 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                   }
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="absolute bottom-3 right-3 z-[1000] flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/90 dark:bg-stone-800/90 text-stone-700 dark:text-stone-200 shadow-md backdrop-blur-sm hover:bg-white dark:hover:bg-stone-800 transition-colors"
-                  onClick={(e) => e.stopPropagation()}
+                  className="detail-map-link"
                 >
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                   </svg>
-                  Open in Maps
+                  Open in Maps <span aria-hidden="true">↗</span>
                 </a>
               </div>
             )}
@@ -590,6 +545,10 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
       {confirmAction && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 dark:bg-black/80 backdrop-blur-sm"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="confirm-dialog-title"
+          aria-describedby="confirm-dialog-message"
           onClick={() => setConfirmAction(null)}
         >
           <div
@@ -597,10 +556,10 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
             style={{ backgroundColor: 'var(--paper-2)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-xl mb-2" style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
+            <h3 id="confirm-dialog-title" className="text-xl mb-2" style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
               {confirmAction.title}
             </h3>
-            <p className="text-stone-500 dark:text-stone-400 text-sm leading-relaxed mb-7">{confirmAction.message}</p>
+            <p id="confirm-dialog-message" className="text-stone-500 dark:text-stone-400 text-sm leading-relaxed mb-7">{confirmAction.message}</p>
             <div className="space-y-2">
               <button
                 onClick={confirmAction.onConfirm}
@@ -714,6 +673,19 @@ function RepeatHistoryCard({ visit, visits, visitNumber, previousVisit, bestVisi
           />
         )}
       </div>
+      {previousVisit && (
+        <div className="repeat-comparison" role="table" aria-label="Previous and current visit ratings">
+          <div role="row"><span role="columnheader">Rating</span><span role="columnheader">Previous</span><span role="columnheader">Current</span><span role="columnheader">Change</span></div>
+          {[
+            ['Vibe', 'vibe_rating'],
+            ['Coffee', 'coffee_rating'],
+            ['Overall', 'composite_score'],
+          ].map(([label, field]) => {
+            const delta = Number(visit[field]) - Number(previousVisit[field]);
+            return <div role="row" key={field}><strong role="cell">{label}</strong><span role="cell">{Number(previousVisit[field]).toFixed(1)}</span><span role="cell">{Number(visit[field]).toFixed(1)}</span><b role="cell" data-direction={delta >= 0 ? 'up' : 'down'}>{delta >= 0 ? '+' : ''}{delta.toFixed(1)}</b></div>;
+          })}
+        </div>
+      )}
     </div>
   );
 }

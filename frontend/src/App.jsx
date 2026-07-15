@@ -2,10 +2,9 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import AddVisitForm from './components/AddVisitForm';
 import VisitList from './components/VisitList';
 import FormModal from './components/FormModal';
-import LazyMount from './components/LazyMount';
 
 const VisitDetailModal = lazy(() => import('./components/VisitDetailModal'));
-const VisitsMap = lazy(() => import('./components/VisitsMap'));
+const MapExplorer = lazy(() => import('./components/MapExplorer'));
 const VestTrackerDashboard = lazy(() => import('./components/VestTrackerDashboard'));
 const InsightsPanel = lazy(() => import('./components/InsightsPanel'));
 const YearInReview = lazy(() => import('./components/YearInReview'));
@@ -63,7 +62,7 @@ export default function App() {
     ? APP_MODES.VEST
     : (viewPrefs.appMode || APP_MODES.VIBES);
 
-  const viewTab = viewPrefs.viewTab || 'visits'; // 'visits' | 'insights'
+  const viewTab = viewPrefs.viewTab || 'visits'; // 'visits' | 'map' | 'insights'
 
   const setSortBy = (v) => setViewPrefs((p) => {
     if (p.sortBy === v) return { ...p, sortAsc: !p.sortAsc };
@@ -486,6 +485,7 @@ export default function App() {
             <div className="flex items-end gap-7 sm:gap-9">
             {[
               { id: 'visits', label: 'Visits' },
+              { id: 'map', label: 'Map' },
               { id: 'insights', label: 'Insights' },
             ].map(tab => (
               <button
@@ -509,6 +509,10 @@ export default function App() {
           {viewTab === 'insights' ? (
             <Suspense fallback={<div className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading insights...</div>}>
               <InsightsPanel visits={visits} />
+            </Suspense>
+          ) : viewTab === 'map' ? (
+            <Suspense fallback={<div className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading map...</div>}>
+              <MapExplorer visits={visits} onVisitClick={setViewingVisit} />
             </Suspense>
           ) : (
           <>
@@ -675,7 +679,7 @@ export default function App() {
             shopVisitCounts={shopVisitCounts}
           />
 
-          <div className="grid lg:grid-cols-[0.8fr_1.2fr] gap-5 mt-8">
+          <div className="grid gap-5 mt-8">
             {topCoffeeOrders.length > 0 && (
               <section className="supporting-panel">
                 <h2 className="eyebrow mb-4">Frequent orders</h2>
@@ -684,18 +688,6 @@ export default function App() {
                     <li key={order}><span>{order}</span><strong>{count}</strong></li>
                   ))}
                 </ol>
-              </section>
-            )}
-            {visits.some((v) => v.coffee_shop_lat) && (
-              <section className="supporting-panel">
-                <h2 className="eyebrow mb-4">On the road</h2>
-                <div className="h-64 sm:h-72 rounded-lg overflow-hidden" style={{ isolation: 'isolate' }}>
-                  <LazyMount rootMargin="300px" placeholder={<div className="h-full flex items-center justify-center text-stone-500 dark:text-stone-400 text-sm">Map loads when in view</div>}>
-                    <Suspense fallback={<div className="h-full flex items-center justify-center text-stone-500 dark:text-stone-400 text-sm">Loading map...</div>}>
-                      <VisitsMap visits={visits} onVisitClick={setViewingVisit} />
-                    </Suspense>
-                  </LazyMount>
-                </div>
               </section>
             )}
           </div>

@@ -3,14 +3,14 @@ import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-const coffeeIcon = L.divIcon({
-  html: '<span style="font-size:32px;line-height:1;display:block;">☕</span>',
-  className: '',
-  iconSize: [36, 36],
-  iconAnchor: [18, 36],
+const markerIcon = (score, selected) => L.divIcon({
+  html: `<span class="journal-map-pin${selected ? ' is-selected' : ''}"><b>${Number(score).toFixed(1)}</b></span>`,
+  className: 'journal-map-marker',
+  iconSize: [44, 44],
+  iconAnchor: [22, 42],
 });
 
-export default function VisitsMap({ visits, onVisitClick }) {
+export default function VisitsMap({ visits, selectedVisitId, onVisitSelect, onVisitClick }) {
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
 
   useEffect(() => {
@@ -76,7 +76,7 @@ export default function VisitsMap({ visits, onVisitClick }) {
       center={center}
       zoom={zoom}
       className="h-full w-full rounded-xl"
-      scrollWheelZoom={true}
+      scrollWheelZoom={false}
       key={`map-${visitsWithCoords.length}-${center.join(',')}`}
     >
       <TileLayer
@@ -87,8 +87,14 @@ export default function VisitsMap({ visits, onVisitClick }) {
         <Marker
           key={visit.id}
           position={[Number(visit.coffee_shop_lat), Number(visit.coffee_shop_lng)]}
-          icon={coffeeIcon}
-          eventHandlers={{ click: () => onVisitClick?.(visit) }}
+          icon={markerIcon(visit.composite_score, selectedVisitId === visit.id)}
+          keyboard
+          title={`${visit.coffee_shop_name}, ${Number(visit.composite_score).toFixed(1)} out of 20`}
+          eventHandlers={{
+            mouseover: () => onVisitSelect?.(visit),
+            focus: () => onVisitSelect?.(visit),
+            click: () => onVisitClick?.(visit),
+          }}
         >
           <Tooltip direction="top" offset={[0, -30]} className="map-shop-label">
             {visit.coffee_shop_name}

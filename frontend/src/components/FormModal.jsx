@@ -3,6 +3,7 @@ import useFocusTrap from '../hooks/useFocusTrap';
 
 export default function FormModal({ title, onClose, children }) {
   const modalRef = useRef(null);
+  const closeRef = useRef(null);
   const [closing, setClosing] = useState(false);
 
   const handleClose = useCallback(() => {
@@ -10,7 +11,7 @@ export default function FormModal({ title, onClose, children }) {
     setTimeout(onClose, 200);
   }, [onClose]);
 
-  useFocusTrap(modalRef, { onEscape: handleClose });
+  useFocusTrap(modalRef, { onEscape: handleClose, initialFocusRef: closeRef });
 
   return (
     <div className="dialog-shell" role="dialog" aria-modal="true" aria-label={title}>
@@ -25,6 +26,7 @@ export default function FormModal({ title, onClose, children }) {
           onClick={(e) => e.stopPropagation()}
         >
           <button
+            ref={closeRef}
             onClick={handleClose}
             className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 w-10 h-10 flex items-center justify-center rounded-md bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors"
             aria-label={`Close ${title}`}
