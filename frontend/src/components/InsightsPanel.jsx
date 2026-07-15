@@ -56,7 +56,7 @@ export default function InsightsPanel({ visits }) {
       <header className="section-intro">
         <p className="eyebrow">Highlights</p>
         <h2>What the journal is saying</h2>
-        <p>Patterns use the full history. Every comparison shows its sample size so a lucky one-off does not win.</p>
+        <p>Patterns use the full history. Each comparison shows its sample size so a lucky one-off does not win.</p>
       </header>
 
       <section className="insight-highlight-grid" aria-label="Journal highlights">
