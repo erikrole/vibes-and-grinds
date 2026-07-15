@@ -223,16 +223,17 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
   return (
     <div
-      className={`fixed inset-0 z-[1001] overflow-y-auto bg-black/70 dark:bg-black/80 backdrop-blur-sm ${closing ? 'animate-backdrop-out' : 'animate-backdrop-in'}`}
+      className={`dialog-shell ${closing ? 'animate-backdrop-out' : 'animate-backdrop-in'}`}
       onClick={handleClose}
       role="dialog"
       aria-modal="true"
       aria-label={`Visit details for ${visit.coffee_shop_name}`}
     >
-      <div className="flex min-h-full items-end sm:items-center justify-center sm:p-4">
+      <div className="dialog-backdrop" aria-hidden="true" />
+      <div className="dialog-positioner">
         <div
           ref={modalRef}
-          className={`${closing ? 'animate-modal-out' : 'animate-modal-in'} relative w-full max-w-2xl rounded-t-3xl sm:rounded-[28px] shadow-2xl overflow-hidden transition-colors max-h-[92vh] sm:max-h-[85vh] overflow-y-auto`}
+          className={`${closing ? 'animate-modal-out' : 'animate-modal-in'} dialog-panel max-w-2xl overflow-y-auto`}
           style={{ backgroundColor: 'var(--paper-2)' }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -592,7 +593,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
           onClick={() => setConfirmAction(null)}
         >
           <div
-            className="rounded-[28px] shadow-2xl max-w-sm w-full p-7"
+            className="rounded-xl shadow-xl max-w-sm w-full p-7 border border-stone-200 dark:border-stone-700"
             style={{ backgroundColor: 'var(--paper-2)' }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -603,7 +604,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
             <div className="space-y-2">
               <button
                 onClick={confirmAction.onConfirm}
-                className="w-full py-3.5 rounded-full font-semibold text-[15px] transition-all active:scale-[0.99]"
+                className="w-full py-3.5 rounded-lg font-semibold text-[15px] transition-colors"
                 style={
                   confirmAction.type === 'delete'
                     ? { backgroundColor: '#dc2626', color: '#fff' }

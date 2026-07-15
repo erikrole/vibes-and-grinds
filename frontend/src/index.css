@@ -43,9 +43,7 @@
   body {
     color: var(--ink);
     background-color: var(--paper);
-    background-image:
-      radial-gradient(ellipse 90% 50% at 90% -10%, rgba(217, 111, 46, 0.10) 0, transparent 65%),
-      radial-gradient(ellipse 70% 50% at -10% 110%, rgba(184, 153, 119, 0.18) 0, transparent 65%);
+    background-image: none;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     font-feature-settings: "cv11", "ss01", "ss03";
     font-weight: 400;
@@ -55,9 +53,7 @@
   }
 
   .dark body {
-    background-image:
-      radial-gradient(ellipse 90% 50% at 90% -10%, rgba(236, 138, 79, 0.10) 0, transparent 65%),
-      radial-gradient(ellipse 70% 50% at -10% 110%, rgba(160, 122, 82, 0.10) 0, transparent 65%);
+    background-image: none;
   }
 
   h1, h2, h3 {
@@ -68,12 +64,12 @@
 
 @layer components {
   .btn-primary {
-    @apply px-5 py-2.5 rounded-full transition-all font-medium;
+    @apply px-5 py-2.5 rounded-lg transition-colors font-medium;
     background: var(--ink);
     color: var(--paper);
     letter-spacing: -0.005em;
   }
-  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 20px -8px rgba(29, 24, 21, 0.3); }
+  .btn-primary:hover { background: var(--accent); }
   .dark .btn-primary { background: var(--accent); color: #fff; }
   .dark .btn-primary:hover { box-shadow: 0 8px 20px -8px rgba(236, 138, 79, 0.45); }
 
@@ -259,18 +255,13 @@
   /* Modern soft card */
   .paper-card {
     background-color: var(--paper-2);
-    border-radius: 28px;
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.7) inset,
-      0 1px 2px rgba(29, 24, 21, 0.04),
-      0 12px 32px -16px rgba(29, 24, 21, 0.10);
+    border-radius: 12px;
+    border: 1px solid var(--rule);
+    box-shadow: none;
   }
   .dark .paper-card {
     background-color: var(--paper-2);
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.04) inset,
-      0 1px 2px rgba(0, 0, 0, 0.4),
-      0 12px 32px -16px rgba(0, 0, 0, 0.6);
+    box-shadow: none;
   }
 
   /* Subtle accent dot — for live/now markers */
@@ -296,6 +287,184 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
     font-weight: 800;
     letter-spacing: -0.02em;
+  }
+}
+
+/* Coffee journal refresh */
+.brand-mark {
+  display: inline-flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  color: var(--ink);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.journal-summary {
+  padding: 1.75rem 0 2rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.season-link {
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.75rem 0 0.65rem;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.season-link:hover { color: var(--accent); }
+
+.header-icon-button {
+  display: inline-flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--paper-2);
+}
+
+.log-toolbar {
+  padding: 0 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+.log-toolbar input,
+.log-toolbar select { border-radius: 8px !important; }
+.journal-search {
+  width: 100%;
+  padding: 0.8rem 3rem 0.8rem 2.75rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  outline: none;
+  color: var(--ink);
+  background: var(--paper-tint);
+}
+.journal-search:focus {
+  border-color: var(--accent);
+  background: var(--paper-2);
+}
+.control-field {
+  min-height: 2.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--paper-2);
+  font-size: 0.875rem;
+}
+
+.recovery-panel {
+  padding: 1.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--paper-2);
+}
+
+.visit-row {
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+}
+.visit-row:hover { border-color: var(--latte-deep); }
+.regular-note {
+  display: block;
+  margin-top: 0.45rem;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.supporting-panel {
+  padding: 1.5rem;
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+}
+.order-list { border-top: 1px solid var(--rule); }
+.order-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+.order-list strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.dialog-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  overflow: hidden;
+}
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+}
+.dialog-positioner {
+  display: flex;
+  min-height: 100%;
+  align-items: flex-end;
+  justify-content: center;
+}
+.dialog-panel {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  width: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  border: 0;
+  background: var(--paper-2);
+  box-shadow: 0 20px 50px rgba(0,0,0,.28);
+}
+.dialog-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+}
+.form-actions {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+  background: var(--paper-2);
+}
+
+@media (min-width: 640px) {
+  .dialog-positioner { align-items: center; padding: 1rem; }
+  .dialog-panel {
+    height: auto;
+    max-height: 90vh;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 639px) {
+  .brand-mark { width: 1.9rem; height: 1.9rem; font-size: 0.6rem; }
+  .journal-summary { padding-top: 0.75rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
@@ -755,4 +924,3 @@ a:focus-visible,
   background: var(--vt-red);
   color: var(--vt-ink);
 }
-

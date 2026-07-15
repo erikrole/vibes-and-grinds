@@ -27,13 +27,13 @@ export default function KeyboardShortcutsModal({ onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-[1002] flex items-center justify-center p-4 bg-black/60 dark:bg-black/70 backdrop-blur-sm animate-backdrop-in"
+      className="fixed inset-0 z-[1002] flex items-center justify-center p-4 bg-black/60 dark:bg-black/70 animate-backdrop-in"
       onClick={onClose}
     >
       <div
         ref={ref}
         tabIndex={-1}
-        className="animate-modal-in bg-white dark:bg-stone-800 rounded-2xl shadow-2xl max-w-sm w-full border border-stone-200/60 dark:border-stone-600/60 overflow-hidden outline-none"
+        className="animate-modal-in bg-white dark:bg-stone-800 rounded-xl shadow-xl max-w-sm w-full border border-stone-200/60 dark:border-stone-600/60 overflow-hidden outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 pt-6 pb-4 flex items-center justify-between">

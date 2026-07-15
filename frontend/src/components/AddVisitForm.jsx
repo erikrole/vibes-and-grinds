@@ -61,7 +61,7 @@ function getDefaultVisitData() {
   };
 }
 
-export default function AddVisitForm({ onSubmit, onCancel, initialData = null, visits = [], mode = 'add' }) {
+export default function AddVisitForm({ onSubmit, initialData = null, visits = [], mode = 'add' }) {
   const isEditing = mode === 'edit';
   const isReturnVisit = mode === 'return';
 
@@ -563,21 +563,13 @@ export default function AddVisitForm({ onSubmit, onCancel, initialData = null, v
         </FormSection>
 
         {/* ── ACTIONS ──────────────────────────────────── */}
-        <div className="sticky bottom-0 z-10 -mx-4 bg-white/95 px-4 pt-4 pb-2 backdrop-blur-md safe-bottom dark:bg-stone-800/95 sm:mx-0 sm:px-0 border-t border-stone-100 dark:border-stone-600/60">
+        <div className="form-actions safe-bottom">
           <button
             type="submit"
             disabled={uploading}
-            className="w-full py-4 bg-stone-900 dark:bg-stone-50 text-white dark:text-stone-900 rounded-2xl font-semibold text-[15px] tracking-wide hover:bg-stone-800 dark:hover:bg-white transition-all active:scale-[0.99] disabled:opacity-40"
+            className="w-full py-3.5 bg-stone-900 dark:bg-stone-50 text-white dark:text-stone-900 rounded-lg font-semibold text-[15px] hover:bg-stone-800 dark:hover:bg-white transition-colors disabled:opacity-40"
           >
             {uploading ? 'Saving…' : isEditing ? 'Save Changes' : 'Add Visit'}
-          </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={uploading}
-            className="w-full py-3 mt-1 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 font-medium text-sm transition-colors"
-          >
-            Cancel
           </button>
         </div>
       </form>
@@ -598,7 +590,7 @@ function FormSection({ title, children }) {
         {title}
       </p>
       {/* No overflow-hidden so autocomplete dropdowns can escape the card */}
-      <div className="rounded-2xl bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 divide-y divide-stone-100 dark:divide-stone-700/50 shadow-sm">
+      <div className="rounded-lg bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 divide-y divide-stone-100 dark:divide-stone-700/50">
         {children}
       </div>
     </div>

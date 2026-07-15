@@ -39,7 +39,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
   }, [showMenu]);
 
   return (
-    <div className="paper-card group cursor-pointer p-5 sm:p-6 transition-all hover:-translate-y-0.5" onClick={() => onViewDetails(visit)}>
+    <article className="visit-row group p-5 sm:px-6 sm:py-5 transition-colors">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
         {/* Left side: Photo + Shop info */}
         <div className="flex-1 flex gap-5 min-w-0">
@@ -56,16 +56,20 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
           <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between mb-3 gap-3">
             <div className="flex-1 min-w-0">
-              <h3
-                className="text-xl sm:text-2xl md:text-[1.65rem] leading-tight transition-colors mb-1.5"
+              <h3 className="mb-1.5">
+                <button
+                  type="button"
+                  onClick={() => onViewDetails(visit)}
+                  className="text-left text-xl sm:text-2xl md:text-[1.65rem] leading-tight hover:underline decoration-1 underline-offset-4"
                 style={{
                   fontFamily: 'Fraunces, Georgia, serif',
                   fontWeight: 600,
                   letterSpacing: '-0.02em',
                   color: 'var(--ink)',
                 }}
-              >
-                {visit.coffee_shop_name}
+                >
+                  {visit.coffee_shop_name}
+                </button>
               </h3>
               {(visit.city || visit.opponent) && (
                 <p className="text-sm text-stone-500 dark:text-stone-400 transition-colors flex items-center gap-1.5 flex-wrap">
@@ -75,9 +79,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                 </p>
               )}
               {visitCount > 1 && (
-                <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[0.7rem] font-medium" style={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)' }}>
-                  {visitCount}x regular
-                </span>
+                <span className="regular-note">Visited {visitCount} times</span>
               )}
             </div>
             <div className="relative ml-4 flex-shrink-0" ref={menuRef}>
@@ -185,6 +187,6 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
           <CompositeBadge composite={visit.composite_score} />
         </div>
       </div>
-    </div>
+    </article>
   );
 }

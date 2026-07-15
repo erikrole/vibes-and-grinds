@@ -12,7 +12,6 @@ const YearInReview = lazy(() => import('./components/YearInReview'));
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
-import { getRatingColor, getCompositeColor } from './utils/colors';
 import { getCurrentSeason } from './utils/yearReview';
 import { computeBadges, detectNewBadges } from './utils/badges';
 import { buildReturnVisitDraft, getShopRepeatKey, getShopVisitCounts } from './utils/repeats';
@@ -36,9 +35,12 @@ export default function App() {
   const [viewingVisit, setViewingVisit] = useState(null);
   const [error, setError] = useState(null);
   const [showModeMenu, setShowModeMenu] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showYearReview, setShowYearReview] = useState(false);
   const searchRef = useRef(null);
+  const modeMenuRef = useRef(null);
+  const modeTriggerRef = useRef(null);
   const prevBadgesRef = useRef(null);
 
   const [darkMode, toggleDarkMode] = useDarkMode();
@@ -76,6 +78,29 @@ export default function App() {
   useEffect(() => {
     loadVisits();
   }, []);
+
+  useEffect(() => {
+    if (!showModeMenu) return;
+
+    const closeMenu = (event) => {
+      if (event.key === 'Escape') {
+        setShowModeMenu(false);
+        modeTriggerRef.current?.focus();
+      }
+    };
+    const closeOnOutsideClick = (event) => {
+      if (modeMenuRef.current && !modeMenuRef.current.contains(event.target)) {
+        setShowModeMenu(false);
+      }
+    };
+
+    document.addEventListener('keydown', closeMenu);
+    document.addEventListener('pointerdown', closeOnOutsideClick);
+    return () => {
+      document.removeEventListener('keydown', closeMenu);
+      document.removeEventListener('pointerdown', closeOnOutsideClick);
+    };
+  }, [showModeMenu]);
 
   // Consolidated keyboard shortcuts
   useEffect(() => {
@@ -130,7 +155,7 @@ export default function App() {
       const data = await fetchVisits();
       setVisits(data);
     } catch (err) {
-      setError('Failed to load visits. Make sure the backend server is running.');
+      setError('Check your connection and try again.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -322,15 +347,17 @@ export default function App() {
         }`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
             <div className="flex items-center justify-between gap-3 min-w-0">
-              <div className="relative flex-1 min-w-0">
+              <div className="relative flex-1 min-w-0" ref={modeMenuRef}>
                 <button
+                  ref={modeTriggerRef}
                   onClick={() => setShowModeMenu((prev) => !prev)}
-                  onBlur={() => window.setTimeout(() => setShowModeMenu(false), 120)}
                   className="flex max-w-full items-center gap-2 sm:gap-4 text-left hover:opacity-80 transition-opacity min-w-0"
                   aria-label={`${appMode === APP_MODES.VIBES ? 'vibes & grinds' : modeLabel} — toggle app mode`}
+                  aria-expanded={showModeMenu}
+                  aria-haspopup="menu"
                 >
-                  <div className="text-2xl sm:text-4xl shrink-0">{appMode === APP_MODES.VEST ? '👔' : '☕'}</div>
-                  <h1 className={`text-xl sm:text-3xl lg:text-5xl leading-none ${
+                  <span className="brand-mark" aria-hidden="true">{appMode === APP_MODES.VEST ? 'VT' : 'VG'}</span>
+                  <h1 className={`text-xl sm:text-3xl leading-none ${
                     appMode === APP_MODES.VEST
                       ? 'coffee-shop-name font-black tracking-tight'
                       : ''
@@ -350,32 +377,36 @@ export default function App() {
                 </button>
 
                 {showModeMenu && (
-                  <div className="absolute left-0 mt-2 w-56 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 shadow-lg z-20 overflow-hidden">
+                  <div className="absolute left-0 mt-2 w-56 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 shadow-lg z-20 overflow-hidden" role="menu">
                     <button
-                      onMouseDown={() => {
+                      onClick={() => {
                         setShowModeMenu(false);
                         setAppMode(APP_MODES.VIBES);
                       }}
+                      role="menuitemradio"
+                      aria-checked={appMode === APP_MODES.VIBES}
                       className={`w-full text-left px-4 py-3.5 text-sm ${
                         appMode === APP_MODES.VIBES
                           ? 'bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-stone-100'
                           : 'text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700'
                       }`}
                     >
-                      ☕ VIBES & GRINDS
+                      Vibes & Grinds
                     </button>
                     <button
-                      onMouseDown={() => {
+                      onClick={() => {
                         setShowModeMenu(false);
                         setAppMode(APP_MODES.VEST);
                       }}
+                      role="menuitemradio"
+                      aria-checked={appMode === APP_MODES.VEST}
                       className={`w-full text-left px-4 py-3.5 text-sm ${
                         appMode === APP_MODES.VEST
                           ? 'bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-stone-100'
                           : 'text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700'
                       }`}
                     >
-                      👔 VEST TRACKER
+                      Vest Tracker
                     </button>
                   </div>
                 )}
@@ -398,9 +429,14 @@ export default function App() {
                   )}
                 </button>
                 {appMode === APP_MODES.VIBES && !showForm && !editingVisit && (
-                  <button onClick={handleOpenNewVisit} className="btn-primary hidden md:block">
-                    Add Visit
-                  </button>
+                  <>
+                    <button onClick={handleOpenNewVisit} className="btn-primary hidden sm:block">Add Visit</button>
+                    <button onClick={handleOpenNewVisit} className="header-icon-button sm:hidden" aria-label="Add Visit">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.25} d="M12 5v14M5 12h14" />
+                      </svg>
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -415,61 +451,39 @@ export default function App() {
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" aria-busy="true">
             <div className="flex items-center justify-center py-20 text-stone-400 dark:text-stone-500 animate-pulse">Loading visits…</div>
           </main>
+        ) : error ? (
+          <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
+            <section className="recovery-panel" role="alert">
+              <p className="eyebrow mb-3">Connection problem</p>
+              <h2 className="text-2xl sm:text-3xl font-semibold mb-3">Couldn’t load the coffee journal</h2>
+              <p className="text-sm mb-6" style={{ color: 'var(--ink-soft)' }}>{error}</p>
+              <button type="button" onClick={loadVisits} className="btn-primary">Try again</button>
+            </section>
+          </main>
         ) : (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {error && (
-            <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-5 py-4 rounded-2xl transition-colors">
-              {error}
-            </div>
-          )}
-
-          <section className="paper-card p-7 sm:p-10 mb-6 relative overflow-hidden">
-            <div
-              className="absolute -top-24 -right-24 w-64 h-64 rounded-full opacity-40 pointer-events-none"
-              style={{ background: 'radial-gradient(closest-side, var(--accent-soft), transparent 70%)' }}
-            />
-            <div className="grid grid-cols-1 lg:grid-cols-[auto_1px_1fr] gap-7 lg:gap-12 items-center relative">
-              <div className="flex flex-col justify-center min-w-[8rem]">
-                <p className="eyebrow mb-3">Visits</p>
-                <p className="hero-numeral text-7xl sm:text-8xl lg:text-9xl">{visits.length}</p>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-5 pb-8">
+          <section className="journal-summary mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1px_1fr] gap-6 lg:gap-10 items-end">
+              <div>
+                <p className="eyebrow mb-3">Road coffee journal</p>
+                <div className="flex items-end gap-3">
+                  <p className="hero-numeral text-6xl sm:text-7xl">{visits.length}</p>
+                  <p className="text-sm sm:text-base mb-1.5" style={{ color: 'var(--ink-soft)' }}>shops logged across the season</p>
+                </div>
               </div>
               <div className="rule-v hidden lg:block" />
               <div className="rule-h lg:hidden" />
               <div className="grid grid-cols-3 gap-4 sm:gap-6">
-                <EditorialStat label="Vibe" value={avgVibe} accent={getRatingColor(Number(avgVibe))} index={0} />
-                <EditorialStat label="Coffee" value={avgCoffee} accent={getRatingColor(Number(avgCoffee))} index={1} />
-                <EditorialStat label="Overall" value={avgComposite} suffix="/ 20" accent={getCompositeColor(Number(avgComposite))} index={2} />
+                <EditorialStat label="Vibe" value={avgVibe} index={0} />
+                <EditorialStat label="Coffee" value={avgCoffee} index={1} />
+                <EditorialStat label="Overall" value={avgComposite} suffix="/ 20" index={2} />
               </div>
             </div>
           </section>
 
-          {visits.length >= 3 && (
-            <button
-              onClick={() => setShowYearReview(true)}
-              className="w-full mb-6 group text-left transition-all relative overflow-hidden rounded-[28px] p-6 sm:p-7"
-              style={{
-                background: 'linear-gradient(135deg, var(--ink) 0%, #2a2018 60%, var(--accent) 130%)',
-                color: 'var(--paper)',
-                boxShadow: '0 1px 0 rgba(255,255,255,0.06) inset, 0 14px 36px -16px rgba(217, 111, 46, 0.35)',
-              }}
-            >
-              <div className="flex items-center justify-between gap-3 relative">
-                <div>
-                  <p className="text-xl sm:text-2xl font-semibold tracking-tight">
-                    {getCurrentSeason()} season review
-                  </p>
-                </div>
-                <span className="hidden sm:inline-flex items-center justify-center w-11 h-11 rounded-full bg-white/10 group-hover:bg-white/20 group-hover:translate-x-1 transition-all">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </span>
-              </div>
-            </button>
-          )}
-
           {/* Section nav */}
-          <div className="flex items-end gap-7 sm:gap-9 mb-6 border-b border-stone-900/10 dark:border-stone-100/10">
+          <div className="flex items-center justify-between gap-5 mb-6 border-b border-stone-900/10 dark:border-stone-100/10">
+            <div className="flex items-end gap-7 sm:gap-9">
             {[
               { id: 'visits', label: 'Visits' },
               { id: 'insights', label: 'Insights' },
@@ -483,6 +497,13 @@ export default function App() {
                 {tab.label}
               </button>
             ))}
+            </div>
+            {visits.length >= 3 && (
+              <button onClick={() => setShowYearReview(true)} className="season-link hidden sm:inline-flex">
+                {getCurrentSeason()} review
+                <span aria-hidden="true">↗</span>
+              </button>
+            )}
           </div>
 
           {viewTab === 'insights' ? (
@@ -491,37 +512,27 @@ export default function App() {
             </Suspense>
           ) : (
           <>
-          {topCoffeeOrders.length > 0 && (
-            <section className="paper-card p-6 sm:p-7 mb-6">
-              <h2 className="eyebrow mb-4">Top orders</h2>
-              <div className="flex flex-wrap gap-2.5">
-                {topCoffeeOrders.map(({ order, count }) => (
-                  <span key={order} className="pill">
-                    {order}
-                    <span className="pill-count">{count}</span>
-                  </span>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {visits.some((v) => v.coffee_shop_lat) && (
-            <section className="paper-card p-6 sm:p-7 mb-6">
-              <h2 className="eyebrow mb-4">Map</h2>
-              <div className="h-64 sm:h-80 lg:h-96 rounded-3xl overflow-hidden" style={{ isolation: 'isolate' }}>
-                <LazyMount
-                  rootMargin="300px"
-                  placeholder={<div className="h-full flex items-center justify-center text-stone-500 dark:text-stone-400 text-sm">Map loads when in view</div>}
-                >
-                  <Suspense fallback={<div className="h-full flex items-center justify-center text-stone-500 dark:text-stone-400 text-sm animate-pulse">Loading map...</div>}>
-                    <VisitsMap visits={visits} onVisitClick={setViewingVisit} />
-                  </Suspense>
-                </LazyMount>
-              </div>
-            </section>
-          )}
-
-          <section className="paper-card p-6 sm:p-7 mb-6">
+          <section className="log-toolbar mb-5">
+            <div className="relative search-glow rounded-lg transition-shadow mb-5">
+              <input
+                ref={searchRef}
+                type="search"
+                placeholder="Search shops, cities, opponents, or orders"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="journal-search"
+              />
+              <svg className="absolute left-3.5 top-3.5 h-5 w-5 text-stone-400 dark:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="absolute right-2 top-2 p-2 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200" aria-label="Clear search">
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              )}
+            </div>
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
               <div>
                 <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-stone-900 dark:text-stone-50 transition-colors leading-tight">
@@ -586,8 +597,30 @@ export default function App() {
                 )}
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 sm:items-center lg:justify-end">
-                <div className="flex items-end gap-4 sm:gap-5 border-b border-stone-900/10 dark:border-stone-100/10 pb-0">
+              <div className="flex flex-col gap-3 lg:items-end">
+                <div className="flex sm:hidden gap-2">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    aria-label="Sort visits"
+                    className="control-field flex-1"
+                  >
+                    <option value="date">Sort: Date</option>
+                    <option value="vibe">Sort: Vibe</option>
+                    <option value="coffee">Sort: Coffee</option>
+                    <option value="composite">Sort: Total</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setShowMobileFilters((value) => !value)}
+                    className="control-field"
+                    aria-expanded={showMobileFilters}
+                    aria-controls="mobile-visit-filters"
+                  >
+                    Filters{(sportFilter || repeatFilter) ? ' (active)' : ''}
+                  </button>
+                </div>
+                <div className="hidden sm:flex items-end gap-4 sm:gap-5 border-b border-stone-900/10 dark:border-stone-100/10 pb-0">
                   <span className="eyebrow pb-2.5">Sort</span>
                   {[
                     { value: 'date', label: 'Date' },
@@ -611,87 +644,22 @@ export default function App() {
                   ))}
                 </div>
 
-                <select
-                  value={sportFilter}
-                  onChange={(e) => setSportFilter(e.target.value)}
-                  aria-label="Filter visits by sport"
-                  className="w-full sm:w-auto px-3 py-2.5 text-sm rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 cursor-pointer transition-colors sm:min-w-[180px]"
-                >
-                  <option value="">All sports</option>
-                  <option value="Men's Basketball">Men's Basketball</option>
-                  <option value="Men's Hockey">Men's Hockey</option>
-                  <option value="Football">Football</option>
-                  <option value="Track & Field">Track & Field</option>
-                  <option value="Cross Country">Cross Country</option>
-                </select>
-
-                <select
-                  value={repeatFilter}
-                  onChange={(e) => setRepeatFilter(e.target.value)}
-                  aria-label="Filter visits by repeat status"
-                  className="w-full sm:w-auto px-3 py-2.5 text-sm rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 cursor-pointer transition-colors sm:min-w-[170px]"
-                >
-                  <option value="">All visits</option>
-                  <option value="first">First-time shops</option>
-                  <option value="regular">Regular spots</option>
-                </select>
+                <div id="mobile-visit-filters" className={`${showMobileFilters ? 'grid' : 'hidden'} sm:grid grid-cols-1 sm:grid-cols-2 gap-2 w-full lg:w-auto`}>
+                  <select value={sportFilter} onChange={(e) => setSportFilter(e.target.value)} aria-label="Filter visits by sport" className="control-field sm:min-w-[180px]">
+                    <option value="">All sports</option>
+                    <option value="Men's Basketball">Men's Basketball</option>
+                    <option value="Men's Hockey">Men's Hockey</option>
+                    <option value="Football">Football</option>
+                    <option value="Track & Field">Track & Field</option>
+                    <option value="Cross Country">Cross Country</option>
+                  </select>
+                  <select value={repeatFilter} onChange={(e) => setRepeatFilter(e.target.value)} aria-label="Filter visits by repeat status" className="control-field sm:min-w-[170px]">
+                    <option value="">All visits</option>
+                    <option value="first">First-time shops</option>
+                    <option value="regular">Regular spots</option>
+                  </select>
+                </div>
               </div>
-            </div>
-
-            <div className="relative mt-5 search-glow rounded-full transition-shadow">
-              <input
-                ref={searchRef}
-                type="text"
-                placeholder="Search shop, city, opponent, or order..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3.5 pl-11 pr-16 rounded-full focus:outline-none transition-all"
-                style={{
-                  backgroundColor: 'var(--paper-tint)',
-                  color: 'var(--ink)',
-                  border: '1px solid transparent',
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = 'var(--accent)';
-                  e.target.style.backgroundColor = 'var(--paper-2)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'transparent';
-                  e.target.style.backgroundColor = 'var(--paper-tint)';
-                }}
-              />
-              <svg
-                className="absolute left-3.5 top-3.5 h-5 w-5 text-stone-400 dark:text-stone-500 transition-colors"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              {searchQuery ? (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-3 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
-                  aria-label="Clear search"
-                >
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-              ) : (
-                <kbd className="absolute right-3 top-3 hidden sm:inline-flex items-center px-2 py-1 text-xs font-medium text-stone-400 dark:text-stone-500 bg-stone-100 dark:bg-stone-700 border border-stone-200 dark:border-stone-600 rounded-md">
-                  /
-                </kbd>
-              )}
             </div>
           </section>
 
@@ -706,12 +674,37 @@ export default function App() {
             hasActiveFilters={hasActiveFilters}
             shopVisitCounts={shopVisitCounts}
           />
+
+          <div className="grid lg:grid-cols-[0.8fr_1.2fr] gap-5 mt-8">
+            {topCoffeeOrders.length > 0 && (
+              <section className="supporting-panel">
+                <h2 className="eyebrow mb-4">Frequent orders</h2>
+                <ol className="order-list">
+                  {topCoffeeOrders.map(({ order, count }) => (
+                    <li key={order}><span>{order}</span><strong>{count}</strong></li>
+                  ))}
+                </ol>
+              </section>
+            )}
+            {visits.some((v) => v.coffee_shop_lat) && (
+              <section className="supporting-panel">
+                <h2 className="eyebrow mb-4">On the road</h2>
+                <div className="h-64 sm:h-72 rounded-lg overflow-hidden" style={{ isolation: 'isolate' }}>
+                  <LazyMount rootMargin="300px" placeholder={<div className="h-full flex items-center justify-center text-stone-500 dark:text-stone-400 text-sm">Map loads when in view</div>}>
+                    <Suspense fallback={<div className="h-full flex items-center justify-center text-stone-500 dark:text-stone-400 text-sm">Loading map...</div>}>
+                      <VisitsMap visits={visits} onVisitClick={setViewingVisit} />
+                    </Suspense>
+                  </LazyMount>
+                </div>
+              </section>
+            )}
+          </div>
           </>
           )}
         </main>
         )}
 
-        {!loading && (
+        {!loading && !error && (
         <footer className={`mt-16 py-10 text-center transition-colors ${
           appMode === APP_MODES.VEST
             ? 'border-t border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 text-sm'
@@ -725,19 +718,6 @@ export default function App() {
             <p>Built for charting AJ's sideline fits and results</p>
           )}
         </footer>
-        )}
-
-        {appMode === APP_MODES.VIBES && !showForm && !editingVisit && (
-          <button
-            onClick={handleOpenNewVisit}
-            className="fab-press fixed right-5 md:right-6 w-14 h-14 rounded-2xl flex items-center justify-center z-50"
-            style={{ bottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
-            aria-label="Add Visit"
-          >
-            <svg className="w-7 h-7 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
         )}
 
         {viewingVisit && (
@@ -761,7 +741,6 @@ export default function App() {
               initialData={visitDraft}
               mode={visitDraft ? 'return' : 'add'}
               onSubmit={handleAddVisit}
-              onCancel={handleCancelForm}
               visits={visits}
             />
           </FormModal>
@@ -769,7 +748,7 @@ export default function App() {
 
         {appMode === APP_MODES.VIBES && editingVisit && (
           <FormModal title="Edit Visit" onClose={handleCancelForm}>
-            <AddVisitForm initialData={editingVisit} mode="edit" onSubmit={handleUpdateVisit} onCancel={handleCancelForm} visits={visits} />
+            <AddVisitForm initialData={editingVisit} mode="edit" onSubmit={handleUpdateVisit} visits={visits} />
           </FormModal>
         )}
 
@@ -815,16 +794,10 @@ export default function App() {
   );
 }
 
-function EditorialStat({ label, value, suffix, accent, index = 0 }) {
+function EditorialStat({ label, value, suffix, index = 0 }) {
   return (
     <div className="flex flex-col min-w-0">
       <div className="flex items-center gap-1.5 mb-2">
-        {accent && (
-          <span
-            className="w-1.5 h-1.5 rounded-full shrink-0"
-            style={{ backgroundColor: accent }}
-          />
-        )}
         <p className="eyebrow truncate">{label}</p>
       </div>
       <div className="flex items-baseline gap-1.5 min-w-0">

@@ -54,7 +54,7 @@ export default function ShareCardModal({ visit, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-black/70 dark:bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-black/70 dark:bg-black/80"
       onClick={(e) => { e.stopPropagation(); onClose(); }}
       role="dialog"
       aria-modal="true"
@@ -62,7 +62,7 @@ export default function ShareCardModal({ visit, onClose }) {
     >
       <div
         ref={modalRef}
-        className="relative w-full max-w-sm rounded-[28px] shadow-2xl p-6 sm:p-7"
+        className="relative w-full max-w-sm rounded-xl shadow-xl border border-stone-200 dark:border-stone-700 p-6 sm:p-7"
         style={{ backgroundColor: 'var(--paper-2)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -86,7 +86,7 @@ export default function ShareCardModal({ visit, onClose }) {
 
         {/* Preview */}
         <div
-          className="relative w-full overflow-hidden rounded-2xl"
+          className="relative w-full overflow-hidden rounded-lg"
           style={{ aspectRatio: '1080 / 1350', backgroundColor: 'var(--paper-tint)' }}
         >
           {status === 'ready' && previewUrl && (
@@ -111,7 +111,7 @@ export default function ShareCardModal({ visit, onClose }) {
             <button
               onClick={handleShare}
               disabled={status !== 'ready' || busy}
-              className="w-full py-3.5 rounded-full font-semibold text-[15px] transition-all active:scale-[0.99] disabled:opacity-50"
+              className="w-full py-3.5 rounded-lg font-semibold text-[15px] transition-colors disabled:opacity-50"
               style={{ backgroundColor: 'var(--ink)', color: 'var(--paper)' }}
             >
               {busy ? 'Sharing…' : 'Share'}
@@ -120,7 +120,7 @@ export default function ShareCardModal({ visit, onClose }) {
           <button
             onClick={handleDownload}
             disabled={status !== 'ready'}
-            className="w-full py-3.5 rounded-full font-semibold text-[15px] transition-all active:scale-[0.99] disabled:opacity-50"
+            className="w-full py-3.5 rounded-lg font-semibold text-[15px] transition-colors disabled:opacity-50"
             style={
               shareSupported
                 ? { backgroundColor: 'var(--paper-tint)', color: 'var(--ink)' }
