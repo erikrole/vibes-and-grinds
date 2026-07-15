@@ -4,6 +4,7 @@ import AutocompleteInput from './AutocompleteInput';
 import PlacesAutocomplete from './PlacesAutocomplete';
 import { getTodayDateString } from '../utils/dates';
 import { getRepeatContext } from '../utils/repeats';
+import { titleCaseOrder } from '../utils/display';
 
 const BIG_TEN_TEAMS = {
   'minneapolis': 'Minnesota Golden Gophers',
@@ -374,7 +375,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
                 {repeatContext.visitorName}'s visit #{repeatContext.visitNumber}
               </span>
               {repeatContext.lastVisit?.coffee_order && (
-                <span className="text-stone-500 dark:text-stone-400"> · Last order: {repeatContext.lastVisit.coffee_order}</span>
+                <span className="text-stone-500 dark:text-stone-400"> · Last order: {titleCaseOrder(repeatContext.lastVisit.coffee_order)}</span>
               )}
             </div>
           )}
@@ -624,7 +625,7 @@ function RepeatContextPanel({ context, isReturnVisit }) {
           )}
           {context.lastVisit?.coffee_order && (
             <span className="rounded-full bg-white/70 dark:bg-stone-800/70 px-2.5 py-1">
-              {context.lastVisit.coffee_order}
+              {titleCaseOrder(context.lastVisit.coffee_order)}
             </span>
           )}
           {bestScore && (

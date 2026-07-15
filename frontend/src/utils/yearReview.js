@@ -3,6 +3,7 @@
 
 import { computeBadges } from './badges';
 import { detectStreak } from './insights';
+import { titleCaseOrder } from './display';
 
 const PERSONAS = [
   { id: 'explorer', name: 'The Explorer', emoji: '🧭', description: 'You chase the new — always discovering a different shop.', test: (d) => d.uniqueShops / d.totalVisits > 0.7 },
@@ -58,7 +59,7 @@ export function computeSeasonReview(visits, season) {
   const totalVisits = seasonVisits.length;
   const uniqueShops = new Set(seasonVisits.map(v => v.coffee_shop_name)).size;
   const uniqueCities = new Set(seasonVisits.map(v => v.city).filter(Boolean)).size;
-  const uniqueOrders = new Set(seasonVisits.map(v => v.coffee_order).filter(Boolean)).size;
+  const uniqueOrders = new Set(seasonVisits.map(v => titleCaseOrder(v.coffee_order)).filter(Boolean)).size;
 
   const avgVibe = +(seasonVisits.reduce((s, v) => s + v.vibe_rating, 0) / totalVisits).toFixed(1);
   const avgCoffee = +(seasonVisits.reduce((s, v) => s + v.coffee_rating, 0) / totalVisits).toFixed(1);
@@ -75,7 +76,10 @@ export function computeSeasonReview(visits, season) {
 
   // Top order
   const orderCounts = {};
-  seasonVisits.forEach(v => { if (v.coffee_order) orderCounts[v.coffee_order] = (orderCounts[v.coffee_order] || 0) + 1; });
+  seasonVisits.forEach(v => {
+    const order = titleCaseOrder(v.coffee_order);
+    if (order) orderCounts[order] = (orderCounts[order] || 0) + 1;
+  });
   const topOrderEntry = Object.entries(orderCounts).sort(([, a], [, b]) => b - a)[0];
   const topOrder = topOrderEntry ? { order: topOrderEntry[0], count: topOrderEntry[1] } : null;
 
@@ -116,6 +120,7 @@ export function computeSeasonReview(visits, season) {
 
   return {
     season,
+    dateRange: `July 1, ${season.split('-')[0]} to July 1, ${Number(season.split('-')[0]) + 1}`,
     totalVisits,
     uniqueShops,
     uniqueCities,

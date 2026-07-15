@@ -10,8 +10,9 @@ const InsightsPanel = lazy(() => import('./components/InsightsPanel'));
 const YearInReview = lazy(() => import('./components/YearInReview'));
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import ErrorBoundary from './components/ErrorBoundary';
+import { titleCaseOrder } from './utils/display';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
-import { getCurrentSeason } from './utils/yearReview';
+import { getAvailableSeasons, getCurrentSeason } from './utils/yearReview';
 import { computeBadges, detectNewBadges } from './utils/badges';
 import { buildReturnVisitDraft, getShopRepeatKey, getShopVisitCounts } from './utils/repeats';
 import useDarkMode from './hooks/useDarkMode';
@@ -324,7 +325,7 @@ export default function App() {
   const topCoffeeOrders = useMemo(() => {
     const orderCounts = {};
     visits.forEach((visit) => {
-      const order = visit.coffee_order?.trim();
+      const order = titleCaseOrder(visit.coffee_order);
       if (order) {
         orderCounts[order] = (orderCounts[order] || 0) + 1;
       }
@@ -335,6 +336,7 @@ export default function App() {
       .slice(0, 3)
       .map(([order, count]) => ({ order, count }));
   }, [visits]);
+  const reviewSeason = useMemo(() => getAvailableSeasons(visits)[0] || getCurrentSeason(), [visits]);
 
   return (
     <ErrorBoundary>
@@ -355,7 +357,7 @@ export default function App() {
                   aria-expanded={showModeMenu}
                   aria-haspopup="menu"
                 >
-                  <span className="brand-mark" aria-hidden="true">{appMode === APP_MODES.VEST ? 'VT' : 'VG'}</span>
+                  {appMode === APP_MODES.VEST && <span className="brand-mark" aria-hidden="true">VT</span>}
                   <h1 className={`text-xl sm:text-3xl leading-none ${
                     appMode === APP_MODES.VEST
                       ? 'coffee-shop-name font-black tracking-tight'
@@ -500,7 +502,7 @@ export default function App() {
             </div>
             {visits.length >= 3 && (
               <button onClick={() => setShowYearReview(true)} className="season-link hidden sm:inline-flex">
-                {getCurrentSeason()} review
+                {reviewSeason} review
                 <span aria-hidden="true">↗</span>
               </button>
             )}

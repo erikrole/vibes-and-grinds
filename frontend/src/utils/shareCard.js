@@ -4,6 +4,7 @@
 // already-loaded fonts directly — no embedding, no cross-origin font issues.
 
 import { formatDate } from './dates';
+import { formatEventContext, titleCaseOrder } from './display';
 
 const W = 1080;
 const H = 1350;
@@ -132,8 +133,8 @@ function drawContent(ctx, visit) {
   const shopLines = wrapLines(ctx, visit.coffee_shop_name || 'Coffee visit', maxTextW, 2);
   const shopLineH = 96;
 
-  const pinText = visit.city || (visit.opponent ? `vs ${visit.opponent}` : '');
-  const subText = visit.coffee_order ? String(visit.coffee_order) : '';
+  const pinText = [visit.city, formatEventContext(visit)].filter(Boolean).join(' · ');
+  const subText = titleCaseOrder(visit.coffee_order);
 
   const pinH = pinText ? 36 + 20 : 0;
   const shopH = shopLines.length * shopLineH;

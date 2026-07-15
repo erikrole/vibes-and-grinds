@@ -5,6 +5,7 @@ import { formatDate, getRelativeLabel } from '../utils/dates';
 import { DEFAULT_VISITOR_NAME, getRepeatVisits } from '../utils/repeats';
 import ShareCardModal from './ShareCardModal';
 import useFocusTrap from '../hooks/useFocusTrap';
+import { formatEventContext, titleCaseOrder } from '../utils/display';
 
 export default function VisitDetailModal({ visit, visits, onClose, onNavigate, onUpdate, onEdit, onDelete, onLogReturnVisit }) {
   const modalRef = useRef(null);
@@ -225,27 +226,8 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
               </div>
             )}
             {visit.photo_url ? (
-              <div className="relative aspect-[16/9] bg-stone-100 dark:bg-stone-700 overflow-hidden">
-                <img src={visit.photo_url} alt={visit.coffee_shop_name} className="w-full h-full object-cover" />
-                {visit.notes && (
-                  <div className="absolute inset-0 flex items-end">
-                    <div
-                      className="w-full px-6 sm:px-7 pb-6 sm:pb-7 pt-20"
-                      style={{
-                        background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 40%, transparent 100%)',
-                      }}
-                    >
-                      <div className="flex items-start gap-3">
-                        <svg className="w-4 h-4 mt-1.5 text-white/40 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
-                        </svg>
-                        <p className="text-white/95 text-base sm:text-lg font-medium leading-relaxed tracking-wide italic">
-                          {visit.notes}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
+              <div className="visit-photo-stage">
+                <img src={visit.photo_url} alt={visit.coffee_shop_name} className="visit-photo-image" />
               </div>
             ) : (
               <div
@@ -408,16 +390,10 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                   <span>{visit.city}</span>
                 </>
               )}
-              {visit.opponent && (
+              {formatEventContext(visit) && (
                 <>
                   <span className="text-stone-300 dark:text-stone-600">·</span>
-                  <span>vs {visit.opponent}</span>
-                </>
-              )}
-              {visit.sport && (
-                <>
-                  <span className="text-stone-300 dark:text-stone-600">·</span>
-                  <span className="text-stone-500 dark:text-stone-400">{visit.sport}</span>
+                  <span className="text-stone-500 dark:text-stone-400">{formatEventContext(visit)}</span>
                 </>
               )}
             </div>
@@ -445,7 +421,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                 <div className="flex-1 min-w-0">
                   <p className="eyebrow mb-0.5 text-[0.65rem]">Order</p>
                   <p className="text-lg font-semibold truncate" style={{ color: 'var(--ink)' }}>
-                    {visit.coffee_order}
+                    {titleCaseOrder(visit.coffee_order)}
                   </p>
                 </div>
               </div>
@@ -486,20 +462,13 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
               </div>
             )}
 
-            {/* Notes - when no photo to overlay on */}
-            {!visit.photo_url && visit.notes && (
-              <div
-                className="mt-5 p-5 sm:p-6 rounded-2xl"
-                style={{
-                  backgroundColor: 'var(--paper-tint)',
-                  borderLeft: '3px solid var(--accent)',
-                }}
-              >
-                <p className="eyebrow mb-2 text-[0.65rem]">Notes</p>
-                <p className="text-base leading-relaxed" style={{ color: 'var(--ink)' }}>
+            {visit.notes && (
+              <blockquote className="visit-note-card">
+                <p className="eyebrow mb-2 text-[0.65rem]">From the road</p>
+                <p className="visit-note-copy">
                   {visit.notes}
                 </p>
-              </div>
+              </blockquote>
             )}
 
             {/* Prev/Next navigation */}

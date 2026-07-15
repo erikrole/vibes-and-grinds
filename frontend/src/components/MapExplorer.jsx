@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import VisitsMap from './VisitsMap';
+import { titleCaseOrder } from '../utils/display';
 
 export default function MapExplorer({ visits, onVisitClick }) {
   const [query, setQuery] = useState('');
@@ -38,7 +39,7 @@ export default function MapExplorer({ visits, onVisitClick }) {
         <div className="map-result-list" aria-label="Mapped visits">
           {visibleVisits.map((visit) => (
             <button key={visit.id} type="button" className="map-result" aria-current={selectedVisitId === visit.id ? 'true' : undefined} onMouseEnter={() => selectVisit(visit)} onFocus={() => selectVisit(visit)} onClick={() => openVisit(visit)}>
-              <span><strong>{visit.coffee_shop_name}</strong><small>{visit.city || 'Location saved'}{visit.coffee_order ? ` · ${visit.coffee_order}` : ''}</small></span>
+              <span><strong>{visit.coffee_shop_name}</strong><small>{visit.city || 'Location saved'}{visit.coffee_order ? ` · ${titleCaseOrder(visit.coffee_order)}` : ''}</small></span>
               <b>{Number(visit.composite_score).toFixed(1)}</b>
             </button>
           ))}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import RatingBadge from './RatingBadge';
 import CompositeBadge from './CompositeBadge';
 import { formatDate, getRelativeLabel } from '../utils/dates';
+import { formatEventContext, titleCaseOrder } from '../utils/display';
 
 export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLogReturnVisit, visitCount = 1 }) {
   const [showMenu, setShowMenu] = useState(false);
@@ -71,11 +72,11 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                   {visit.coffee_shop_name}
                 </button>
               </h3>
-              {(visit.city || visit.opponent) && (
+              {(visit.city || formatEventContext(visit)) && (
                 <p className="text-sm text-stone-500 dark:text-stone-400 transition-colors flex items-center gap-1.5 flex-wrap">
                   {visit.city && <span>{visit.city}</span>}
-                  {visit.city && visit.opponent && <span className="text-stone-300 dark:text-stone-600">·</span>}
-                  {visit.opponent && <span>vs {visit.opponent}</span>}
+                  {visit.city && formatEventContext(visit) && <span className="text-stone-300 dark:text-stone-600">·</span>}
+                  {formatEventContext(visit) && <span>{formatEventContext(visit)}</span>}
                 </p>
               )}
               {visitCount > 1 && (
@@ -167,13 +168,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
             {visit.coffee_order && (
               <>
                 <span className="text-stone-300 dark:text-stone-600">·</span>
-                <span>{visit.coffee_order}</span>
-              </>
-            )}
-            {visit.sport && (
-              <>
-                <span className="text-stone-300 dark:text-stone-600">·</span>
-                <span className="text-stone-500 dark:text-stone-400">{visit.sport}</span>
+                <span>{titleCaseOrder(visit.coffee_order)}</span>
               </>
             )}
           </div>
