@@ -1,5 +1,6 @@
-import { useState, useEffect, memo } from 'react';
+import { useCallback, useState, useEffect, memo, useRef } from 'react';
 import { toIsoDate } from '../utils/vestTrackerMath';
+import useFocusTrap from '../hooks/useFocusTrap';
 
 const EMPTY_FORM = {
   date: '',
@@ -16,6 +17,9 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
   const [open, setOpen] = useState(false);
   const [formState, setFormState] = useState(EMPTY_FORM);
   const [addingOutfit, setAddingOutfit] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const panelRef = useRef(null);
+  const closeRef = useRef(null);
 
   useEffect(() => {
     if (editingGame) {
@@ -38,11 +42,15 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
     setAddingOutfit(false);
   };
 
-  const handleCancel = () => {
-    reset();
+  const handleCancel = useCallback(() => {
+    setFormState(EMPTY_FORM);
+    setAddingOutfit(false);
+    setConfirmDelete(false);
     setOpen(false);
     onCancel?.();
-  };
+  }, [onCancel]);
+
+  useFocusTrap(panelRef, { onEscape: handleCancel, enabled: open || Boolean(editingGame), initialFocusRef: closeRef });
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -59,13 +67,8 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
       overtime: Boolean(formState.overtime),
     });
 
-    if (!editingGame) {
-      setFormState((prev) => ({ ...EMPTY_FORM, result: prev.result, location: prev.location }));
-      setAddingOutfit(false);
-    } else {
-      reset();
-      setOpen(false);
-    }
+    reset();
+    setOpen(false);
   };
 
   if (!open && !editingGame) {
@@ -84,15 +87,13 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
   }
 
   return (
-    <section className="vt-card mb-6 overflow-hidden">
-      <div className="vt-section-head">
-        <span className="vt-label">{editingGame ? 'Edit Game' : 'Add Game'}</span>
-        <button
-          onClick={handleCancel}
-          className="vt-condensed text-xs tracking-[0.16em] uppercase text-[color:var(--vt-ink-mute)] hover:text-[color:var(--vt-ink)] transition-colors"
-        >
-          Cancel
-        </button>
+    <div className="dialog-shell vest-tracker" role="dialog" aria-modal="true" aria-labelledby="vest-game-form-title">
+      <button className="dialog-backdrop" onClick={handleCancel} aria-label="Close game form" />
+      <div className="dialog-positioner">
+      <section ref={panelRef} className="dialog-panel max-w-3xl overflow-y-auto vt-detail-panel">
+      <div className="vt-section-head sticky top-0 z-10 bg-[color:var(--vt-card)]">
+        <span id="vest-game-form-title" className="vt-label vt-label-red">{editingGame ? 'Edit Game' : 'Add Game'}</span>
+        <button ref={closeRef} type="button" onClick={handleCancel} className="vt-label hover:text-[color:var(--vt-ink)] transition-colors">Close</button>
       </div>
 
       <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-3">
@@ -152,6 +153,7 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
                 placeholder="e.g. Red Vest"
                 onKeyDown={(e) => {
                   if (e.key === 'Escape') {
+                    e.stopPropagation();
                     setAddingOutfit(false);
                     setFormState((p) => ({ ...p, outfit: '' }));
                   }
@@ -213,13 +215,7 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
           {editingGame && onDelete && (
             <button
               type="button"
-              onClick={() => {
-                if (window.confirm(`Delete this game vs ${editingGame.opponent}?`)) {
-                  onDelete(editingGame.id);
-                  reset();
-                  setOpen(false);
-                }
-              }}
+              onClick={() => setConfirmDelete(true)}
               className="vt-btn-ghost text-xs"
               style={{ color: 'var(--vt-red)', borderColor: 'var(--vt-rule-strong)' }}
             >
@@ -227,8 +223,20 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
             </button>
           )}
         </div>
+        {confirmDelete && (
+          <div role="alertdialog" aria-labelledby="vest-delete-title" className="mt-4 border border-[color:var(--vt-red)] bg-[color:var(--vt-red-soft)] p-4 rounded">
+            <p id="vest-delete-title" className="vt-condensed text-lg uppercase">Delete game against {editingGame.opponent}?</p>
+            <p className="vt-mono text-xs text-[color:var(--vt-ink-mute)] mt-1">This permanently removes the game from Vest Tracker.</p>
+            <div className="flex gap-2 mt-4">
+              <button type="button" className="vt-btn-primary" onClick={() => { onDelete(editingGame.id); handleCancel(); }}>Delete Game</button>
+              <button type="button" className="vt-btn-ghost" onClick={() => setConfirmDelete(false)}>Keep Game</button>
+            </div>
+          </div>
+        )}
       </form>
-    </section>
+      </section>
+      </div>
+    </div>
   );
 }
 

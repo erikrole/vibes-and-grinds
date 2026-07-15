@@ -21,7 +21,7 @@ const TIER_LABEL = {
 // red left rail; sortable by Wilson/rate/WoE/games. Outfits with zero wins
 // collapse into a "Buried" group at the bottom so the leaderboard surfaces
 // only meaningful signal by default.
-function VestLeaderboard({ stats, badges, selectedOutfit, onSelectOutfit, netStatus }) {
+function VestLeaderboard({ stats, badges, selectedOutfit, onViewOutfit, netStatus }) {
   const [sortBy, setSortBy] = useState('wilson');
   const [showBuried, setShowBuried] = useState(false);
 
@@ -69,7 +69,7 @@ function VestLeaderboard({ stats, badges, selectedOutfit, onSelectOutfit, netSta
             stat={stat}
             rank={idx + 1}
             isSelected={selectedOutfit === stat.outfit}
-            onSelect={onSelectOutfit}
+            onView={onViewOutfit}
             badges={badges[stat.outfit] || []}
             netStatus={netStatus}
             sortBy={sortBy}
@@ -98,7 +98,7 @@ function VestLeaderboard({ stats, badges, selectedOutfit, onSelectOutfit, netSta
                   stat={stat}
                   rank={active.length + idx + 1}
                   isSelected={selectedOutfit === stat.outfit}
-                  onSelect={onSelectOutfit}
+                  onView={onViewOutfit}
                   badges={badges[stat.outfit] || []}
                   netStatus={netStatus}
                   sortBy={sortBy}
@@ -113,7 +113,7 @@ function VestLeaderboard({ stats, badges, selectedOutfit, onSelectOutfit, netSta
   );
 }
 
-function LeaderboardRow({ stat, rank, isSelected, onSelect, badges, netStatus, sortBy, dim }) {
+function LeaderboardRow({ stat, rank, isSelected, onView, badges, netStatus, sortBy, dim }) {
   const winPct = stat.winRatePct;
   const woeSign = stat.winsAboveExpected >= 0 ? '+' : '';
   const primaryLabel =
@@ -130,7 +130,8 @@ function LeaderboardRow({ stat, rank, isSelected, onSelect, badges, netStatus, s
   return (
     <li>
       <button
-        onClick={() => onSelect(isSelected ? null : stat.outfit)}
+        onClick={() => onView(stat)}
+        aria-label={`View details for ${stat.outfit}`}
         className={`w-full text-left px-4 sm:px-5 py-3 border-b border-[color:var(--vt-rule)] last:border-b-0 hover:bg-white/[0.025] transition-colors block ${
           dim ? 'opacity-60' : ''
         }`}

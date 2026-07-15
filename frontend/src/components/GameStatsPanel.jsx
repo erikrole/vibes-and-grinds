@@ -307,11 +307,7 @@ export default function GameStatsPanel({ games: vestGames }) {
   }
 
   if (!funStats) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-sm text-stone-500 dark:text-stone-400">No score data available yet.</p>
-      </div>
-    );
+    return <LocalSeasonStats games={vestGames} scoreStatus={scoreStatus} />;
   }
 
   return (
@@ -592,4 +588,56 @@ export default function GameStatsPanel({ games: vestGames }) {
       </section>
     </div>
   );
+}
+
+function LocalSeasonStats({ games, scoreStatus }) {
+  const completed = games.filter((game) => game.result === 'W' || game.result === 'L');
+  const wins = completed.filter((game) => game.result === 'W').length;
+  const splits = [
+    ['Home', 'vs'],
+    ['Road', '@'],
+    ['Neutral', 'N'],
+  ].map(([label, location]) => {
+    const subset = completed.filter((game) => game.location === location);
+    const subsetWins = subset.filter((game) => game.result === 'W').length;
+    return { label, wins: subsetWins, losses: subset.length - subsetWins };
+  });
+  const recent = completed.slice(-10).reverse();
+  const outfitCounts = Object.entries(completed.reduce((counts, game) => {
+    if (game.outfit) counts[game.outfit] = (counts[game.outfit] || 0) + 1;
+    return counts;
+  }, {})).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  return (
+    <div className="space-y-6">
+      <section className="vt-card vt-rail-top p-5 sm:p-6">
+        <p className="vt-label vt-label-red">Season Stats</p>
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <LocalMetric label="Record" value={`${wins}–${completed.length - wins}`} />
+          <LocalMetric label="Win rate" value={completed.length ? `${Math.round((wins / completed.length) * 100)}%` : '—'} />
+          <LocalMetric label="Games logged" value={completed.length} />
+          <LocalMetric label="Outfits worn" value={new Set(completed.map((game) => game.outfit).filter(Boolean)).size} />
+        </div>
+        <p className="vt-mono text-xs text-[color:var(--vt-ink-mute)] mt-4">Box-score enrichment is {scoreStatus === 'error' ? 'temporarily unavailable' : 'not available for this season'}, so these stats use the trusted Vest game log.</p>
+      </section>
+      <div className="grid lg:grid-cols-2 gap-6">
+        <section className="vt-card overflow-hidden">
+          <div className="vt-section-head"><span className="vt-label">Location splits</span></div>
+          {splits.map((split) => <div key={split.label} className="flex justify-between px-5 py-3 border-b last:border-b-0 border-[color:var(--vt-rule)]"><span className="vt-condensed uppercase text-[color:var(--vt-ink-dim)]">{split.label}</span><strong className="vt-display text-xl vt-tabular">{split.wins}–{split.losses}</strong></div>)}
+        </section>
+        <section className="vt-card overflow-hidden">
+          <div className="vt-section-head"><span className="vt-label">Most worn</span></div>
+          {outfitCounts.map(([outfit, count]) => <div key={outfit} className="flex justify-between px-5 py-3 border-b last:border-b-0 border-[color:var(--vt-rule)]"><span className="vt-condensed uppercase text-[color:var(--vt-ink-dim)]">{outfit}</span><strong className="vt-display text-xl vt-tabular">{count}</strong></div>)}
+        </section>
+      </div>
+      <section className="vt-card overflow-hidden">
+        <div className="vt-section-head"><span className="vt-label">Last 10</span><span className="vt-mono text-[10px] text-[color:var(--vt-ink-faint)]">Newest first</span></div>
+        <div className="flex flex-wrap gap-2 p-5">{recent.map((game) => <span key={game.id} className={`w-9 h-9 grid place-items-center rounded border vt-display ${game.result === 'W' ? 'text-[color:var(--vt-red)] border-[color:var(--vt-red)]' : 'text-[color:var(--vt-ink-mute)] border-[color:var(--vt-rule-strong)]'}`} title={`${game.result} ${game.opponent}`}>{game.result}</span>)}</div>
+      </section>
+    </div>
+  );
+}
+
+function LocalMetric({ label, value }) {
+  return <div className="vt-card-inset p-3"><span className="vt-label text-[10px] block">{label}</span><strong className="vt-display text-3xl vt-tabular block mt-1">{value}</strong></div>;
 }

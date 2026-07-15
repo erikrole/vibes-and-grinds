@@ -925,6 +925,13 @@ a:focus-visible,
   color: var(--vt-ink);
 }
 
+.vt-detail-panel {
+  background: var(--vt-card);
+  color: var(--vt-ink);
+  border: 1px solid var(--vt-rule-strong);
+  border-radius: 6px;
+}
+
 /* Journal intelligence, map explorer, and detail comparisons */
 .section-intro h2 { font-family: 'Fraunces', Georgia, serif; font-size: clamp(2rem, 4vw, 3.25rem); font-weight: 600; line-height: 1.05; margin-top: .45rem; }
 .section-intro > p:last-child { color: var(--ink-soft); max-width: 44rem; margin-top: .8rem; }

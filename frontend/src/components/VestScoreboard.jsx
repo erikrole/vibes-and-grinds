@@ -49,32 +49,34 @@ function VestScoreboard({
         )}
       </div>
 
-      <div className="px-5 sm:px-8 py-6 sm:py-8">
-        <div className="flex items-end justify-between gap-6 flex-wrap">
-          <div className="min-w-0">
-            <div className="vt-label mb-2">
+      <div className="px-5 sm:px-6 py-4 sm:py-5">
+        <div className="flex items-center justify-between gap-5 flex-wrap">
+          <div className="min-w-0 flex items-end gap-5 sm:gap-8">
+            <div>
+            <div className="vt-label mb-1">
               {filterLabel ? `${filterLabel}` : 'Overall'}
             </div>
             <div className="flex items-baseline" style={{ letterSpacing: '-0.04em' }}>
-              <span className="vt-hero-num text-[88px] sm:text-[120px] lg:text-[140px] vt-tabular">
+              <span className="vt-hero-num text-[56px] sm:text-[72px] vt-tabular">
                 {wins}
               </span>
               <span
-                className="vt-hero-num text-[56px] sm:text-[72px] lg:text-[88px] text-[color:var(--vt-ink-faint)] vt-tabular"
+                className="vt-hero-num text-[38px] sm:text-[48px] text-[color:var(--vt-ink-faint)] vt-tabular"
                 style={{ margin: '0 0.06em', alignSelf: 'center' }}
               >
                 –
               </span>
-              <span className="vt-hero-num text-[88px] sm:text-[120px] lg:text-[140px] vt-tabular text-[color:var(--vt-ink-dim)]">
+              <span className="vt-hero-num text-[56px] sm:text-[72px] vt-tabular text-[color:var(--vt-ink-dim)]">
                 {losses}
               </span>
             </div>
+            </div>
             {winPct != null && (
-              <div className="mt-3 flex items-baseline gap-3">
-                <span className="vt-display text-3xl text-[color:var(--vt-red)] vt-tabular">
+              <div className="pb-1">
+                <span className="vt-display text-2xl text-[color:var(--vt-red)] vt-tabular block">
                   {winPct}<span className="text-xl">%</span>
                 </span>
-                <span className="vt-label">Win Pct</span>
+                <span className="vt-label block mt-1">Win Pct</span>
               </div>
             )}
           </div>
@@ -85,7 +87,7 @@ function VestScoreboard({
         </div>
 
         {secondary?.length > 0 && (
-          <div className="mt-6 sm:mt-8 grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3">
+          <div className="mt-4 grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
             {secondary.map((pill) => (
               <StatBlock key={pill.label} label={pill.label} value={pill.value} />
             ))}

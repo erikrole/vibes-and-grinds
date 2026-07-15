@@ -25,6 +25,7 @@ import VestExtras from './VestExtras';
 import VestGameForm from './VestGameForm';
 import VestLockInPick from './VestLockInPick';
 import VestPostGame from './VestPostGame';
+import VestDetailModal from './VestDetailModal';
 
 const GameStatsPanel = lazy(() => import('./GameStatsPanel'));
 
@@ -59,6 +60,8 @@ export default function VestTrackerDashboard({ showToast }) {
   const [netStatus, setNetStatus] = useState('idle');
   const [selectedOutfit, setSelectedOutfit] = useState(null);
   const [editingGame, setEditingGame] = useState(null);
+  const [viewingGame, setViewingGame] = useState(null);
+  const [viewingOutfit, setViewingOutfit] = useState(null);
   const [vestTab, setVestTab] = useState('dashboard');
   const [syncReady, setSyncReady] = useState(false);
 
@@ -521,6 +524,28 @@ export default function VestTrackerDashboard({ showToast }) {
     <main className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       <TabBar value={vestTab} onChange={setVestTab} />
 
+      <VestGameForm
+        editingGame={editingGame}
+        existingOutfits={existingOutfits}
+        onSave={handleSave}
+        onDelete={handleDelete}
+        onCancel={() => setEditingGame(null)}
+      />
+
+      {(scoutingReport || recommendation) && (
+        <VestNextGame
+          scoutingReport={scoutingReport}
+          recommendation={recommendation}
+          advisor={advisor}
+          jinxAlert={jinxAlert}
+          aiBlurb={aiBlurb}
+          aiBlurbLoading={aiBlurbLoading}
+          onGenerateBlurb={generateBlurb}
+          netStatus={netStatus}
+          whyText={buildWhySentence(recommendation, scoutingReport)}
+        />
+      )}
+
       <VestScoreboard
         wins={summary.wins}
         losses={summary.losses}
@@ -544,20 +569,6 @@ export default function VestTrackerDashboard({ showToast }) {
 
       <NetDegradedBanner netStatus={netStatus} />
 
-      {(scoutingReport || recommendation) && (
-        <VestNextGame
-          scoutingReport={scoutingReport}
-          recommendation={recommendation}
-          advisor={advisor}
-          jinxAlert={jinxAlert}
-          aiBlurb={aiBlurb}
-          aiBlurbLoading={aiBlurbLoading}
-          onGenerateBlurb={generateBlurb}
-          netStatus={netStatus}
-          whyText={buildWhySentence(recommendation, scoutingReport)}
-        />
-      )}
-
       {upcomingGame && (
         showPostGame ? (
           <VestPostGame
@@ -578,7 +589,7 @@ export default function VestTrackerDashboard({ showToast }) {
 
       <VestTimeline
         games={visibleTimelineGames}
-        onEditGame={setEditingGame}
+        onEditGame={setViewingGame}
         onLogResult={handleLogResult}
       />
 
@@ -586,7 +597,7 @@ export default function VestTrackerDashboard({ showToast }) {
         stats={outfitStats}
         badges={outfitBadges}
         selectedOutfit={selectedOutfit}
-        onSelectOutfit={setSelectedOutfit}
+        onViewOutfit={setViewingOutfit}
         netStatus={netStatus}
       />
 
@@ -601,13 +612,17 @@ export default function VestTrackerDashboard({ showToast }) {
         coffeeCrossover={coffeeCrossover}
       />
 
-      <VestGameForm
-        editingGame={editingGame}
-        existingOutfits={existingOutfits}
-        onSave={handleSave}
-        onDelete={handleDelete}
-        onCancel={() => setEditingGame(null)}
-      />
+      {(viewingGame || viewingOutfit) && (
+        <VestDetailModal
+          game={viewingGame}
+          outfit={viewingOutfit}
+          games={games}
+          onClose={() => { setViewingGame(null); setViewingOutfit(null); }}
+          onEditGame={setEditingGame}
+          onFilterOutfit={setSelectedOutfit}
+        />
+      )}
+
     </main>
   );
 }
