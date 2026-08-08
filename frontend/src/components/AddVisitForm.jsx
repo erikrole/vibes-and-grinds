@@ -40,8 +40,8 @@ const BIG_TEN_TEAMS = {
 };
 
 // Transparent, borderless input style for use inside section cells
-const FI = 'w-full bg-transparent border-none outline-none focus:ring-0 text-base sm:text-[15px] text-stone-900 dark:text-stone-50 placeholder:text-stone-300 dark:placeholder:text-stone-600';
-const FS = 'w-full bg-transparent border-none outline-none focus:ring-0 text-base sm:text-[15px] text-stone-900 dark:text-stone-50 appearance-none cursor-pointer';
+const FI = 'form-control';
+const FS = 'form-control appearance-none cursor-pointer';
 
 function getDefaultVisitData() {
   return {
@@ -274,19 +274,47 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
   return (
     <div>
       {/* Header */}
-      <div className="mb-5 sm:mb-7 pr-12">
-        <h2 className="coffee-shop-name text-2xl sm:text-4xl">
+      <div className="visit-form-header">
+        <p className="type-label">Road coffee journal</p>
+        <h2 className="type-title">
           {isEditing ? 'Edit Visit' : isReturnVisit ? 'Return Visit' : 'New Visit'}
         </h2>
+        <p className="type-meta">Capture the stop first. Add the trip context only when it matters.</p>
       </div>
 
-      <form ref={formRef} onSubmit={handleSubmit} className="space-y-5" noValidate>
+      <form ref={formRef} onSubmit={handleSubmit} className="visit-form" noValidate>
         {repeatContext?.personalCount > 0 && (
           <RepeatContextPanel context={repeatContext} isReturnVisit={isReturnVisit} />
         )}
 
         {/* ── WHEN & WHERE ─────────────────────────────── */}
-        <FormSection title="When & Where">
+        <FormSection title="Where did you stop?" description="Search first and the location details will fill themselves in.">
+          <Field label="Coffee Shop" htmlFor={fieldIds.coffee_shop_name} required error={errors.coffee_shop_name}>
+            <PlacesAutocomplete
+              id={fieldIds.coffee_shop_name}
+              value={formData.coffee_shop_name}
+              onChange={(e) => {
+                const nextValue = e.target.value;
+                setFormData((prev) => ({
+                  ...prev,
+                  coffee_shop_name: nextValue,
+                  ...(!isEditing && {
+                    coffee_shop_address: '',
+                    coffee_shop_place_id: '',
+                    coffee_shop_lat: '',
+                    coffee_shop_lng: '',
+                  }),
+                }));
+                if (errors.coffee_shop_name) setErrors((prev) => ({ ...prev, coffee_shop_name: '' }));
+              }}
+              onBlur={handleBlur}
+              onPlaceSelected={handlePlaceSelected}
+              inputClassName={FI}
+              ariaInvalid={Boolean(errors.coffee_shop_name)}
+              ariaDescribedBy={errors.coffee_shop_name ? `${fieldIds.coffee_shop_name}-error` : undefined}
+              enterKeyHint="next"
+            />
+          </Field>
           <FieldRow>
             <Field label="Date" htmlFor={fieldIds.date} required error={errors.date}>
               <input
@@ -343,32 +371,6 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
             </div>
           </Field>
 
-          <Field label="Coffee Shop" htmlFor={fieldIds.coffee_shop_name} required error={errors.coffee_shop_name}>
-            <PlacesAutocomplete
-              id={fieldIds.coffee_shop_name}
-              value={formData.coffee_shop_name}
-              onChange={(e) => {
-                const nextValue = e.target.value;
-                setFormData((prev) => ({
-                  ...prev,
-                  coffee_shop_name: nextValue,
-                  ...(!isEditing && {
-                    coffee_shop_address: '',
-                    coffee_shop_place_id: '',
-                    coffee_shop_lat: '',
-                    coffee_shop_lng: '',
-                  }),
-                }));
-                if (errors.coffee_shop_name) setErrors((prev) => ({ ...prev, coffee_shop_name: '' }));
-              }}
-              onBlur={handleBlur}
-              onPlaceSelected={handlePlaceSelected}
-              inputClassName={FI}
-              ariaInvalid={Boolean(errors.coffee_shop_name)}
-              ariaDescribedBy={errors.coffee_shop_name ? `${fieldIds.coffee_shop_name}-error` : undefined}
-              enterKeyHint="next"
-            />
-          </Field>
           {repeatContext?.personalCount > 0 && (
             <div className="px-4 py-3 bg-amber-50/70 dark:bg-amber-900/10 text-sm text-stone-600 dark:text-stone-300">
               <span className="font-semibold text-stone-900 dark:text-stone-100">
@@ -423,7 +425,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
         </FormSection>
 
         {/* ── ORDER & RATINGS ───────────────────────────── */}
-        <FormSection title="Order & Ratings">
+        <FormSection title="What did AJ order?" description="Name the drink, then score the cup and the room.">
           <Field label="Coffee Order" htmlFor={fieldIds.coffee_order}>
             <AutocompleteInput
               id={fieldIds.coffee_order}
@@ -439,7 +441,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
 
           <FieldRow>
             <Field label="Vibe" htmlFor={fieldIds.vibe_rating} required error={errors.vibe_rating}>
-              <div className="flex items-baseline gap-1.5 mt-1">
+              <div className="form-rating-control">
                 <input
                   id={fieldIds.vibe_rating}
                   type="number"
@@ -453,16 +455,16 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
                   inputMode="decimal"
                   autoComplete="off"
                   placeholder="—"
-                  className="w-16 bg-transparent border-none outline-none focus:ring-0 text-3xl font-black rating-number text-stone-900 dark:text-stone-50 placeholder:text-stone-200 dark:placeholder:text-stone-700"
+                  className="form-rating-input"
                   aria-invalid={Boolean(errors.vibe_rating)}
                   aria-describedby={errors.vibe_rating ? `${fieldIds.vibe_rating}-error` : undefined}
                   enterKeyHint="next"
                 />
-                <span className="text-sm text-stone-300 dark:text-stone-600 mb-0.5">/ 10</span>
+                <span>/ 10</span>
               </div>
             </Field>
             <Field label="Coffee" htmlFor={fieldIds.coffee_rating} required error={errors.coffee_rating}>
-              <div className="flex items-baseline gap-1.5 mt-1">
+              <div className="form-rating-control">
                 <input
                   id={fieldIds.coffee_rating}
                   type="number"
@@ -476,19 +478,19 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
                   inputMode="decimal"
                   autoComplete="off"
                   placeholder="—"
-                  className="w-16 bg-transparent border-none outline-none focus:ring-0 text-3xl font-black rating-number text-stone-900 dark:text-stone-50 placeholder:text-stone-200 dark:placeholder:text-stone-700"
+                  className="form-rating-input"
                   aria-invalid={Boolean(errors.coffee_rating)}
                   aria-describedby={errors.coffee_rating ? `${fieldIds.coffee_rating}-error` : undefined}
                   enterKeyHint="done"
                 />
-                <span className="text-sm text-stone-300 dark:text-stone-600 mb-0.5">/ 10</span>
+                <span>/ 10</span>
               </div>
             </Field>
           </FieldRow>
         </FormSection>
 
         {/* ── MEMORIES ─────────────────────────────────── */}
-        <FormSection title="Memories">
+        <FormSection title="Save the memory" description="A photo and one honest line are enough.">
           {/* Photo */}
           {photoPreview ? (
             <>
@@ -568,7 +570,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
           <button
             type="submit"
             disabled={uploading}
-            className="w-full py-3.5 bg-stone-900 dark:bg-stone-50 text-white dark:text-stone-900 rounded-lg font-semibold text-[15px] hover:bg-stone-800 dark:hover:bg-white transition-colors disabled:opacity-40"
+            className="form-submit"
           >
             {uploading ? 'Saving…' : isEditing ? 'Save Changes' : 'Add Visit'}
           </button>
@@ -584,17 +586,18 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
-function FormSection({ title, children }) {
+function FormSection({ title, description, children }) {
   return (
-    <div>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-400 dark:text-stone-500 mb-2 pl-1">
-        {title}
-      </p>
+    <section className="form-section">
+      <div className="form-section-heading">
+        <h3>{title}</h3>
+        {description && <p>{description}</p>}
+      </div>
       {/* No overflow-hidden so autocomplete dropdowns can escape the card */}
-      <div className="rounded-lg bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 divide-y divide-stone-100 dark:divide-stone-700/50">
+      <div className="form-surface">
         {children}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -641,14 +644,14 @@ function RepeatContextPanel({ context, isReturnVisit }) {
 
 function FieldRow({ children }) {
   return (
-    <div className="grid grid-cols-1 divide-y divide-stone-100 dark:divide-stone-700/50 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+    <div className="form-field-row">
       {children}
     </div>
   );
 }
 
 function Field({ label, htmlFor, required = false, error, children }) {
-  const labelClassName = 'text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400 dark:text-stone-500 mb-1.5 select-none';
+  const labelClassName = 'form-label';
   const labelContent = (
     <>
       {label}{required && <span className="text-red-400 ml-0.5">*</span>}
@@ -656,7 +659,7 @@ function Field({ label, htmlFor, required = false, error, children }) {
   );
 
   return (
-    <div className="px-4 py-3.5 focus-within:bg-stone-50/80 dark:focus-within:bg-stone-700/20 transition-colors">
+    <div className="form-field">
       {htmlFor ? (
         <label htmlFor={htmlFor} className={`block ${labelClassName}`}>
           {labelContent}

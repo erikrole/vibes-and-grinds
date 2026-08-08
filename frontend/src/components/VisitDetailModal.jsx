@@ -198,6 +198,17 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
   ), null);
 
   const hasCoordinates = Number.isFinite(Number(visit.coffee_shop_lat)) && Number.isFinite(Number(visit.coffee_shop_lng));
+  const webMapUrl = visit.coffee_shop_place_id
+    ? `https://www.google.com/maps/place/?q=place_id:${visit.coffee_shop_place_id}`
+    : `https://www.google.com/maps?q=${encodeURIComponent(visit.coffee_shop_name)}&ll=${visit.coffee_shop_lat},${visit.coffee_shop_lng}`;
+  const appleMapParams = new URLSearchParams({
+    coordinate: `${visit.coffee_shop_lat},${visit.coffee_shop_lng}`,
+    name: visit.coffee_shop_name,
+    ...(visit.coffee_shop_address ? { address: visit.coffee_shop_address } : {}),
+  });
+  const nativeMapUrl = `https://maps.apple.com/place?${appleMapParams.toString()}`;
+  const isMac = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform || navigator.userAgent);
+  const mapUrl = isMac ? nativeMapUrl : webMapUrl;
 
   return (
     <div
@@ -211,7 +222,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
       <div className="dialog-positioner">
         <div
           ref={modalRef}
-          className={`${closing ? 'animate-modal-out' : 'animate-modal-in'} dialog-panel max-w-2xl overflow-y-auto`}
+          className={`${closing ? 'animate-modal-out' : 'animate-modal-in'} dialog-panel visit-detail-panel max-w-2xl`}
           style={{ backgroundColor: 'var(--paper-2)' }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -372,7 +383,12 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                 color: 'var(--ink)',
               }}
             >
-              {visit.coffee_shop_name}
+              {hasCoordinates ? (
+                <a className="detail-shop-map-link" href={mapUrl} target={isMac ? undefined : '_blank'} rel={isMac ? undefined : 'noopener noreferrer'} aria-label={`Open ${visit.coffee_shop_name} in Maps`}>
+                  <span>{visit.coffee_shop_name}</span>
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5h5v5m0-5L10 14M19 13v5a1 1 0 01-1 1H6a1 1 0 01-1-1V6a1 1 0 011-1h5" /></svg>
+                </a>
+              ) : visit.coffee_shop_name}
             </h2>
 
             {/* Inline metadata */}
@@ -399,10 +415,9 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
             </div>
 
             {/* Ratings */}
-            <div className="mt-6 flex items-end justify-center gap-6 sm:gap-8">
+            <div className="detail-score-grid">
               <ScoreCell label="Vibe" score={visit.vibe_rating} />
               <ScoreCell label="Coffee" score={visit.coffee_rating} />
-              <div className="w-px self-stretch my-2" style={{ backgroundColor: 'var(--rule)', opacity: 0.4 }} />
               <ScoreCell label="Total" score={visit.composite_score} isTotal />
             </div>
 
@@ -438,33 +453,9 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
               />
             )}
 
-            {hasCoordinates && (
-              <div className="detail-location-row">
-                <div>
-                  <p className="eyebrow">Location</p>
-                  <strong>{visit.city || 'Saved location'}</strong>
-                </div>
-                <a
-                  href={
-                    visit.coffee_shop_place_id
-                      ? `https://www.google.com/maps/place/?q=place_id:${visit.coffee_shop_place_id}`
-                      : `https://www.google.com/maps?q=${encodeURIComponent(visit.coffee_shop_name)}&ll=${visit.coffee_shop_lat},${visit.coffee_shop_lng}`
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="detail-map-link"
-                >
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                  </svg>
-                  Open in Maps <span aria-hidden="true">↗</span>
-                </a>
-              </div>
-            )}
-
             {visit.notes && (
               <blockquote className="visit-note-card">
-                <p className="eyebrow mb-2 text-[0.65rem]">From the road</p>
+                <p className="eyebrow mb-2 text-[0.65rem]">Straight from AJ</p>
                 <p className="visit-note-copy">
                   {visit.notes}
                 </p>
@@ -568,14 +559,13 @@ function ScoreCell({ label, score, isTotal = false }) {
   const maxVal = isTotal ? 20 : 10;
 
   return (
-    <div className="flex flex-col items-center min-w-0">
-      <p className="eyebrow mb-2 text-[0.65rem]">{label}</p>
+    <div className="detail-score-cell" style={{ '--score-accent': accent }}>
+      <p className="eyebrow text-[0.65rem]">{label}</p>
       <span
-        className={`tabular-nums ${isTotal ? 'text-5xl sm:text-6xl' : 'text-4xl sm:text-5xl'}`}
+        className="detail-score-value tabular-nums"
         style={{
           fontFamily: 'Fraunces, Georgia, serif',
-          fontWeight: isTotal ? 700 : 600,
-          color: 'var(--ink)',
+          fontWeight: 650,
           letterSpacing: '-0.03em',
           lineHeight: 1,
         }}
@@ -587,10 +577,7 @@ function ScoreCell({ label, score, isTotal = false }) {
       >
         {score.toFixed(1)}
       </span>
-      <div
-        className="mt-2 h-[3px] rounded-full"
-        style={{ backgroundColor: accent, width: isTotal ? '2.5rem' : '2rem' }}
-      />
+      <span className="detail-score-scale">/ {maxVal}</span>
     </div>
   );
 }
