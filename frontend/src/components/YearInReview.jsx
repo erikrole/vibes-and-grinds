@@ -24,7 +24,7 @@ export default function YearInReview({ visits, onClose }) {
     return (
       <div className="year-report-shell" role="dialog" aria-modal="true" aria-label="Season report">
         <div className="year-report-empty">
-          <p>{selectedSeason ? `No visits in the ${selectedSeason} season` : 'No season data available'}</p>
+          <p>{selectedSeason ? `No road visits in the ${selectedSeason} season` : 'No season data available'}</p>
           <button ref={closeRef} type="button" onClick={onClose}>Close</button>
         </div>
       </div>

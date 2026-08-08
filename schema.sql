@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS coffee_visits (
   city TEXT,
   opponent TEXT,
   sport TEXT,
+  -- 'road' = road-trip stop, 'home' = around-Madison stop (no opponent/sport)
+  visit_type TEXT DEFAULT 'road',
   coffee_shop_address TEXT,
   coffee_shop_place_id TEXT,
   coffee_shop_lat REAL,
@@ -24,6 +26,10 @@ CREATE INDEX IF NOT EXISTS idx_date ON coffee_visits(date DESC);
 CREATE INDEX IF NOT EXISTS idx_composite ON coffee_visits(composite_score DESC);
 CREATE INDEX IF NOT EXISTS idx_sport ON coffee_visits(sport);
 CREATE INDEX IF NOT EXISTS idx_shop_name ON coffee_visits(coffee_shop_name);
+
+-- For databases created before visit_type existed, run once:
+--   wrangler d1 execute vibes-and-grinds-db --remote \
+--     --command "ALTER TABLE coffee_visits ADD COLUMN visit_type TEXT DEFAULT 'road'"
 
 
 CREATE TABLE IF NOT EXISTS vest_games (

@@ -5,6 +5,11 @@ function normalizeOptionalText(value) {
   return (value || '').trim() || null;
 }
 
+// Only 'home' (around Madison) and 'road' are valid; anything else falls back to 'road'.
+function normalizeVisitType(value) {
+  return value === 'home' ? 'home' : 'road';
+}
+
 export async function onRequestGet({ env }) {
   try {
     const { results } = await env.DB.prepare(
@@ -32,6 +37,7 @@ export async function onRequestPost({ request, env }) {
       city,
       opponent,
       sport,
+      visit_type,
       coffee_shop_address,
       coffee_shop_place_id,
       coffee_shop_lat,
@@ -61,15 +67,16 @@ export async function onRequestPost({ request, env }) {
     // Insert the visit (convert undefined to null for optional fields)
     const result = await env.DB.prepare(
       `INSERT INTO coffee_visits (
-        date, coffee_shop_name, city, opponent, sport, coffee_shop_address, coffee_shop_place_id,
+        date, coffee_shop_name, city, opponent, sport, visit_type, coffee_shop_address, coffee_shop_place_id,
         coffee_shop_lat, coffee_shop_lng, coffee_order, vibe_rating, coffee_rating, notes, photo_url
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       date,
       coffee_shop_name.trim(),
       normalizeOptionalText(city),
       normalizeOptionalText(opponent),
       sport || null,
+      normalizeVisitType(visit_type),
       coffee_shop_address || null,
       coffee_shop_place_id || null,
       coffee_shop_lat || null,

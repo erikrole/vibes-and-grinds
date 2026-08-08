@@ -12,9 +12,10 @@ import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import { titleCaseOrder } from './utils/display';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
-import { getAvailableSeasons, getCurrentSeason } from './utils/yearReview';
+import { getAvailableSeasons, getCurrentSeason, getSeasonVisits } from './utils/yearReview';
 import { computeBadges, detectNewBadges } from './utils/badges';
 import { buildReturnVisitDraft, getShopRepeatKey, getShopVisitCounts } from './utils/repeats';
+import { HOME_CITY, VISIT_TYPES, getVisitType } from './utils/visitTypes';
 import useDarkMode from './hooks/useDarkMode';
 import useLocalStorage from './hooks/useLocalStorage';
 import useToast from './hooks/useToast';
@@ -50,6 +51,7 @@ export default function App() {
     searchQuery: '',
     sportFilter: '',
     repeatFilter: '',
+    scopeFilter: '',
     appMode: isVestDomain ? APP_MODES.VEST : APP_MODES.VIBES,
   });
 
@@ -59,6 +61,7 @@ export default function App() {
   const searchQuery = viewPrefs.searchQuery || '';
   const sportFilter = viewPrefs.sportFilter || '';
   const repeatFilter = viewPrefs.repeatFilter || '';
+  const scopeFilter = viewPrefs.scopeFilter || '';
   const appMode = isVestDomain
     ? APP_MODES.VEST
     : (viewPrefs.appMode || APP_MODES.VIBES);
@@ -72,6 +75,7 @@ export default function App() {
   const setSearchQuery = (v) => setViewPrefs((p) => ({ ...p, searchQuery: v }));
   const setSportFilter = (v) => setViewPrefs((p) => ({ ...p, sportFilter: v }));
   const setRepeatFilter = (v) => setViewPrefs((p) => ({ ...p, repeatFilter: v }));
+  const setScopeFilter = (v) => setViewPrefs((p) => ({ ...p, scopeFilter: v }));
   const setViewTab = (v) => setViewPrefs((p) => ({ ...p, viewTab: v }));
   const setAppMode = (v) => setViewPrefs((p) => ({ ...p, appMode: typeof v === 'function' ? v(p.appMode) : v }));
 
@@ -227,7 +231,12 @@ export default function App() {
   };
 
   const handleOpenNewVisit = () => {
-    setVisitDraft(null);
+    // While browsing the Madison list, start new visits on that side of the toggle.
+    setVisitDraft(
+      scopeFilter === VISIT_TYPES.HOME
+        ? { visit_type: VISIT_TYPES.HOME, city: HOME_CITY }
+        : null
+    );
     setEditingVisit(null);
     setShowForm(true);
   };
@@ -260,7 +269,15 @@ export default function App() {
   };
   const shopVisitCounts = useMemo(() => getShopVisitCounts(visits), [visits]);
 
+  // A draft with a shop already filled in came from "Log Return Visit"; a bare
+  // draft only carries scope defaults for a brand-new stop.
+  const isReturnDraft = Boolean(visitDraft?.coffee_shop_name);
+
   const filteredVisits = visits.filter((visit) => {
+    if (scopeFilter && getVisitType(visit) !== scopeFilter) {
+      return false;
+    }
+
     if (sportFilter && visit.sport !== sportFilter) {
       return false;
     }
@@ -299,7 +316,7 @@ export default function App() {
     }
   });
 
-  const hasActiveFilters = Boolean(searchQuery || sportFilter || repeatFilter);
+  const hasActiveFilters = Boolean(searchQuery || sportFilter || repeatFilter || scopeFilter);
   const modeLabel = appMode === APP_MODES.VEST ? 'VEST TRACKER' : 'VIBES & GRINDS';
 
   const avgVibe = useMemo(
@@ -337,6 +354,8 @@ export default function App() {
       .map(([order, count]) => ({ order, count }));
   }, [visits]);
   const reviewSeason = useMemo(() => getAvailableSeasons(visits)[0] || getCurrentSeason(), [visits]);
+  // The season report covers road trips only, so gate the link on those.
+  const seasonVisitCount = useMemo(() => getSeasonVisits(visits).length, [visits]);
 
   return (
     <ErrorBoundary>
@@ -466,10 +485,10 @@ export default function App() {
           <section className="journal-summary mb-8">
             <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1px_1fr] gap-6 lg:gap-10 items-end">
               <div>
-                <p className="eyebrow mb-3">Road coffee journal</p>
+                <p className="eyebrow mb-3">Coffee journal</p>
                 <div className="flex items-end gap-3">
                   <p className="hero-numeral text-6xl sm:text-7xl">{visits.length}</p>
-                  <p className="text-sm sm:text-base mb-1.5" style={{ color: 'var(--ink-soft)' }}>shops logged across the season</p>
+                  <p className="text-sm sm:text-base mb-1.5" style={{ color: 'var(--ink-soft)' }}>stops logged on the road and around Madison</p>
                 </div>
               </div>
               <div className="rule-v hidden lg:block" />
@@ -500,7 +519,7 @@ export default function App() {
               </button>
             ))}
             </div>
-            {visits.length >= 3 && (
+            {seasonVisitCount >= 3 && (
               <button onClick={() => setShowYearReview(true)} className="season-link hidden sm:inline-flex">
                 {reviewSeason} review
                 <span aria-hidden="true">↗</span>
@@ -551,6 +570,20 @@ export default function App() {
                 </p>
                 {hasActiveFilters && (
                   <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                    {scopeFilter && (
+                      <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200 border border-stone-200 dark:border-stone-600">
+                        {scopeFilter === VISIT_TYPES.HOME ? 'Around Madison' : 'Road trips'}
+                        <button
+                          onClick={() => setScopeFilter('')}
+                          className="ml-0.5 p-0.5 rounded-full hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors"
+                          aria-label="Clear scope filter"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </span>
+                    )}
                     {sportFilter && (
                       <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200 border border-stone-200 dark:border-stone-600">
                         {sportFilter}
@@ -594,7 +627,7 @@ export default function App() {
                       </span>
                     )}
                     <button
-                      onClick={() => { setSearchQuery(''); setSportFilter(''); setRepeatFilter(''); }}
+                      onClick={() => { setSearchQuery(''); setSportFilter(''); setRepeatFilter(''); setScopeFilter(''); }}
                       className="text-xs text-stone-400 dark:text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 underline underline-offset-2 transition-colors"
                     >
                       Clear all
@@ -623,7 +656,7 @@ export default function App() {
                     aria-expanded={showMobileFilters}
                     aria-controls="mobile-visit-filters"
                   >
-                    Filters{(sportFilter || repeatFilter) ? ' (active)' : ''}
+                    Filters{(sportFilter || repeatFilter || scopeFilter) ? ' (active)' : ''}
                   </button>
                 </div>
                 <div className="hidden sm:flex items-end gap-4 sm:gap-5 border-b border-stone-900/10 dark:border-stone-100/10 pb-0">
@@ -650,7 +683,12 @@ export default function App() {
                   ))}
                 </div>
 
-                <div id="mobile-visit-filters" className={`${showMobileFilters ? 'grid' : 'hidden'} sm:grid grid-cols-1 sm:grid-cols-2 gap-2 w-full lg:w-auto`}>
+                <div id="mobile-visit-filters" className={`${showMobileFilters ? 'grid' : 'hidden'} sm:grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto`}>
+                  <select value={scopeFilter} onChange={(e) => setScopeFilter(e.target.value)} aria-label="Filter visits by trip type" className="control-field sm:min-w-[170px]">
+                    <option value="">Road & Madison</option>
+                    <option value={VISIT_TYPES.ROAD}>Road trips</option>
+                    <option value={VISIT_TYPES.HOME}>Around Madison</option>
+                  </select>
                   <select value={sportFilter} onChange={(e) => setSportFilter(e.target.value)} aria-label="Filter visits by sport" className="control-field sm:min-w-[180px]">
                     <option value="">All sports</option>
                     <option value="Men's Basketball">Men's Basketball</option>
@@ -730,10 +768,10 @@ export default function App() {
         )}
 
         {appMode === APP_MODES.VIBES && showForm && (
-          <FormModal title={visitDraft ? 'Log Return Visit' : 'Add Visit'} onClose={handleCancelForm}>
+          <FormModal title={isReturnDraft ? 'Log Return Visit' : 'Add Visit'} onClose={handleCancelForm}>
             <AddVisitForm
               initialData={visitDraft}
-              mode={visitDraft ? 'return' : 'add'}
+              mode={isReturnDraft ? 'return' : 'add'}
               onSubmit={handleAddVisit}
               visits={visits}
             />

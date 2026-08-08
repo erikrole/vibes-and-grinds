@@ -1,4 +1,5 @@
 import { getTodayDateString } from './dates';
+import { getVisitType } from './visitTypes';
 
 export const DEFAULT_VISITOR_NAME = 'AJ';
 
@@ -67,6 +68,7 @@ export function buildReturnVisitDraft(visit = {}) {
     city: visit.city || '',
     opponent: visit.opponent || '',
     sport: visit.sport || '',
+    visit_type: getVisitType(visit),
     coffee_shop_address: visit.coffee_shop_address || '',
     coffee_shop_place_id: visit.coffee_shop_place_id || '',
     coffee_shop_lat: visit.coffee_shop_lat ?? '',

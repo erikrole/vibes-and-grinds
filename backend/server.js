@@ -114,6 +114,11 @@ function normalizeOptionalText(value) {
   return (value || '').trim() || null;
 }
 
+// Only 'home' (around Madison) and 'road' are valid; anything else falls back to 'road'.
+function normalizeVisitType(value) {
+  return value === 'home' ? 'home' : 'road';
+}
+
 /**
  * Fetch a URL with an AbortController timeout.
  * Returns the fetch Response. Caller is responsible for checking response.ok.
@@ -163,6 +168,7 @@ app.post('/api/visits', async (req, res) => {
       city,
       opponent,
       sport,
+      visit_type,
       coffee_shop_address,
       coffee_shop_place_id,
       coffee_shop_lat,
@@ -183,15 +189,16 @@ app.post('/api/visits', async (req, res) => {
 
     const result = await db.run(
       `INSERT INTO coffee_visits (
-        date, coffee_shop_name, city, opponent, sport, coffee_shop_address, coffee_shop_place_id,
+        date, coffee_shop_name, city, opponent, sport, visit_type, coffee_shop_address, coffee_shop_place_id,
         coffee_shop_lat, coffee_shop_lng, coffee_order, vibe_rating, coffee_rating, notes, photo_url
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         date,
         trimmedName,
         normalizeOptionalText(city),
         normalizeOptionalText(opponent),
         sport || null,
+        normalizeVisitType(visit_type),
         coffee_shop_address || null,
         coffee_shop_place_id || null,
         coffee_shop_lat,
@@ -225,6 +232,7 @@ app.put('/api/visits/:id', async (req, res) => {
       city,
       opponent,
       sport,
+      visit_type,
       coffee_shop_address,
       coffee_shop_place_id,
       coffee_shop_lat,
@@ -245,7 +253,7 @@ app.put('/api/visits/:id', async (req, res) => {
 
     const updateResult = await db.run(
       `UPDATE coffee_visits SET
-        date = ?, coffee_shop_name = ?, city = ?, opponent = ?, sport = ?, coffee_shop_address = ?,
+        date = ?, coffee_shop_name = ?, city = ?, opponent = ?, sport = ?, visit_type = ?, coffee_shop_address = ?,
         coffee_shop_place_id = ?, coffee_shop_lat = ?, coffee_shop_lng = ?,
         coffee_order = ?, vibe_rating = ?, coffee_rating = ?, notes = ?, photo_url = ?
       WHERE id = ?`,
@@ -255,6 +263,7 @@ app.put('/api/visits/:id', async (req, res) => {
         normalizeOptionalText(city),
         normalizeOptionalText(opponent),
         sport || null,
+        normalizeVisitType(visit_type),
         coffee_shop_address || null,
         coffee_shop_place_id || null,
         coffee_shop_lat,

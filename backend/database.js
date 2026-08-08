@@ -21,6 +21,7 @@ async function initDatabase() {
       city TEXT,
       opponent TEXT,
       sport TEXT,
+      visit_type TEXT DEFAULT 'road',
       coffee_shop_address TEXT,
       coffee_shop_place_id TEXT,
       coffee_shop_lat REAL,
@@ -112,6 +113,7 @@ async function initDatabase() {
     { name: 'opponent', ddl: 'ALTER TABLE coffee_visits ADD COLUMN opponent TEXT' },
     { name: 'sport', ddl: 'ALTER TABLE coffee_visits ADD COLUMN sport TEXT' },
     { name: 'photo_url', ddl: 'ALTER TABLE coffee_visits ADD COLUMN photo_url TEXT' },
+    { name: 'visit_type', ddl: "ALTER TABLE coffee_visits ADD COLUMN visit_type TEXT DEFAULT 'road'" },
   ];
 
   for (const column of missingColumns) {

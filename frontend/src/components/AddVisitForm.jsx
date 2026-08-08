@@ -5,6 +5,7 @@ import PlacesAutocomplete from './PlacesAutocomplete';
 import { getTodayDateString } from '../utils/dates';
 import { getRepeatContext } from '../utils/repeats';
 import { titleCaseOrder } from '../utils/display';
+import { HOME_CITY, VISIT_TYPES, getVisitType, isMadisonArea } from '../utils/visitTypes';
 
 const BIG_TEN_TEAMS = {
   'minneapolis': 'Minnesota Golden Gophers',
@@ -50,6 +51,7 @@ function getDefaultVisitData() {
     city: '',
     opponent: '',
     sport: '',
+    visit_type: VISIT_TYPES.ROAD,
     coffee_shop_address: '',
     coffee_shop_place_id: '',
     coffee_shop_lat: '',
@@ -105,6 +107,43 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
     [formData, initialData?.id, isEditing, visits]
   );
 
+  const visitType = getVisitType(formData);
+  const isHomeStop = visitType === VISIT_TYPES.HOME;
+
+  // Madison-area locations tag themselves as home stops. Once the toggle is used
+  // by hand that choice sticks, so detection can't undo a deliberate override.
+  const [scopeLocked, setScopeLocked] = useState(false);
+
+  const detectedScopeUpdates = (location, { allowRevert = false } = {}) => {
+    if (scopeLocked) return {};
+
+    if (isMadisonArea(location)) {
+      if (isHomeStop) return {};
+      return { visit_type: VISIT_TYPES.HOME, sport: '', opponent: '' };
+    }
+
+    // A half-typed city isn't evidence of anything; only a resolved place is.
+    if (!allowRevert || !isHomeStop) return {};
+    return { visit_type: VISIT_TYPES.ROAD };
+  };
+
+  const handleVisitTypeChange = (nextType) => {
+    setScopeLocked(true);
+    if (nextType === visitType) return;
+    setShowCustomSport(false);
+    setFormData((prev) => ({
+      ...prev,
+      visit_type: nextType,
+      // Madison stops carry no game context, so clear it rather than let the
+      // now-hidden fields save values the user can no longer see.
+      ...(nextType === VISIT_TYPES.HOME && {
+        sport: '',
+        opponent: '',
+        city: prev.city?.trim() ? prev.city : HOME_CITY,
+      }),
+    }));
+  };
+
   const handleInputChange = (e) => {
     const { name } = e.target;
     let { value } = e.target;
@@ -124,10 +163,15 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
 
     const updates = { [name]: value };
 
-    if (name === 'city' && value) {
+    // Home stops never get an opponent, and Madison would otherwise match the map.
+    if (name === 'city' && value && !isHomeStop) {
       const cityLower = value.toLowerCase().trim();
       const matchedTeam = BIG_TEN_TEAMS[cityLower];
       if (matchedTeam && !formData.opponent) updates.opponent = matchedTeam;
+    }
+
+    if (name === 'city') {
+      Object.assign(updates, detectedScopeUpdates({ city: value }));
     }
 
     setFormData({ ...formData, ...updates });
@@ -152,9 +196,23 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
     };
     if (cityFromAddress && !formData.city) {
       updates.city = cityFromAddress;
-      const matchedTeam = BIG_TEN_TEAMS[cityFromAddress.toLowerCase()];
-      if (matchedTeam && !formData.opponent) updates.opponent = matchedTeam;
+      if (!isHomeStop) {
+        const matchedTeam = BIG_TEN_TEAMS[cityFromAddress.toLowerCase()];
+        if (matchedTeam && !formData.opponent) updates.opponent = matchedTeam;
+      }
     }
+
+    // Applied last so a Madison result clears any opponent guessed just above.
+    Object.assign(updates, detectedScopeUpdates(
+      {
+        city: updates.city ?? formData.city,
+        address: place.address,
+        lat: place.lat,
+        lng: place.lng,
+      },
+      { allowRevert: true }
+    ));
+
     setFormData((prev) => ({ ...prev, ...updates }));
   };
 
@@ -259,6 +317,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
       }
       await onSubmit({
         ...formData,
+        visit_type: visitType,
         vibe_rating: parseFloat(formData.vibe_rating),
         coffee_rating: parseFloat(formData.coffee_rating),
         photo_url: photoUrl,
@@ -275,14 +334,35 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
     <div>
       {/* Header */}
       <div className="visit-form-header">
-        <p className="type-label">Road coffee journal</p>
+        <p className="type-label">{isHomeStop ? 'Madison coffee journal' : 'Road coffee journal'}</p>
         <h2 className="type-title">
           {isEditing ? 'Edit Visit' : isReturnVisit ? 'Return Visit' : 'New Visit'}
         </h2>
-        <p className="type-meta">Capture the stop first. Add the trip context only when it matters.</p>
+        <p className="type-meta">
+          {isHomeStop
+            ? 'A regular stop around town. No game, no opponent — just the cup.'
+            : 'Capture the stop first. Add the trip context only when it matters.'}
+        </p>
       </div>
 
       <form ref={formRef} onSubmit={handleSubmit} className="visit-form" noValidate>
+        <div className="form-scope" role="group" aria-label="Visit type">
+          {[
+            { value: VISIT_TYPES.ROAD, label: 'Road trip' },
+            { value: VISIT_TYPES.HOME, label: 'Around Madison' },
+          ].map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => handleVisitTypeChange(option.value)}
+              aria-pressed={visitType === option.value}
+              className="form-scope-option"
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
         {repeatContext?.personalCount > 0 && (
           <RepeatContextPanel context={repeatContext} isReturnVisit={isReturnVisit} />
         )}
@@ -331,6 +411,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
             </Field>
           </FieldRow>
 
+          {!isHomeStop && (
           <Field label="Sport" htmlFor={showCustomSport ? fieldIds.customSport : fieldIds.sport}>
             <div className="relative">
               {showCustomSport ? (
@@ -370,6 +451,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
               )}
             </div>
           </Field>
+          )}
 
           {repeatContext?.personalCount > 0 && (
             <div className="px-4 py-3 bg-amber-50/70 dark:bg-amber-900/10 text-sm text-stone-600 dark:text-stone-300">
@@ -382,6 +464,21 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
             </div>
           )}
 
+          {isHomeStop ? (
+            <Field label="City" htmlFor={fieldIds.city}>
+              <AutocompleteInput
+                id={fieldIds.city}
+                name="city"
+                value={formData.city}
+                onChange={handleInputChange}
+                suggestions={suggestions.cities}
+                className={FI}
+                placeholder={HOME_CITY}
+                enterKeyHint="next"
+                autoCapitalize="words"
+              />
+            </Field>
+          ) : (
           <FieldRow>
             <Field label="City" htmlFor={fieldIds.city}>
               <AutocompleteInput
@@ -408,6 +505,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
               />
             </Field>
           </FieldRow>
+          )}
 
           <Field label="Address" htmlFor={fieldIds.coffee_shop_address}>
             <input

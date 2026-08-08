@@ -6,6 +6,11 @@ function normalizeOptionalText(value) {
   return (value || '').trim() || null;
 }
 
+// Only 'home' (around Madison) and 'road' are valid; anything else falls back to 'road'.
+function normalizeVisitType(value) {
+  return value === 'home' ? 'home' : 'road';
+}
+
 export async function onRequestGet({ params, env }) {
   try {
     const { results } = await env.DB.prepare(
@@ -40,6 +45,7 @@ export async function onRequestPut({ params, request, env }) {
       city,
       opponent,
       sport,
+      visit_type,
       coffee_shop_address,
       coffee_shop_place_id,
       coffee_shop_lat,
@@ -62,7 +68,7 @@ export async function onRequestPut({ params, request, env }) {
     // Update the visit (convert undefined to null for optional fields)
     await env.DB.prepare(
       `UPDATE coffee_visits SET
-        date = ?, coffee_shop_name = ?, city = ?, opponent = ?, sport = ?, coffee_shop_address = ?,
+        date = ?, coffee_shop_name = ?, city = ?, opponent = ?, sport = ?, visit_type = ?, coffee_shop_address = ?,
         coffee_shop_place_id = ?, coffee_shop_lat = ?, coffee_shop_lng = ?,
         coffee_order = ?, vibe_rating = ?, coffee_rating = ?, notes = ?, photo_url = ?
       WHERE id = ?`
@@ -72,6 +78,7 @@ export async function onRequestPut({ params, request, env }) {
       normalizeOptionalText(city),
       normalizeOptionalText(opponent),
       sport || null,
+      normalizeVisitType(visit_type),
       coffee_shop_address || null,
       coffee_shop_place_id || null,
       coffee_shop_lat || null,

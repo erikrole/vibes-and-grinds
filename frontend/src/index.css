@@ -105,6 +105,10 @@
 
 .visit-form-header { display: grid; gap: .45rem; margin-bottom: 1.75rem; padding-right: 3rem; }
 .visit-form { display: grid; gap: 1.75rem; }
+.form-scope { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .25rem; padding: .25rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--surface); }
+.form-scope-option { min-height: 2.5rem; border-radius: calc(var(--radius-md) - .25rem); color: var(--text-secondary); font-size: .85rem; font-weight: 600; transition: background 150ms ease, color 150ms ease; }
+.form-scope-option:hover { color: var(--text-primary); }
+.form-scope-option[aria-pressed="true"] { background: var(--text-primary); color: var(--canvas); }
 .form-section { display: grid; gap: .75rem; }
 .form-section-heading { display: grid; gap: .2rem; padding: 0 .15rem; }
 .form-section-heading h3 { color: var(--text-primary); font-family: Inter, system-ui, sans-serif; font-size: .95rem; font-weight: 700; letter-spacing: -.01em; }

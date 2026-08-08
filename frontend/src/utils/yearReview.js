@@ -1,9 +1,16 @@
 // Computes all data needed for the Season-in-Review / Wrapped experience.
 // Seasons roll over July 1: the "2025-26" season = Jul 1 2025 – Jun 30 2026.
+// A season is a road season, so everyday Madison stops are left out of it —
+// they still count everywhere else in the journal.
 
 import { computeBadges } from './badges';
 import { detectStreak } from './insights';
 import { titleCaseOrder } from './display';
+import { isHomeVisit } from './visitTypes';
+
+export function getSeasonVisits(visits = []) {
+  return visits.filter((visit) => !isHomeVisit(visit));
+}
 
 const PERSONAS = [
   { id: 'explorer', name: 'The Explorer', emoji: '🧭', description: 'You chase the new — always discovering a different shop.', test: (d) => d.uniqueShops / d.totalVisits > 0.7 },
@@ -43,7 +50,7 @@ export function getCurrentSeason() {
  * Get available seasons from visits, sorted most recent first.
  */
 export function getAvailableSeasons(visits) {
-  const seasons = new Set(visits.map(v => getSeasonForDate(v.date)));
+  const seasons = new Set(getSeasonVisits(visits).map(v => getSeasonForDate(v.date)));
   return [...seasons].sort((a, b) => b.localeCompare(a));
 }
 
@@ -51,7 +58,7 @@ export function getAvailableSeasons(visits) {
  * Compute season-in-review data for a specific season (e.g. "2025-26").
  */
 export function computeSeasonReview(visits, season) {
-  const seasonVisits = visits.filter(v => getSeasonForDate(v.date) === season);
+  const seasonVisits = getSeasonVisits(visits).filter(v => getSeasonForDate(v.date) === season);
   if (!seasonVisits.length) return null;
 
   const sorted = [...seasonVisits].sort((a, b) => new Date(a.date) - new Date(b.date));

@@ -92,6 +92,8 @@ Vest games now sync via `/api/vest/games` backed by DB storage (instead of devic
 
 If using Cloudflare D1, re-run migrations/schema apply so `vest_games` exists.
 
+Visits also carry a `visit_type` column (`road` or `home`) so Madison stops can be tracked separately from road trips. Existing D1 databases need a one-time column add — see [Madison Coffee Shops](#madison-coffee-shops).
+
 Then start the development server:
 
 ```bash
@@ -113,13 +115,33 @@ The frontend will open at `http://localhost:3000`
 ### Adding a Visit
 
 1. Click the "Add Visit" button
-2. Select a date (defaults to today)
-3. Start typing a coffee shop name - autocomplete will suggest places
-4. Enter what you ordered (optional)
-5. Rate the vibe (0-10, decimals allowed)
-6. Rate the coffee (0-10, decimals allowed)
-7. Add any notes (optional)
-8. Click "Add Visit"
+2. Confirm the visit type — **Road trip** or **Around Madison** (Madison-area shops select themselves)
+3. Select a date (defaults to today)
+4. Start typing a coffee shop name - autocomplete will suggest places
+5. Enter what you ordered (optional)
+6. Rate the vibe (0-10, decimals allowed)
+7. Rate the coffee (0-10, decimals allowed)
+8. Add any notes (optional)
+9. Click "Add Visit"
+
+### Madison Coffee Shops
+
+Everyday stops around Madison live in the same journal as road trips, tagged `visit_type = 'home'`:
+
+- **Madison-area locations tag themselves.** Pick a shop from Places autocomplete (or type a city) anywhere within ~25 miles of Madison — Middleton, Fitchburg, Verona, Sun Prairie and friends — and the visit becomes a home stop on its own. Coordinates decide when Places supplies them; city/address text is the fallback, and it requires Wisconsin so Madison Avenue in Manhattan doesn't qualify.
+- The **Around Madison** toggle is the override. Using it by hand locks your choice for that form, so auto-detection can't undo it (useful for a coffee before a Badgers home game). Home stops hide Sport and Opponent and default City to `Madison, WI`.
+- The **Road & Madison** filter above the visit list scopes the list to one or the other. While the list is scoped to Madison, "Add Visit" opens pre-set to a Madison stop.
+- Repeat visits work as they do everywhere else: the "Visited N times" note, the **Regular spots** filter, and "Log Return Visit" (which keeps the Madison tag).
+- **Madison stops sit outside the seasons.** The Season-in-Review report, its season list, and the `{season} review` link all cover road trips only — a season is a road season. Everywhere else (visit list, hero totals, search, map, insights, badges) counts every visit, Madison included.
+
+Existing databases need the column added once. Locally this happens automatically on server start; for D1:
+
+```bash
+wrangler d1 execute vibes-and-grinds-db --remote \
+  --command "ALTER TABLE coffee_visits ADD COLUMN visit_type TEXT DEFAULT 'road'"
+```
+
+SQLite backfills existing rows with `'road'`, so past visits stay road trips.
 
 ### Understanding the Ratings
 
