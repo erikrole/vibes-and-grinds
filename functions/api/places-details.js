@@ -90,7 +90,6 @@ export async function onRequestGet({ request, env }) {
     console.error('Error fetching place details:', error);
     return new Response(JSON.stringify({
       error: 'Place details failed: Unable to reach Google Places.',
-      details: error.message,
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

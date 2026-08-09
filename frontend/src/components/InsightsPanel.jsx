@@ -87,9 +87,9 @@ export default function InsightsPanel({ visits }) {
           {sportDays ? (
             <>
               <strong>{signed(sportDays.gameDay.avgComposite - sportDays.nonGameDay.avgComposite)} overall</strong>
-              <p>{sportDays.gameDay.count} game-day visits compared with {sportDays.nonGameDay.count} other visits.</p>
+              <p>{sportDays.gameDay.count} game-day visits compared with {sportDays.nonGameDay.count} other road visits.</p>
             </>
-          ) : <p>Log both game-day and non-game-day stops to compare them.</p>}
+          ) : <p>Log both game-day and non-game-day road stops to compare them.</p>}
         </ContextCard>
         <ContextCard title="Rating direction">
           {trend ? (

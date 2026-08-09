@@ -1,14 +1,7 @@
 // GET /api/visits - Get all visits
 // POST /api/visits - Create a new visit
 
-function normalizeOptionalText(value) {
-  return (value || '').trim() || null;
-}
-
-// Only 'home' (around Madison) and 'road' are valid; anything else falls back to 'road'.
-function normalizeVisitType(value) {
-  return value === 'home' ? 'home' : 'road';
-}
+import { jsonResponse, normalizeOptionalText, normalizeVisitType, validateVisit } from './_shared.js';
 
 export async function onRequestGet({ env }) {
   try {
@@ -16,15 +9,10 @@ export async function onRequestGet({ env }) {
       'SELECT * FROM coffee_visits ORDER BY date DESC, created_at DESC'
     ).all();
 
-    return new Response(JSON.stringify(results), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse(results);
   } catch (error) {
     console.error('Error fetching visits:', error);
-    return new Response(JSON.stringify({ error: 'Failed to fetch visits' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: 'Failed to fetch visits' }, 500);
   }
 }
 
@@ -49,19 +37,9 @@ export async function onRequestPost({ request, env }) {
       photo_url,
     } = body;
 
-    // Validation
-    if (!date || !coffee_shop_name || vibe_rating === undefined || coffee_rating === undefined) {
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    if (vibe_rating < 0 || vibe_rating > 10 || coffee_rating < 0 || coffee_rating > 10) {
-      return new Response(JSON.stringify({ error: 'Ratings must be between 0 and 10' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    const validationError = validateVisit({ date, coffee_shop_name, vibe_rating, coffee_rating });
+    if (validationError) {
+      return jsonResponse({ error: validationError }, 400);
     }
 
     // Insert the visit (convert undefined to null for optional fields)
@@ -82,8 +60,8 @@ export async function onRequestPost({ request, env }) {
       coffee_shop_lat || null,
       coffee_shop_lng || null,
       normalizeOptionalText(coffee_order),
-      vibe_rating,
-      coffee_rating,
+      Number(vibe_rating),
+      Number(coffee_rating),
       normalizeOptionalText(notes),
       photo_url || null
     ).run();
@@ -93,19 +71,9 @@ export async function onRequestPost({ request, env }) {
       'SELECT * FROM coffee_visits WHERE id = ?'
     ).bind(result.meta.last_row_id).all();
 
-    return new Response(JSON.stringify(results[0]), {
-      status: 201,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse(results[0], 201);
   } catch (error) {
     console.error('Error creating visit:', error);
-    return new Response(JSON.stringify({
-      error: 'Failed to create visit',
-      details: error.message,
-      stack: error.stack
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: 'Failed to create visit' }, 500);
   }
 }

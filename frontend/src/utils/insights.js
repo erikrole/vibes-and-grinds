@@ -1,6 +1,8 @@
 // Pure computation functions for the Insights panel.
 // All functions take a sorted-by-date visits array and return derived data.
 import { getShopRepeatKey } from './repeats';
+import { parseLocalDate } from './dates';
+import { isHomeVisit } from './visitTypes';
 
 /**
  * Detect streaks where a rating field stays above a threshold.
@@ -99,10 +101,15 @@ export function leaderboard(visits, keyFn, minVisits = 2) {
 
 /**
  * Sport-day analysis: compare avg ratings on game days vs non-game days.
+ *
+ * Everyday Madison stops are excluded entirely — they're never game days, so
+ * counting them as "non-game days" would drown the road-trip comparison this
+ * is actually asking about.
  */
 export function sportDayAnalysis(visits) {
-  const gameDays = visits.filter(v => v.sport);
-  const nonGameDays = visits.filter(v => !v.sport);
+  const roadVisits = visits.filter(v => !isHomeVisit(v));
+  const gameDays = roadVisits.filter(v => v.sport);
+  const nonGameDays = roadVisits.filter(v => !v.sport);
 
   if (!gameDays.length || !nonGameDays.length) return null;
 
@@ -157,7 +164,7 @@ export function monthlyFrequency(visits) {
   const months = {};
 
   for (const v of visits) {
-    const d = new Date(v.date);
+    const d = parseLocalDate(v.date);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     months[key] = (months[key] || 0) + 1;
   }
@@ -233,7 +240,7 @@ export function dayOfWeekPatterns(visits) {
   const buckets = days.map(d => ({ day: d, totalVibe: 0, totalCoffee: 0, count: 0 }));
 
   for (const v of visits) {
-    const dow = new Date(v.date).getDay();
+    const dow = parseLocalDate(v.date).getDay();
     buckets[dow].count++;
     buckets[dow].totalVibe += v.vibe_rating;
     buckets[dow].totalCoffee += v.coffee_rating;
@@ -391,6 +398,5 @@ export function repeatShopInsights(visits) {
 }
 
 function formatShortDate(dateStr) {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return parseLocalDate(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }

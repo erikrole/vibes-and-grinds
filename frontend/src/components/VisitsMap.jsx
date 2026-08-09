@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { getVisitCoordinates, hasVisitCoordinates } from '../utils/coords';
 
 const markerIcon = (score, selected) => L.divIcon({
   html: `<span class="journal-map-pin${selected ? ' is-selected' : ''}"><b>${Number(score).toFixed(1)}</b></span>`,
@@ -25,26 +26,23 @@ export default function VisitsMap({ visits, selectedVisitId, onVisitSelect, onVi
     ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
     : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
 
-  const visitsWithCoords = useMemo(() => {
-    return visits.filter(
-      (visit) =>
-        Number.isFinite(Number(visit.coffee_shop_lat)) &&
-        Number.isFinite(Number(visit.coffee_shop_lng))
-    );
-  }, [visits]);
+  const visitsWithCoords = useMemo(
+    () => visits.filter(hasVisitCoordinates).map((visit) => ({ visit, ...getVisitCoordinates(visit) })),
+    [visits]
+  );
 
   const center = useMemo(() => {
     if (visitsWithCoords.length === 0) return [39.8283, -98.5795];
-    const avgLat = visitsWithCoords.reduce((sum, v) => sum + Number(v.coffee_shop_lat), 0) / visitsWithCoords.length;
-    const avgLng = visitsWithCoords.reduce((sum, v) => sum + Number(v.coffee_shop_lng), 0) / visitsWithCoords.length;
+    const avgLat = visitsWithCoords.reduce((sum, v) => sum + v.lat, 0) / visitsWithCoords.length;
+    const avgLng = visitsWithCoords.reduce((sum, v) => sum + v.lng, 0) / visitsWithCoords.length;
     return [avgLat, avgLng];
   }, [visitsWithCoords]);
 
   const zoom = useMemo(() => {
     if (visitsWithCoords.length === 0) return 4;
     if (visitsWithCoords.length === 1) return 13;
-    const lats = visitsWithCoords.map((v) => Number(v.coffee_shop_lat));
-    const lngs = visitsWithCoords.map((v) => Number(v.coffee_shop_lng));
+    const lats = visitsWithCoords.map((v) => v.lat);
+    const lngs = visitsWithCoords.map((v) => v.lng);
     const maxSpread = Math.max(Math.max(...lats) - Math.min(...lats), Math.max(...lngs) - Math.min(...lngs));
     if (maxSpread < 0.1) return 12;
     if (maxSpread < 0.5) return 10;
@@ -83,10 +81,10 @@ export default function VisitsMap({ visits, selectedVisitId, onVisitSelect, onVi
         attribution='&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url={tileUrl}
       />
-      {visitsWithCoords.map((visit) => (
+      {visitsWithCoords.map(({ visit, lat, lng }) => (
         <Marker
           key={visit.id}
-          position={[Number(visit.coffee_shop_lat), Number(visit.coffee_shop_lng)]}
+          position={[lat, lng]}
           icon={markerIcon(visit.composite_score, selectedVisitId === visit.id)}
           keyboard
           title={`${visit.coffee_shop_name}, ${Number(visit.composite_score).toFixed(1)} out of 20`}
@@ -98,7 +96,7 @@ export default function VisitsMap({ visits, selectedVisitId, onVisitSelect, onVi
         >
           <Tooltip direction="top" offset={[0, -30]} className="map-shop-label">
             {visit.coffee_shop_name}
-            {visit.composite_score != null && ` · ${visit.composite_score.toFixed(1)}`}
+            {visit.composite_score != null && ` · ${Number(visit.composite_score).toFixed(1)}`}
           </Tooltip>
         </Marker>
       ))}

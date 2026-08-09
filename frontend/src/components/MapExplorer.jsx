@@ -1,6 +1,17 @@
 import { useMemo, useState } from 'react';
 import VisitsMap from './VisitsMap';
 import { titleCaseOrder } from '../utils/display';
+import { hasVisitCoordinates } from '../utils/coords';
+
+// Flags visits the map can't pin, so a row that never highlights isn't a mystery.
+function describeVisit(visit) {
+  const parts = [
+    visit.city,
+    visit.coffee_order ? titleCaseOrder(visit.coffee_order) : null,
+    hasVisitCoordinates(visit) ? null : 'Not on map',
+  ].filter(Boolean);
+  return parts.length ? parts.join(' · ') : 'Location saved';
+}
 
 export default function MapExplorer({ visits, onVisitClick }) {
   const [query, setQuery] = useState('');
@@ -14,6 +25,10 @@ export default function MapExplorer({ visits, onVisitClick }) {
     return matchesCity && haystack.includes(query.trim().toLowerCase());
   }), [visits, query, city]);
 
+  // Visits typed by hand have no coordinates, so they're listed but not pinned.
+  const mappedCount = useMemo(() => visibleVisits.filter(hasVisitCoordinates).length, [visibleVisits]);
+  const unmappedCount = visibleVisits.length - mappedCount;
+
   const selectVisit = (visit) => setSelectedVisitId(visit.id);
   const openVisit = (visit) => {
     setSelectedVisitId(visit.id);
@@ -23,7 +38,7 @@ export default function MapExplorer({ visits, onVisitClick }) {
   return (
     <section className="map-explorer">
       <header className="section-intro map-explorer-header">
-        <div><p className="eyebrow">On the road</p><h2>Map the coffee trail</h2><p>{visibleVisits.length} mapped visits. Select a stop for context, then open its full entry.</p></div>
+        <div><p className="eyebrow">On the road</p><h2>Map the coffee trail</h2><p>{mappedCount} mapped {mappedCount === 1 ? 'visit' : 'visits'}{unmappedCount > 0 ? ` · ${unmappedCount} without a location` : ''}. Select a stop for context, then open its full entry.</p></div>
         <div className="map-filters">
           <input className="control-field" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a shop or order" aria-label="Search mapped visits" />
           <select className="control-field" value={city} onChange={(event) => setCity(event.target.value)} aria-label="Filter map by city">
@@ -39,7 +54,7 @@ export default function MapExplorer({ visits, onVisitClick }) {
         <div className="map-result-list" aria-label="Mapped visits">
           {visibleVisits.map((visit) => (
             <button key={visit.id} type="button" className="map-result" aria-current={selectedVisitId === visit.id ? 'true' : undefined} onMouseEnter={() => selectVisit(visit)} onFocus={() => selectVisit(visit)} onClick={() => openVisit(visit)}>
-              <span><strong>{visit.coffee_shop_name}</strong><small>{visit.city || 'Location saved'}{visit.coffee_order ? ` · ${titleCaseOrder(visit.coffee_order)}` : ''}</small></span>
+              <span><strong>{visit.coffee_shop_name}</strong><small>{describeVisit(visit)}</small></span>
               <b>{Number(visit.composite_score).toFixed(1)}</b>
             </button>
           ))}

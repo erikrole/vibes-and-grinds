@@ -32,11 +32,14 @@ export default function useToast(duration = 2500) {
   const dismiss = useCallback(() => {
     clearTimers();
     setExiting(true);
-    setTimeout(() => {
+    // Tracked so an unmount (or a second dismiss) can't leave it running.
+    removeTimerRef.current = setTimeout(() => {
       setToast(null);
       setExiting(false);
     }, 200);
   }, [clearTimers]);
+
+  useEffect(() => clearTimers, [clearTimers]);
 
   return { toast, exiting, show, dismiss };
 }

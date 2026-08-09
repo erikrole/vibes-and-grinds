@@ -8,6 +8,21 @@ export default function PhotoCropper({ imageUrl, onComplete, onCancel }) {
   const imgRef = useRef(null);
   const canvasRef = useRef(null);
 
+  // Escape should back out of the crop, not the modal hosting it. The parent
+  // (FormModal, or VisitDetailModal) listens for Escape on window, so without
+  // claiming the key here first, cropping a photo and hitting Escape closed the
+  // whole Add Visit form and threw away the draft. Capture phase runs before
+  // those window listeners; stopPropagation keeps the event from reaching them.
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      onCancel();
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, [onCancel]);
+
   // Initialize crop when image loads
   const onImageLoad = (e) => {
     const { width, height } = e.currentTarget;

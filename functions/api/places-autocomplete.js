@@ -98,7 +98,6 @@ export async function onRequestGet({ request, env }) {
     console.error('Error fetching places autocomplete:', error);
     return new Response(JSON.stringify({
       error: 'Autocomplete failed: Unable to reach Google Places.',
-      details: error.message,
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

@@ -98,15 +98,19 @@ function parseNetRankingsHtml(html = '') {
  * Returns an error string if invalid, or null if valid.
  */
 function validateVisit({ date, coffee_shop_name, vibe_rating, coffee_rating }) {
-  if (!date || !coffee_shop_name || vibe_rating === undefined || coffee_rating === undefined) {
-    return 'Missing required fields';
+  if (!date || !String(date).trim()) return 'Date is required';
+  if (!coffee_shop_name || !String(coffee_shop_name).trim()) return 'Coffee shop name is required';
+
+  // Coerce before range-checking: a string like "abc" passes `< 0 || > 10`
+  // (both false) and would only fail later on the column's CHECK constraint.
+  for (const [label, value] of [['Vibe', vibe_rating], ['Coffee', coffee_rating]]) {
+    const num = Number(value);
+    if (value === undefined || value === null || value === '' || !Number.isFinite(num)) {
+      return `${label} rating is required`;
+    }
+    if (num < 0 || num > 10) return `${label} rating must be between 0 and 10`;
   }
-  if (vibe_rating < 0 || vibe_rating > 10 || coffee_rating < 0 || coffee_rating > 10) {
-    return 'Ratings must be between 0 and 10';
-  }
-  if (!(coffee_shop_name || '').trim()) {
-    return 'Coffee shop name cannot be empty';
-  }
+
   return null;
 }
 
@@ -185,7 +189,7 @@ app.post('/api/visits', async (req, res) => {
       return res.status(400).json({ error: validationError });
     }
 
-    const trimmedName = coffee_shop_name.trim();
+    const trimmedName = String(coffee_shop_name).trim();
 
     const result = await db.run(
       `INSERT INTO coffee_visits (
@@ -204,8 +208,8 @@ app.post('/api/visits', async (req, res) => {
         coffee_shop_lat,
         coffee_shop_lng,
         normalizeOptionalText(coffee_order),
-        vibe_rating,
-        coffee_rating,
+        Number(vibe_rating),
+        Number(coffee_rating),
         normalizeOptionalText(notes),
         photo_url || null
       ]
@@ -249,7 +253,7 @@ app.put('/api/visits/:id', async (req, res) => {
       return res.status(400).json({ error: validationError });
     }
 
-    const trimmedName = coffee_shop_name.trim();
+    const trimmedName = String(coffee_shop_name).trim();
 
     const updateResult = await db.run(
       `UPDATE coffee_visits SET
@@ -269,8 +273,8 @@ app.put('/api/visits/:id', async (req, res) => {
         coffee_shop_lat,
         coffee_shop_lng,
         normalizeOptionalText(coffee_order),
-        vibe_rating,
-        coffee_rating,
+        Number(vibe_rating),
+        Number(coffee_rating),
         normalizeOptionalText(notes),
         photo_url || null,
         req.params.id

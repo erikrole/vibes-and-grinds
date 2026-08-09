@@ -6,6 +6,7 @@ import { DEFAULT_VISITOR_NAME, getRepeatVisits } from '../utils/repeats';
 import ShareCardModal from './ShareCardModal';
 import useFocusTrap from '../hooks/useFocusTrap';
 import { formatEventContext, titleCaseOrder } from '../utils/display';
+import { getVisitCoordinates } from '../utils/coords';
 
 export default function VisitDetailModal({ visit, visits, onClose, onNavigate, onUpdate, onEdit, onDelete, onLogReturnVisit }) {
   const modalRef = useRef(null);
@@ -20,9 +21,14 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
   const [closing, setClosing] = useState(false);
   const [draggingPhoto, setDraggingPhoto] = useState(false);
 
+  const closeTimerRef = useRef(null);
+  useEffect(() => () => clearTimeout(closeTimerRef.current), []);
+
   const handleClose = useCallback(() => {
     setClosing(true);
-    setTimeout(onClose, 200);
+    // Let the exit animation finish before unmounting, but never fire twice.
+    clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(onClose, 200);
   }, [onClose]);
 
   const handleEscape = useCallback(() => {
@@ -44,7 +50,8 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
   useEffect(() => {
     const onArrow = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
       if (e.key === 'ArrowLeft' && prevVisit) {
         onNavigate(prevVisit);
       } else if (e.key === 'ArrowRight' && nextVisit) {
@@ -197,12 +204,13 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
     !best || Number(candidate.composite_score) > Number(best.composite_score) ? candidate : best
   ), null);
 
-  const hasCoordinates = Number.isFinite(Number(visit.coffee_shop_lat)) && Number.isFinite(Number(visit.coffee_shop_lng));
+  const coordinates = getVisitCoordinates(visit);
+  const hasCoordinates = coordinates !== null;
   const webMapUrl = visit.coffee_shop_place_id
     ? `https://www.google.com/maps/place/?q=place_id:${visit.coffee_shop_place_id}`
-    : `https://www.google.com/maps?q=${encodeURIComponent(visit.coffee_shop_name)}&ll=${visit.coffee_shop_lat},${visit.coffee_shop_lng}`;
+    : `https://www.google.com/maps?q=${encodeURIComponent(visit.coffee_shop_name)}&ll=${coordinates?.lat},${coordinates?.lng}`;
   const appleMapParams = new URLSearchParams({
-    coordinate: `${visit.coffee_shop_lat},${visit.coffee_shop_lng}`,
+    coordinate: `${coordinates?.lat},${coordinates?.lng}`,
     name: visit.coffee_shop_name,
     ...(visit.coffee_shop_address ? { address: visit.coffee_shop_address } : {}),
   });

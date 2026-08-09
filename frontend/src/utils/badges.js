@@ -2,6 +2,7 @@
 // All functions are pure — take visits array, return derived badge data.
 
 import { detectStreak } from './insights';
+import { parseLocalDate } from './dates';
 
 const TIERS = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond'];
 
@@ -179,7 +180,7 @@ const BADGE_DEFS = [
     name: 'Weekend Warrior',
     description: 'Visit on weekends',
     levels: [3, 5, 10, 25, 50],
-    compute: (visits) => visits.filter(v => { const d = new Date(v.date).getDay(); return d === 0 || d === 6; }).length,
+    compute: (visits) => visits.filter(v => { const d = parseLocalDate(v.date).getDay(); return d === 0 || d === 6; }).length,
   },
   {
     id: 'photo-journal',

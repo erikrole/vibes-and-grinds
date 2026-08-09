@@ -57,10 +57,7 @@ export async function onRequestPost({ request, env }) {
   } catch (error) {
     console.error('Error uploading file:', error);
     return new Response(
-      JSON.stringify({
-        error: 'Failed to upload file',
-        details: error.message,
-      }),
+      JSON.stringify({ error: 'Failed to upload file' }),
       {
         status: 500,
         headers: { 'Content-Type': 'application/json' },

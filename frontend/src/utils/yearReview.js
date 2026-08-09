@@ -7,6 +7,7 @@ import { computeBadges } from './badges';
 import { detectStreak } from './insights';
 import { titleCaseOrder } from './display';
 import { isHomeVisit } from './visitTypes';
+import { parseLocalDate } from './dates';
 
 export function getSeasonVisits(visits = []) {
   return visits.filter((visit) => !isHomeVisit(visit));
@@ -32,7 +33,7 @@ const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
  * e.g. Sep 2025 → "2025-26", Feb 2026 → "2025-26"
  */
 function getSeasonForDate(date) {
-  const d = new Date(date);
+  const d = parseLocalDate(date);
   const month = d.getMonth(); // 0-indexed: 0=Jan, 6=Jul
   const year = d.getFullYear();
   const startYear = month >= 6 ? year : year - 1;
@@ -94,7 +95,7 @@ export function computeSeasonReview(visits, season) {
   const months = {};
   for (const m of SEASON_MONTH_INDICES) months[m] = { count: 0, totalComposite: 0 };
   seasonVisits.forEach(v => {
-    const m = new Date(v.date).getMonth();
+    const m = parseLocalDate(v.date).getMonth();
     months[m].count++;
     months[m].totalComposite += v.composite_score;
   });

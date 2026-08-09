@@ -2,7 +2,7 @@ import { useId, useMemo, useRef, useState } from 'react';
 import PhotoCropper from './PhotoCropper';
 import AutocompleteInput from './AutocompleteInput';
 import PlacesAutocomplete from './PlacesAutocomplete';
-import { getTodayDateString } from '../utils/dates';
+import { formatDate, getTodayDateString } from '../utils/dates';
 import { getRepeatContext } from '../utils/repeats';
 import { titleCaseOrder } from '../utils/display';
 import { HOME_CITY, VISIT_TYPES, getVisitType, isMadisonArea } from '../utils/visitTypes';
@@ -701,7 +701,7 @@ function FormSection({ title, description, children }) {
 
 function RepeatContextPanel({ context, isReturnVisit }) {
   const lastVisitDate = context.lastVisit?.date
-    ? new Date(context.lastVisit.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    ? formatDate(context.lastVisit.date, { month: 'short', day: 'numeric' })
     : null;
   const bestScore = Number.isFinite(Number(context.bestVisit?.composite_score))
     ? Number(context.bestVisit.composite_score).toFixed(1)

@@ -10,12 +10,29 @@ export function getTodayDateString() {
 }
 
 /**
+ * Parse a YYYY-MM-DD date string as local midnight.
+ *
+ * `new Date('2026-08-08')` is spec'd to parse as *UTC* midnight, which lands
+ * on the previous day in any negative-offset timezone — so day-of-week, month
+ * buckets and season boundaries all come out one day early in the US. Use this
+ * anywhere the calendar fields of a stored date matter.
+ *
+ * Comparators (`new Date(a.date) - new Date(b.date)`) don't need it: both
+ * sides shift equally, so the ordering is unchanged.
+ */
+export function parseLocalDate(dateStr) {
+  const [year, month, day] = String(dateStr ?? '').split('-').map(Number);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+    return new Date(NaN);
+  }
+  return new Date(year, month - 1, day);
+}
+
+/**
  * Format a YYYY-MM-DD date string for display.
- * Parses manually to avoid timezone issues with Date.parse.
  */
 export function formatDate(dateStr, options) {
-  const [year, month, day] = dateStr.split('-');
-  return new Date(year, month - 1, day).toLocaleDateString('en-US', options || {
+  return parseLocalDate(dateStr).toLocaleDateString('en-US', options || {
     weekday: 'short',
     year: 'numeric',
     month: 'short',

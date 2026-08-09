@@ -1,14 +1,24 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 export default function useFocusTrap(ref, { onEscape, enabled = true, initialFocusRef } = {}) {
+  // Callers rebuild onEscape whenever their own state changes (VisitDetailModal
+  // rebuilds it on every menu toggle). Holding it in a ref keeps the effect from
+  // tearing down and re-running, which would restore focus to the element behind
+  // the modal and then yank it back — visible as a focus jump mid-interaction.
+  const onEscapeRef = useRef(onEscape);
+  onEscapeRef.current = onEscape;
+
+  const initialFocusTargetRef = useRef(initialFocusRef);
+  initialFocusTargetRef.current = initialFocusRef;
+
   useEffect(() => {
     if (!enabled) return;
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        onEscape?.();
+        onEscapeRef.current?.();
         return;
       }
 
@@ -41,7 +51,7 @@ export default function useFocusTrap(ref, { onEscape, enabled = true, initialFoc
     // Focus the intentional entry point rather than whichever control appears first.
     const previouslyFocused = document.activeElement;
     const timer = setTimeout(() => {
-      (initialFocusRef?.current || ref.current?.querySelector(FOCUSABLE))?.focus();
+      (initialFocusTargetRef.current?.current || ref.current?.querySelector(FOCUSABLE))?.focus();
     }, 50);
 
     return () => {
@@ -49,5 +59,5 @@ export default function useFocusTrap(ref, { onEscape, enabled = true, initialFoc
       clearTimeout(timer);
       previouslyFocused?.focus?.();
     };
-  }, [ref, onEscape, enabled, initialFocusRef]);
+  }, [ref, enabled]);
 }

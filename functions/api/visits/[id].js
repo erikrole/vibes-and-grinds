@@ -2,14 +2,7 @@
 // PUT /api/visits/:id - Update a visit
 // DELETE /api/visits/:id - Delete a visit
 
-function normalizeOptionalText(value) {
-  return (value || '').trim() || null;
-}
-
-// Only 'home' (around Madison) and 'road' are valid; anything else falls back to 'road'.
-function normalizeVisitType(value) {
-  return value === 'home' ? 'home' : 'road';
-}
+import { jsonResponse, normalizeOptionalText, normalizeVisitType, validateVisit } from '../_shared.js';
 
 export async function onRequestGet({ params, env }) {
   try {
@@ -18,21 +11,13 @@ export async function onRequestGet({ params, env }) {
     ).bind(params.id).all();
 
     if (results.length === 0) {
-      return new Response(JSON.stringify({ error: 'Visit not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ error: 'Visit not found' }, 404);
     }
 
-    return new Response(JSON.stringify(results[0]), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse(results[0]);
   } catch (error) {
     console.error('Error fetching visit:', error);
-    return new Response(JSON.stringify({ error: 'Failed to fetch visit' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: 'Failed to fetch visit' }, 500);
   }
 }
 
@@ -57,16 +42,13 @@ export async function onRequestPut({ params, request, env }) {
       photo_url,
     } = body;
 
-    // Validation
-    if (vibe_rating < 0 || vibe_rating > 10 || coffee_rating < 0 || coffee_rating > 10) {
-      return new Response(JSON.stringify({ error: 'Ratings must be between 0 and 10' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    const validationError = validateVisit({ date, coffee_shop_name, vibe_rating, coffee_rating });
+    if (validationError) {
+      return jsonResponse({ error: validationError }, 400);
     }
 
     // Update the visit (convert undefined to null for optional fields)
-    await env.DB.prepare(
+    const updateResult = await env.DB.prepare(
       `UPDATE coffee_visits SET
         date = ?, coffee_shop_name = ?, city = ?, opponent = ?, sport = ?, visit_type = ?, coffee_shop_address = ?,
         coffee_shop_place_id = ?, coffee_shop_lat = ?, coffee_shop_lng = ?,
@@ -74,7 +56,7 @@ export async function onRequestPut({ params, request, env }) {
       WHERE id = ?`
     ).bind(
       date,
-      coffee_shop_name.trim(),
+      String(coffee_shop_name).trim(),
       normalizeOptionalText(city),
       normalizeOptionalText(opponent),
       sport || null,
@@ -84,31 +66,28 @@ export async function onRequestPut({ params, request, env }) {
       coffee_shop_lat || null,
       coffee_shop_lng || null,
       normalizeOptionalText(coffee_order),
-      vibe_rating,
-      coffee_rating,
+      Number(vibe_rating),
+      Number(coffee_rating),
       normalizeOptionalText(notes),
       photo_url || null,
       params.id
     ).run();
+
+    // Without this the handler answers 200 with an empty body for an id that
+    // doesn't exist, which the client reads as a successful save.
+    if (updateResult.meta?.changes === 0) {
+      return jsonResponse({ error: 'Visit not found' }, 404);
+    }
 
     // Fetch updated visit
     const { results } = await env.DB.prepare(
       'SELECT * FROM coffee_visits WHERE id = ?'
     ).bind(params.id).all();
 
-    return new Response(JSON.stringify(results[0]), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse(results[0]);
   } catch (error) {
     console.error('Error updating visit:', error);
-    return new Response(JSON.stringify({
-      error: 'Failed to update visit',
-      details: error.message,
-      stack: error.stack
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: 'Failed to update visit' }, 500);
   }
 }
 
@@ -119,9 +98,6 @@ export async function onRequestDelete({ params, env }) {
     return new Response(null, { status: 204 });
   } catch (error) {
     console.error('Error deleting visit:', error);
-    return new Response(JSON.stringify({ error: 'Failed to delete visit' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: 'Failed to delete visit' }, 500);
   }
 }

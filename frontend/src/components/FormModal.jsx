@@ -1,14 +1,19 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import useFocusTrap from '../hooks/useFocusTrap';
 
 export default function FormModal({ title, onClose, children }) {
   const modalRef = useRef(null);
   const closeRef = useRef(null);
+  const closeTimerRef = useRef(null);
   const [closing, setClosing] = useState(false);
+
+  useEffect(() => () => clearTimeout(closeTimerRef.current), []);
 
   const handleClose = useCallback(() => {
     setClosing(true);
-    setTimeout(onClose, 200);
+    // Let the exit animation finish before unmounting, but never fire twice.
+    clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(onClose, 200);
   }, [onClose]);
 
   useFocusTrap(modalRef, { onEscape: handleClose, initialFocusRef: closeRef });
