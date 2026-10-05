@@ -43,6 +43,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
   }), [visits]);
 
   const [formData, setFormData] = useState({ ...getDefaultVisitData(), ...(initialData || {}) });
+  const [searchCity, setSearchCity] = useState(initialData?.city || '');
 
   const [errors, setErrors] = useState({});
   const [locating, setLocating] = useState(false);
@@ -139,6 +140,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
     const updates = { [name]: value };
 
     if (name === 'city') {
+      setSearchCity(value);
       Object.assign(updates, { shop_id: null, coffee_shop_place_id: '', coffee_shop_lat: '', coffee_shop_lng: '' });
       Object.assign(updates, detectedScopeUpdates({ city: value }));
     }
@@ -166,7 +168,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
     };
     if (cityFromAddress) {
       updates.city = cityFromAddress;
-
+      setSearchCity(cityFromAddress);
     }
 
     // Applied last so a Madison result clears any opponent guessed just above.
@@ -360,7 +362,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
               ariaDescribedBy={errors.coffee_shop_name ? `${fieldIds.coffee_shop_name}-error` : undefined}
               enterKeyHint="next"
               savedPlaces={visits}
-              city={isHomeStop ? HOME_CITY : (formData.city || initialData?.city || '')}
+              city={isHomeStop ? HOME_CITY : searchCity}
               onBusyChange={setLocating}
             />
           </Field>
