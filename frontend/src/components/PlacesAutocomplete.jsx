@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { resolvePlace, searchPlaces } from '../utils/mapkit';
+import { getShopRepeatKey } from '../utils/repeats';
 
 export default function PlacesAutocomplete({
   id, onPlaceSelected, value, onChange, onBlur, disabled = false,
@@ -23,7 +24,7 @@ export default function PlacesAutocomplete({
     if (query.length < 2) return [];
     const seen = new Set();
     return savedPlaces.filter((place) => {
-      const key = place.coffee_shop_place_id || `${place.coffee_shop_name}|${place.city}`;
+      const key = getShopRepeatKey(place);
       if (seen.has(key) || !place.coffee_shop_name?.toLowerCase().includes(query)) return false;
       seen.add(key);
       return true;
@@ -77,7 +78,7 @@ export default function PlacesAutocomplete({
       const place = suggestion.provider === 'saved' ? {
         name: suggestion.place.coffee_shop_name, city: suggestion.place.city,
         address: suggestion.place.coffee_shop_address, place_id: suggestion.place.coffee_shop_place_id,
-        lat: suggestion.place.coffee_shop_lat, lng: suggestion.place.coffee_shop_lng,
+        lat: suggestion.place.coffee_shop_lat, lng: suggestion.place.coffee_shop_lng, shop_id: suggestion.place.shop_id,
       } : await resolvePlace(suggestion, { signal: controller.signal });
       if (controller.signal.aborted) return;
       selectedValueRef.current = place.name;

@@ -17,6 +17,7 @@ export function titleCaseOrder(value) {
 }
 
 export function formatEventContext(visit) {
+  if (visit?.visit_type === 'home') return '';
   const sport = visit?.sport?.trim();
   let opponent = visit?.opponent?.trim();
   if (!sport && !opponent) return '';
@@ -24,6 +25,7 @@ export function formatEventContext(visit) {
 
   const isAway = /^(@|at\s+)/i.test(opponent);
   opponent = opponent.replace(/^@\s*|^at\s+/i, '').trim();
+  if (['Track & Field', 'Cross Country'].includes(sport)) return `${sport} · ${opponent}`;
   const matchup = `${isAway ? 'at' : 'vs'} ${opponent}`;
   return sport ? `${sport} ${matchup}` : matchup;
 }

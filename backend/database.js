@@ -8,7 +8,7 @@ let db;
 
 async function initDatabase() {
   db = await open({
-    filename: './vibes-and-grinds.db',
+    filename: process.env.DATABASE_PATH || './vibes-and-grinds.db',
     driver: sqlite3.Database
   });
 
@@ -22,6 +22,8 @@ async function initDatabase() {
       opponent TEXT,
       sport TEXT,
       visit_type TEXT DEFAULT 'road',
+      shop_id TEXT,
+      deleted_at TEXT,
       coffee_shop_address TEXT,
       coffee_shop_place_id TEXT,
       coffee_shop_lat REAL,
@@ -109,6 +111,8 @@ async function initDatabase() {
   const columnNames = new Set(columns.map((column) => column.name));
 
   const missingColumns = [
+    { name: 'shop_id', ddl: 'ALTER TABLE coffee_visits ADD COLUMN shop_id TEXT' },
+    { name: 'deleted_at', ddl: 'ALTER TABLE coffee_visits ADD COLUMN deleted_at TEXT' },
     { name: 'city', ddl: 'ALTER TABLE coffee_visits ADD COLUMN city TEXT' },
     { name: 'opponent', ddl: 'ALTER TABLE coffee_visits ADD COLUMN opponent TEXT' },
     { name: 'sport', ddl: 'ALTER TABLE coffee_visits ADD COLUMN sport TEXT' },
@@ -121,6 +125,9 @@ async function initDatabase() {
       await db.exec(column.ddl);
     }
   }
+  const migration = require('node:fs').readFileSync(require('node:path').join(__dirname, '../migrations/0001_owner_shops_recovery.sql'), 'utf8');
+  await db.exec(migration.split('\n').filter((line) => !line.startsWith('ALTER TABLE')).join('\n'));
+
   // Vest games migrations
   const vestColumns = await db.all('PRAGMA table_info(vest_games)');
   const vestColumnNames = new Set(vestColumns.map((column) => column.name));

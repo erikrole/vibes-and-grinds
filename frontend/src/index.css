@@ -1278,3 +1278,100 @@ a:focus-visible,
   @starting-style { .places-results { transform: none; } }
 }
 .repeat-context { border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-muted); }
+
+/* Journal refinement: compact context, readable histories, factual seasons. */
+.journal-brand { min-width: 0; color: var(--ink); text-decoration: none; }
+.journal-brand h1 { font: 600 clamp(1.3rem, 3vw, 2rem)/1.2 Fraunces, Georgia, serif; }
+.vest-tracker-page .journal-brand { color: white; }
+.coffee-journal-page .journal-summary { gap: 1.5rem; padding: 1rem 0; margin-bottom: .5rem; }
+.journal-intro h2 { font-size: 1.85rem; }
+.journal-average-values { margin-top: .4rem; }
+.journal-average-values > div > div:first-child { margin-bottom: .2rem; }
+.journal-average-values > div > div:last-child > span:first-child { font-size: 1.4rem; }
+.journal-averages > .eyebrow { font-size: .65rem; }
+.log-toolbar .search-glow { margin-bottom: .85rem; }
+.log-toolbar h2 { font-size: 1.55rem; }
+.log-toolbar h2 + p { margin-top: .25rem; }
+.footer-links { display: flex; gap: 1.5rem; justify-content: center; margin-top: 1rem; font-size: .8rem; color: var(--text-secondary); }
+.footer-links a, .footer-links button { padding: .65rem .25rem; }
+.footer-links a:hover, .footer-links button:hover { text-decoration: underline; text-underline-offset: 3px; }
+.owner-panel { color: var(--text-primary); }
+.trash-list li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; border-top: 1px solid var(--border-subtle); }
+.form-error { color: var(--danger); margin-top: 1rem; }
+.copy-link-control { display: inline-flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.copy-link-control input { max-width: 100%; }
+.shop-history-intro { padding: 1rem 0 2rem; }
+.shop-history-intro h2 { font: 600 clamp(2rem, 5vw, 3.5rem)/1.12 Fraunces, Georgia, serif; overflow-wrap: anywhere; }
+.shop-history-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; margin: 1.5rem 0; padding: 1.25rem 0; border-block: 1px solid var(--border-subtle); }
+.shop-history-stats dt { font-size: .8rem; color: var(--text-secondary); }
+.shop-history-stats dd { font-size: 1.65rem; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: .4rem; }
+.shop-history-stats small { font-size: .8rem; font-weight: 400; color: var(--text-secondary); }
+.shop-history-stats p { font-size: .75rem; color: var(--text-secondary); margin-top: .4rem; }
+.useful-highlights { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+button.insight-highlight:hover { background: var(--surface-muted); }
+.comparison-explainer { font-size: .8rem; color: var(--text-secondary); margin: 0 0 1rem; }
+.comparison-scroll { overflow-x: auto; }
+.ratings-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.ratings-table th, .ratings-table td { padding: .9rem .65rem; text-align: right; border-bottom: 1px solid var(--border-subtle); font-variant-numeric: tabular-nums; }
+.ratings-table th:first-child { text-align: left; width: 50%; }
+.ratings-table thead th { font-size: .75rem; color: var(--text-secondary); font-weight: 500; white-space: nowrap; }
+.ratings-table tbody th { font-weight: 500; }
+.ratings-table small { display: block; color: var(--text-secondary); font-size: .75rem; font-weight: 400; margin-top: .25rem; }
+.comparison-link { text-align: left; font-weight: 600; min-height: 2rem; }
+.comparison-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.comparison-detail { padding: 1.25rem 0; }
+.comparison-detail li { margin: .5rem 0; }
+.compare-heading { align-items: flex-start; flex-wrap: wrap; }
+.compare-controls { flex-wrap: wrap; }
+.map-repair-note { font-size: .8rem; color: var(--text-secondary); margin-top: .5rem; }
+.map-result b small { font-weight: 400; font-size: .65rem; display: block; white-space: nowrap; }
+.season-review { background: var(--surface); color: var(--text-primary); padding: clamp(1.25rem, 4vw, 2.5rem); }
+.season-review-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.season-review-header h2 { font: 600 clamp(1.7rem, 4vw, 2.6rem)/1.2 Fraunces, Georgia, serif; margin-top: .5rem; }
+.season-counts { display: flex; flex-wrap: wrap; gap: 1.5rem; color: var(--text-secondary); }
+.season-counts strong { color: var(--text-primary); font-size: 2rem; font-weight: 600; }
+.season-stop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; }
+.season-stop { border: 1px solid var(--border-subtle); padding: 1.2rem; border-radius: var(--radius-md); }
+.season-stop:hover { background: var(--surface-muted); }
+.season-stop img { width: 100%; height: 10rem; object-fit: cover; border-radius: var(--radius-sm); margin-top: .8rem; }
+.season-stop h3 { font: 600 1.5rem/1.2 Fraunces, Georgia, serif; margin: .8rem 0 .4rem; }
+.season-stop > p:not(.eyebrow), .season-facts, .season-bookends { color: var(--text-secondary); font-size: .85rem; line-height: 1.6; }
+.season-facts { margin: 1.25rem 0; }
+.season-months { margin-top: 1.5rem; }
+.season-months h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; }
+.season-months ol { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem 2rem; }
+.season-months li { display: grid; grid-template-columns: 2.5rem 1.5rem 1fr; align-items: center; gap: .5rem; font-size: .8rem; min-height: 1.7rem; }
+.season-months b { font-variant-numeric: tabular-nums; font-weight: 500; }
+.season-month-bar { display: block; background: var(--latte-deep); height: .25rem; border-radius: 2px; }
+.season-bookends { margin-top: 1.5rem; border-top: 1px solid var(--border-subtle); padding-top: 1rem; }
+.vest-tracker { --vt-ink-faint: #9b9ba4; --vt-ink-mute: #b0b0b8; --vt-loss: #9b9ba4; }
+.vt-method { color: var(--vt-ink-dim); font: .8rem/1.7 Inter, system-ui, sans-serif; }
+.vt-method summary { cursor: pointer; padding: .5rem 0; }
+.vt-method p { margin-top: .6rem; max-width: 45rem; }
+@media (max-width: 900px) {
+  .coffee-journal-page .journal-summary { grid-template-columns: 1fr; gap: .8rem; }
+  .journal-intro { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+  .journal-intro h2 { font-size: 1.7rem; }
+}
+@media (max-width: 639px) {
+  .coffee-journal-page > header > div { padding-block: 1rem; }
+  .coffee-journal-page .journal-summary { margin-bottom: .25rem; padding: .85rem 0; }
+  .journal-intro h2 span { font-size: .95rem; }
+  .journal-intro > p:last-of-type { font-size: .8rem; }
+  .journal-averages > .eyebrow { display: none; }
+  .journal-average-values { margin-top: 0; }
+  .journal-navigation { gap: .5rem; margin-bottom: 1rem; }
+  .journal-navigation > div { gap: 1rem; }
+  .journal-navigation .tab-edge { font-size: .95rem; }
+  .season-link { font-size: .8rem; white-space: nowrap; }
+  .useful-highlights { grid-template-columns: 1fr; }
+  .compare-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .compare-controls label { min-width: 0; }
+  .compare-controls select { width: 100%; }
+  .ratings-table { min-width: 32rem; }
+  .shop-history-stats { gap: .75rem; }
+  .shop-history-stats dd { font-size: 1.25rem; }
+  .shop-history-stats dt, .shop-history-stats p { font-size: .7rem; }
+  .season-months ol { grid-template-columns: 1fr; }
+  .footer-links { gap: 1rem; }
+}

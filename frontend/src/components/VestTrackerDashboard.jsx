@@ -1,11 +1,9 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { vestGames as seedGames } from '../utils/vestTrackerData';
-import { fetchVestGames, syncVestGames, fetchVisits, fetchVestBlurb } from '../utils/api';
+import { fetchVestGames, syncVestGames, fetchVisits } from '../utils/api';
 import {
   buildNetLookup,
   buildOutfitStats,
-  buildWhySentence,
-  computeRecommendation,
   countTrailingStreak,
   findNetRankForOpponent,
   formatDate,
@@ -49,8 +47,9 @@ const loadGames = () => {
   return { games: seedGames, corrupted: false };
 };
 
-export default function VestTrackerDashboard({ showToast }) {
+export default function VestTrackerDashboard({ showToast, canEdit = false }) {
   const corruptedRef = useRef(false);
+  const revisionRef = useRef(null);
   const [games, setGames] = useState(() => {
     const { games: loaded, corrupted } = loadGames();
     if (corrupted) corruptedRef.current = true;
@@ -64,6 +63,7 @@ export default function VestTrackerDashboard({ showToast }) {
   const [viewingOutfit, setViewingOutfit] = useState(null);
   const [vestTab, setVestTab] = useState('dashboard');
   const [syncReady, setSyncReady] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   // Warn once if localStorage was corrupted on load.
   useEffect(() => {
@@ -77,24 +77,20 @@ export default function VestTrackerDashboard({ showToast }) {
     try { localStorage.setItem(VEST_GAMES_KEY, JSON.stringify(games)); } catch { /* ignore */ }
   }, [games]);
 
-  // Initial sync from server (overrides local seed if data exists).
+  // Browsing only reads. Save handlers explicitly persist validated owner changes.
   useEffect(() => {
     let cancelled = false;
-    fetchVestGames()
-      .then((payload) => {
-        const serverGames = Array.isArray(payload?.games) ? payload.games : [];
-        if (!cancelled && serverGames.length > 0) setGames(serverGames);
-      })
-      .catch(() => { /* fall back to local */ })
-      .finally(() => { if (!cancelled) setSyncReady(true); });
-    return () => { cancelled = true; };
+    const load = () => fetchVestGames().then((payload) => {
+      if (!cancelled) {
+        setGames(Array.isArray(payload.games) ? payload.games : []);
+        revisionRef.current = payload.revision;
+        setSyncReady(true);
+      }
+    }).catch(() => { if (!cancelled) { setSyncReady(false); setSaveError('Could not load the saved games. Showing cached records; editing is unavailable.'); } });
+    load();
+    window.addEventListener('vg:vest-restored', load);
+    return () => { cancelled = true; window.removeEventListener('vg:vest-restored', load); };
   }, []);
-
-  // Push changes upstream once initial sync resolves.
-  useEffect(() => {
-    if (!syncReady) return;
-    syncVestGames(games).catch(() => { /* offline/dev — ignore */ });
-  }, [games, syncReady]);
 
   // Fetch NET rankings from any of the supported worker shapes.
   useEffect(() => {
@@ -237,10 +233,7 @@ export default function VestTrackerDashboard({ showToast }) {
     [completedGames, netLookup, teamWins]
   );
 
-  const recommendation = useMemo(
-    () => computeRecommendation(outfitStats, completedGames),
-    [outfitStats, completedGames]
-  );
+  const mostWorn = useMemo(() => [...outfitStats].sort((a, b) => b.games - a.games)[0], [outfitStats]);
 
   // Badges per outfit, narrative-style.
   const outfitBadges = useMemo(() => {
@@ -248,12 +241,12 @@ export default function VestTrackerDashboard({ showToast }) {
     for (const stat of outfitStats) {
       const list = [];
       const s = countTrailingStreak(stat.results);
-      if (s && s.count >= 3 && s.result === 'W') list.push(`${s.count}-Game Heater`);
-      else if (s && s.count >= 3 && s.result === 'L') list.push(`${s.count}-Game Skid`);
-      if (stat.roadWins >= 3) list.push(`Road Warrior (${stat.roadWins}-${stat.roadLosses})`);
-      if (stat.quadrants[1].wins >= 2) list.push(`Q1 Slayer (${stat.quadrants[1].wins}-${stat.quadrants[1].losses})`);
+      if (s && s.count >= 3 && s.result === 'W') list.push(`${s.count} consecutive wins`);
+      else if (s && s.count >= 3 && s.result === 'L') list.push(`${s.count} consecutive losses`);
+      if (stat.roadWins >= 3) list.push(`Road record (${stat.roadWins}-${stat.roadLosses})`);
+      if (stat.quadrants[1].wins >= 2) list.push(`Q1 record (${stat.quadrants[1].wins}-${stat.quadrants[1].losses})`);
       if (stat.games >= 3 && stat.losses === 0) list.push('Undefeated');
-      if (stat.otWins >= 2) list.push(`OT Specialist (${stat.otWins}-${stat.otLosses})`);
+      if (stat.otWins >= 2) list.push(`Overtime record (${stat.otWins}-${stat.otLosses})`);
       if (list.length) badges[stat.outfit] = list;
     }
     return badges;
@@ -292,50 +285,6 @@ export default function VestTrackerDashboard({ showToast }) {
       allTimeRecord: vsOpponent.length ? { wins: vsWins, losses: vsOpponent.length - vsWins } : null,
     };
   }, [upcomingGame, netLookup, completedGames]);
-
-  // Per-outfit advisor for the upcoming game's quadrant + location.
-  const advisor = useMemo(() => {
-    if (!scoutingReport?.quadrant) return [];
-    const q = scoutingReport.quadrant;
-    const loc = scoutingReport.location;
-    return outfitStats
-      .map((stat) => {
-        const qW = stat.quadrants[q].wins;
-        const qL = stat.quadrants[q].losses;
-        const qGames = qW + qL;
-        const locGames = completedGames.filter((g) => g.outfit === stat.outfit && g.location === loc);
-        const locW = locGames.filter((g) => g.result === 'W').length;
-        let confidence = 'unknown';
-        if (qGames === 0) confidence = 'untested';
-        else if (qGames >= 2 && qW / qGames >= 0.7) confidence = 'high';
-        else if (qGames >= 2 && qW / qGames >= 0.4) confidence = 'medium';
-        else if (qGames >= 1) confidence = 'low';
-        return {
-          outfit: stat.outfit,
-          confidence,
-          qRecord: `${qW}–${qL}`,
-          locRecord: locGames.length ? `${locW}–${locGames.length - locW}` : null,
-          qGames,
-          form: stat.form,
-        };
-      })
-      .sort((a, b) => {
-        const order = { high: 0, medium: 1, low: 2, untested: 3, unknown: 4 };
-        return (order[a.confidence] ?? 4) - (order[b.confidence] ?? 4);
-      });
-  }, [scoutingReport, outfitStats, completedGames]);
-
-  // Jinx alert — top recommendation has never been worn in this quadrant.
-  const jinxAlert = useMemo(() => {
-    if (!recommendation || !scoutingReport?.quadrant) return null;
-    const topStat = outfitStats.find((s) => s.outfit === recommendation.top.outfit);
-    if (!topStat) return null;
-    const q = scoutingReport.quadrant;
-    if (topStat.quadrants[q].wins + topStat.quadrants[q].losses === 0) {
-      return { outfit: topStat.outfit, quadrant: q };
-    }
-    return null;
-  }, [recommendation, scoutingReport, outfitStats]);
 
   // Season storylines (single pass over completed games).
   const milestones = useMemo(() => {
@@ -438,65 +387,24 @@ export default function VestTrackerDashboard({ showToast }) {
       .sort((a, b) => b.winRate - a.winRate || b.total - a.total);
   }, [coffeeVisits, completedGames]);
 
-  // AI blurb — composes a context string and calls the worker.
-  const [aiBlurb, setAiBlurb] = useState('');
-  const [aiBlurbLoading, setAiBlurbLoading] = useState(false);
-
-  const generateBlurb = async () => {
-    if (!recommendation || aiBlurbLoading) return;
-    setAiBlurbLoading(true);
-    setAiBlurb('');
-    try {
-      const top = recommendation.top;
-      const parts = [
-        `Recommended outfit: ${top.outfit} (${top.wins}-${top.losses}, ${top.smoothedRatePct}% smoothed win rate)`,
-        `Score: ${Math.round(top.score)}/100, last worn ${top.recencyDistance} games ago, form: ${top.form || 'neutral'}`,
-        `Wins above expected: ${top.winsAboveExpected.toFixed(1)}`,
-        `Q1: ${top.quadrants[1].wins}-${top.quadrants[1].losses}, Q2: ${top.quadrants[2].wins}-${top.quadrants[2].losses}`,
-      ];
-      if (top.avgNet) parts.push(`Avg opponent NET: #${top.avgNet}`);
-      if (scoutingReport) {
-        parts.push(
-          `Next game: ${formatLocationLabel(scoutingReport.location, 'full')} ${scoutingReport.opponent}` +
-            `${scoutingReport.netRank ? ` (NET #${scoutingReport.netRank})` : ''}` +
-            `${scoutingReport.quadrant ? `, Q${scoutingReport.quadrant} game` : ''}`
-        );
-      }
-      if (outfitBadges[top.outfit]?.length) parts.push(`Badges: ${outfitBadges[top.outfit].join(', ')}`);
-      const trail = countTrailingStreak(top.results);
-      if (trail && trail.count >= 2) parts.push(`Current streak: ${trail.count}${trail.result}`);
-
-      const { blurb } = await fetchVestBlurb(parts.join('. '));
-      setAiBlurb(blurb);
-    } catch {
-      setAiBlurb('');
-    } finally {
-      setAiBlurbLoading(false);
-    }
-  };
-
   // ── Form save/delete handlers ──
-  const handleSave = (payload) => {
-    if (editingGame) {
-      setGames((prev) => prev.map((g) => (g.id === editingGame.id ? { ...g, ...payload } : g)));
-      setEditingGame(null);
-      return;
-    }
-    const nextId = Math.max(0, ...games.map((g) => g.id)) + 1;
-    setGames((prev) => [...prev, { id: nextId, ...payload }]);
+  const persistGames = async (next) => {
+    if (!canEdit || !syncReady) throw new Error('Owner sign-in and saved games are required.');
+    try {
+      const saved = await syncVestGames(next, revisionRef.current);
+      revisionRef.current = saved.revision;
+      setGames(next); setSaveError('');
+      showToast?.('Game records saved.');
+    } catch (error) { setSaveError(error.message); throw error; }
   };
-
-  const handleDelete = (id) => {
-    setGames((prev) => prev.filter((g) => g.id !== id));
+  const handleSave = async (payload) => {
+    const next = editingGame ? games.map((game) => game.id === editingGame.id ? { ...game, ...payload } : game)
+      : [...games, { id: Math.max(0, ...games.map((game) => game.id)) + 1, ...payload }];
+    await persistGames(next);
     setEditingGame(null);
   };
-
-  // Quick-log result from PostGame card or Timeline inline buttons.
-  const handleLogResult = (id, result, overtime) => {
-    setGames((prev) =>
-      prev.map((g) => (g.id === id ? { ...g, result, overtime: Boolean(overtime) } : g))
-    );
-  };
+  const handleDelete = async (id) => { await persistGames(games.filter((game) => game.id !== id)); setEditingGame(null); };
+  const handleLogResult = (id, result, overtime) => persistGames(games.map((game) => game.id === id ? { ...game, result, overtime: Boolean(overtime) } : game)).catch(() => {});
 
   // ── Tab routing for the sub-pages ──
   if (vestTab === 'rankings') {
@@ -524,27 +432,17 @@ export default function VestTrackerDashboard({ showToast }) {
     <main className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       <TabBar value={vestTab} onChange={setVestTab} />
 
-      <VestGameForm
+      {saveError && <p role="alert" className="vt-card p-4 mb-5">{saveError}</p>}
+      {syncReady && <VestGameForm
+        enabled={canEdit}
         editingGame={editingGame}
         existingOutfits={existingOutfits}
         onSave={handleSave}
         onDelete={handleDelete}
         onCancel={() => setEditingGame(null)}
-      />
+      />}
 
-      {(scoutingReport || recommendation) && (
-        <VestNextGame
-          scoutingReport={scoutingReport}
-          recommendation={recommendation}
-          advisor={advisor}
-          jinxAlert={jinxAlert}
-          aiBlurb={aiBlurb}
-          aiBlurbLoading={aiBlurbLoading}
-          onGenerateBlurb={generateBlurb}
-          netStatus={netStatus}
-          whyText={buildWhySentence(recommendation, scoutingReport)}
-        />
-      )}
+      <VestNextGame scoutingReport={scoutingReport} mostWorn={mostWorn} />
 
       <VestScoreboard
         wins={summary.wins}
@@ -569,19 +467,18 @@ export default function VestTrackerDashboard({ showToast }) {
 
       <NetDegradedBanner netStatus={netStatus} />
 
-      {upcomingGame && (
+      {canEdit && syncReady && upcomingGame && (
         showPostGame ? (
           <VestPostGame
             game={upcomingGame}
-            onLogResult={handleLogResult}
+            onLogResult={canEdit && syncReady ? handleLogResult : undefined}
           />
         ) : (
           <VestLockInPick
             upcomingGame={upcomingGame}
             existingOutfits={existingOutfits}
-            recommendedOutfit={recommendation?.top?.outfit}
             onUpdate={(id, patch) =>
-              setGames((prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)))
+              persistGames(games.map((game) => game.id === id ? { ...game, ...patch } : game))
             }
           />
         )
@@ -590,7 +487,7 @@ export default function VestTrackerDashboard({ showToast }) {
       <VestTimeline
         games={visibleTimelineGames}
         onEditGame={setViewingGame}
-        onLogResult={handleLogResult}
+        onLogResult={canEdit && syncReady ? handleLogResult : undefined}
       />
 
       <VestLeaderboard
@@ -609,6 +506,7 @@ export default function VestTrackerDashboard({ showToast }) {
         milestones={milestones}
         outfitStats={outfitStats}
         outfitBadges={outfitBadges}
+        netStatus={netStatus}
         coffeeCrossover={coffeeCrossover}
       />
 
@@ -618,7 +516,7 @@ export default function VestTrackerDashboard({ showToast }) {
           outfit={viewingOutfit}
           games={games}
           onClose={() => { setViewingGame(null); setViewingOutfit(null); }}
-          onEditGame={setEditingGame}
+          onEditGame={canEdit && syncReady ? setEditingGame : undefined}
           onFilterOutfit={setSelectedOutfit}
         />
       )}
@@ -660,7 +558,7 @@ function NetDegradedBanner({ netStatus }) {
   const message =
     netStatus === 'loading'
       ? { label: 'Loading NET feed', detail: 'Quadrant breakdowns will appear once available.' }
-      : { label: 'NET feed offline', detail: 'Quadrant records, advisor confidence, and strength-of-schedule are unavailable. The "Quality" component falls back to a location baseline.' };
+      : { label: 'NET feed offline', detail: 'Opponent rankings and quadrant records are unavailable. Saved game results and outfit records are still shown.' };
 
   return (
     <div

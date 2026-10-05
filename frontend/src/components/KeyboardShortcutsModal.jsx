@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
+import useFocusTrap from '../hooks/useFocusTrap';
 
 const SHORTCUTS = [
   { keys: ['/', '\u2318K'], label: 'Focus search' },
   { keys: ['N'], label: 'New visit' },
-  { keys: ['V'], label: 'Toggle Vibes / Vest mode' },
   { keys: ['D'], label: 'Toggle dark mode' },
   { keys: ['\u2190', '\u2192'], label: 'Navigate between visits (in detail view)' },
   { keys: ['Esc'], label: 'Close modal or menu' },
@@ -12,10 +12,11 @@ const SHORTCUTS = [
 
 export default function KeyboardShortcutsModal({ onClose }) {
   const ref = useRef(null);
+  useFocusTrap(ref, { onEscape: onClose });
 
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === 'Escape' || e.key === '?') {
+      if (e.key === '?') {
         e.preventDefault();
         onClose();
       }
@@ -32,12 +33,15 @@ export default function KeyboardShortcutsModal({ onClose }) {
     >
       <div
         ref={ref}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="shortcuts-title"
         tabIndex={-1}
         className="animate-modal-in bg-white dark:bg-stone-800 rounded-xl shadow-xl max-w-sm w-full border border-stone-200/60 dark:border-stone-600/60 overflow-hidden outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 pt-6 pb-4 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-stone-900 dark:text-stone-50">Keyboard Shortcuts</h3>
+          <h3 id="shortcuts-title" className="text-lg font-bold text-stone-900 dark:text-stone-50">Keyboard Shortcuts</h3>
           <button
             onClick={onClose}
             className="text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors p-1"

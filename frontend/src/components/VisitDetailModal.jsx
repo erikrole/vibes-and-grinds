@@ -4,11 +4,12 @@ import { getRatingColor, getCompositeColor } from '../utils/colors';
 import { formatDate, getRelativeLabel } from '../utils/dates';
 import { DEFAULT_VISITOR_NAME, getRepeatVisits } from '../utils/repeats';
 import ShareCardModal from './ShareCardModal';
+import CopyLink from './CopyLink';
 import useFocusTrap from '../hooks/useFocusTrap';
 import { formatEventContext, titleCaseOrder } from '../utils/display';
 import { getAppleMapsUrl } from '../utils/maps';
 
-export default function VisitDetailModal({ visit, visits, onClose, onNavigate, onUpdate, onEdit, onDelete, onLogReturnVisit }) {
+export default function VisitDetailModal({ visit, visits, onClose, onNavigate, onUpdate, onEdit, onDelete, onLogReturnVisit, onShopClick, suspended = false }) {
   const modalRef = useRef(null);
   const closeRef = useRef(null);
   const [showMenu, setShowMenu] = useState(false);
@@ -41,7 +42,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
   // Disable this trap while the share-card modal is open so Escape/Tab only
   // act on the child modal, not both.
-  useFocusTrap(modalRef, { onEscape: handleEscape, enabled: !showShareCard, initialFocusRef: closeRef });
+  useFocusTrap(modalRef, { onEscape: handleEscape, enabled: !showShareCard && !suspended, initialFocusRef: closeRef });
 
   // Prev/next navigation
   const currentIndex = useMemo(() => visits.findIndex((v) => v.id === visit.id), [visits, visit.id]);
@@ -178,7 +179,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
       type: 'delete',
       title: 'Delete this visit?',
       message: `This will permanently delete your visit to ${visit.coffee_shop_name}. This action cannot be undone.`,
-      confirmText: 'Delete Visit',
+      confirmText: 'Move to deleted visits',
       onConfirm: () => {
         setConfirmAction(null);
         onDelete(visit.id);
@@ -230,16 +231,16 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
             ) : (
               <div
                 className={`detail-header-accent h-28 sm:h-32 relative overflow-hidden transition-colors ${draggingPhoto ? 'ring-2 ring-inset ring-stone-400 dark:ring-stone-500' : ''}`}
-                onDrop={handlePhotoDrop}
-                onDragOver={(e) => { e.preventDefault(); setDraggingPhoto(true); }}
-                onDragLeave={() => setDraggingPhoto(false)}
+                onDrop={onUpdate ? handlePhotoDrop : undefined}
+                onDragOver={onUpdate ? (e) => { e.preventDefault(); setDraggingPhoto(true); } : undefined}
+                onDragLeave={onUpdate ? () => setDraggingPhoto(false) : undefined}
               >
                 <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '20px 20px' }} />
                 {draggingPhoto ? (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <p className="text-sm font-medium text-stone-500 dark:text-stone-400">Drop photo here</p>
                   </div>
-                ) : (
+                ) : onUpdate ? (
                   <button
                     onClick={handleAddPhoto}
                     disabled={uploading}
@@ -249,9 +250,9 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    {uploading ? 'Uploading...' : 'Add Photo'}
+                    {uploading ? 'Uploading...' : 'Add photo'}
                   </button>
-                )}
+                ) : null}
               </div>
             )}
           </div>
@@ -260,7 +261,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
           <div className="p-4 sm:p-6 md:p-7">
             {/* Top-right controls */}
             <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex items-center gap-1.5 z-10">
-              <button
+              {onEdit && <button
                 onClick={() => setShowMenu((prev) => !prev)}
                 className="bg-white/90 dark:bg-stone-800/90 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-50 p-3 rounded-full backdrop-blur-sm transition-all shadow-lg"
                 aria-label="Visit actions"
@@ -268,7 +269,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                 </svg>
-              </button>
+              </button>}
               <button
                 ref={closeRef}
                 onClick={handleClose}
@@ -324,21 +325,21 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                       className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors flex items-center gap-3"
                     >
                       <svg className="w-4 h-4 text-stone-400 dark:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                      Edit Visit
+                      Edit visit
                     </button>
                     <button
                       onClick={handleShare}
                       className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors flex items-center gap-3"
                     >
                       <svg className="w-4 h-4 text-stone-400 dark:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-                      Share Card
+                      Share image
                     </button>
                     <button
                       onClick={handleLogReturnVisit}
                       className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors flex items-center gap-3"
                     >
                       <svg className="w-4 h-4 text-stone-400 dark:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                      Log Return Visit
+                      Log return visit
                     </button>
                     <div className="border-t border-stone-100 dark:border-stone-700" />
                     <button
@@ -346,7 +347,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                       className="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-stone-700 transition-colors flex items-center gap-3"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      Delete Visit
+                      Move to deleted visits
                     </button>
                   </div>
                 </>
@@ -402,9 +403,12 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
             </div>
 
             <div className="detail-quick-actions">
-              <button type="button" className="btn-primary" onClick={handleLogReturnVisit}>Log return visit</button>
+              {onLogReturnVisit && <button type="button" className="btn-primary" onClick={handleLogReturnVisit}>Log return visit</button>}
               <a className="btn-secondary" href={mapUrl} target="_blank" rel="noopener noreferrer">Open in Apple Maps ↗</a>
-              <button type="button" className="text-action" onClick={handleEdit}>Edit visit</button>
+              {onEdit && <button type="button" className="text-action" onClick={handleEdit}>Edit visit</button>}
+              {visit.shop_id && <button type="button" className="text-action" onClick={() => onShopClick(visit)}>Shop history</button>}
+              <CopyLink />
+              <button type="button" className="text-action" onClick={handleShare}>Share image</button>
             </div>
 
             {/* Ratings */}
@@ -594,13 +598,13 @@ function RepeatHistoryCard({ visit, visits, visitNumber, previousVisit, bestVisi
             {DEFAULT_VISITOR_NAME}'s visit #{visitNumber} here
           </p>
         </div>
-        <button
+        {onLogReturnVisit && <button
           type="button"
           onClick={() => onLogReturnVisit?.(visit)}
           className="self-start rounded-xl px-3 py-2 text-xs font-semibold transition-colors bg-white/70 dark:bg-stone-800/70 text-stone-700 dark:text-stone-200 hover:bg-white dark:hover:bg-stone-800 border border-stone-200/70 dark:border-stone-600/70"
         >
-          Log Return Visit
-        </button>
+          Log return visit
+        </button>}
       </div>
 
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">

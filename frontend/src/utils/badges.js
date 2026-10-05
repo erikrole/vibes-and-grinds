@@ -1,8 +1,8 @@
 // Badge system with levels (Bronze → Silver → Gold → Platinum → Diamond).
 // All functions are pure — take visits array, return derived badge data.
 
-import { detectStreak } from './insights';
-import { parseLocalDate } from './dates';
+import { detectStreak } from './insights.js';
+import { parseLocalDate } from './dates.js';
 
 const TIERS = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond'];
 

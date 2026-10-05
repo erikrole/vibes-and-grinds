@@ -4,7 +4,9 @@ import { formatDate, formatLocationLabel } from '../utils/vestTrackerMath';
 // Closes the decision loop: lets the user lock in the outfit for the next
 // upcoming game without opening the full edit form. Editing here just
 // updates the game record's `outfit` field.
-function VestLockInPick({ upcomingGame, existingOutfits, recommendedOutfit, onUpdate }) {
+function VestLockInPick({ upcomingGame, existingOutfits, onUpdate }) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [pick, setPick] = useState(upcomingGame?.outfit || '');
 
   // Keep local state in sync if upstream changes (e.g. user edits via form).
@@ -14,13 +16,13 @@ function VestLockInPick({ upcomingGame, existingOutfits, recommendedOutfit, onUp
 
   if (!upcomingGame) return null;
 
-  const handleSelect = (next) => {
-    setPick(next);
-    onUpdate(upcomingGame.id, { outfit: next });
+  const handleSelect = async (next) => {
+    setSaving(true); setError('');
+    try { await onUpdate(upcomingGame.id, { outfit: next }); setPick(next); }
+    catch (error) { setError(error.message); }
+    finally { setSaving(false); }
   };
-
   const isLocked = Boolean(pick);
-  const matchesRec = recommendedOutfit && pick === recommendedOutfit;
 
   return (
     <section
@@ -37,6 +39,8 @@ function VestLockInPick({ upcomingGame, existingOutfits, recommendedOutfit, onUp
 
       <div className="flex items-center gap-3 flex-wrap">
         <select
+          disabled={saving}
+          aria-label="Outfit for next game"
           value={pick}
           onChange={(e) => handleSelect(e.target.value)}
           className="vt-condensed text-sm uppercase tracking-[0.04em] flex-1 min-w-[200px]"
@@ -52,16 +56,6 @@ function VestLockInPick({ upcomingGame, existingOutfits, recommendedOutfit, onUp
           ))}
         </select>
 
-        {recommendedOutfit && !matchesRec && (
-          <button
-            onClick={() => handleSelect(recommendedOutfit)}
-            className="vt-btn-ghost text-xs"
-            title="Match the recommendation"
-          >
-            Use rec · {recommendedOutfit}
-          </button>
-        )}
-
         {isLocked ? (
           <span
             className="vt-condensed text-xs uppercase tracking-[0.18em] px-3 py-1.5 rounded"
@@ -71,12 +65,13 @@ function VestLockInPick({ upcomingGame, existingOutfits, recommendedOutfit, onUp
               border: '1px solid var(--vt-red)',
             }}
           >
-            {matchesRec ? '✓ Locked · matches rec' : '✓ Locked'}
+            {saving ? 'Saving…' : 'Saved'}
           </span>
         ) : (
           <span className="vt-label">Awaiting pick</span>
         )}
       </div>
+      {error && <p role="alert" className="vt-mono text-sm mt-3">{error}</p>}
     </section>
   );
 }

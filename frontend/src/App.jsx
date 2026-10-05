@@ -12,9 +12,11 @@ import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import { sortVisits } from './utils/sortVisits';
 import { titleCaseOrder } from './utils/display';
-import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
+import { fetchVisits, createVisit, updateVisit, deleteVisit, ownerRequest, restoreVisit } from './utils/api';
 import { getAvailableSeasons, getCurrentSeason, getSeasonVisits } from './utils/yearReview';
-import { computeBadges, detectNewBadges } from './utils/badges';
+import OwnerPanel from './components/OwnerPanel';
+import ShopHistory from './components/ShopHistory';
+import useJournalRoute from './hooks/useJournalRoute';
 import { buildReturnVisitDraft, getShopRepeatKey, getShopVisitCounts } from './utils/repeats';
 import { HOME_CITY, VISIT_TYPES, getVisitType } from './utils/visitTypes';
 import useDarkMode from './hooks/useDarkMode';
@@ -34,16 +36,21 @@ export default function App() {
   const [showForm, setShowForm] = useState(false);
   const [visitDraft, setVisitDraft] = useState(null);
   const [editingVisit, setEditingVisit] = useState(null);
-  const [viewingVisit, setViewingVisit] = useState(null);
+  const { route, navigate, closeLayer } = useJournalRoute();
+  const viewingVisit = visits.find((visit) => String(visit.id) === route.visit) || null;
+  const setViewingVisit = (value) => {
+    const next = typeof value === 'function' ? value(viewingVisit) : value;
+    if (next) navigate({ visit: String(next.id) }, { layer: true, replace: Boolean(viewingVisit) });
+    else if (route.visit) closeLayer('visit');
+  };
+  const [owner, setOwner] = useState(false);
+  const [showOwner, setShowOwner] = useState(false);
   const [error, setError] = useState(null);
-  const [showModeMenu, setShowModeMenu] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const [showYearReview, setShowYearReview] = useState(false);
+  const showYearReview = Boolean(route.season);
+  const setShowYearReview = (open) => open ? navigate({ season: reviewSeason }, { layer: true }) : closeLayer('season');
   const searchRef = useRef(null);
-  const modeMenuRef = useRef(null);
-  const modeTriggerRef = useRef(null);
-  const prevBadgesRef = useRef(null);
 
   const [darkMode, toggleDarkMode] = useDarkMode();
   const toastBag = useToast();
@@ -63,11 +70,8 @@ export default function App() {
   const sportFilter = viewPrefs.sportFilter || '';
   const repeatFilter = viewPrefs.repeatFilter || '';
   const scopeFilter = viewPrefs.scopeFilter || '';
-  const appMode = isVestDomain
-    ? APP_MODES.VEST
-    : (viewPrefs.appMode || APP_MODES.VIBES);
-
-  const viewTab = viewPrefs.viewTab || 'visits'; // 'visits' | 'map' | 'insights'
+  const appMode = isVestDomain ? APP_MODES.VEST : route.app;
+  const viewTab = route.view;
 
   const setSortBy = (v) => setViewPrefs((p) => {
     if (p.sortBy === v) return { ...p, sortAsc: !p.sortAsc };
@@ -77,35 +81,19 @@ export default function App() {
   const setSportFilter = (v) => setViewPrefs((p) => ({ ...p, sportFilter: v }));
   const setRepeatFilter = (v) => setViewPrefs((p) => ({ ...p, repeatFilter: v }));
   const setScopeFilter = (v) => setViewPrefs((p) => ({ ...p, scopeFilter: v }));
-  const setViewTab = (v) => setViewPrefs((p) => ({ ...p, viewTab: v }));
-  const setAppMode = (v) => setViewPrefs((p) => ({ ...p, appMode: typeof v === 'function' ? v(p.appMode) : v }));
+  const setViewTab = (view) => navigate({ view, visit: null, shop: null, season: null });
+  const openShop = (visit) => navigate({ shop: visit.shop_id, visit: null }, { layer: true });
 
   useEffect(() => {
     loadVisits();
   }, []);
 
   useEffect(() => {
-    if (!showModeMenu) return;
-
-    const closeMenu = (event) => {
-      if (event.key === 'Escape') {
-        setShowModeMenu(false);
-        modeTriggerRef.current?.focus();
-      }
-    };
-    const closeOnOutsideClick = (event) => {
-      if (modeMenuRef.current && !modeMenuRef.current.contains(event.target)) {
-        setShowModeMenu(false);
-      }
-    };
-
-    document.addEventListener('keydown', closeMenu);
-    document.addEventListener('pointerdown', closeOnOutsideClick);
-    return () => {
-      document.removeEventListener('keydown', closeMenu);
-      document.removeEventListener('pointerdown', closeOnOutsideClick);
-    };
-  }, [showModeMenu]);
+    ownerRequest().then((session) => setOwner(session.owner)).catch(() => setOwner(false));
+    const signIn = () => { setOwner(false); setShowOwner(true); };
+    window.addEventListener('vg:sign-in-required', signIn);
+    return () => window.removeEventListener('vg:sign-in-required', signIn);
+  }, []);
 
   // Consolidated keyboard shortcuts
   useEffect(() => {
@@ -123,13 +111,9 @@ export default function App() {
       // An open dialog owns the keyboard. The tag guard above only covers text
       // fields, so with focus on a button inside the visit form a stray `v`
       // switched app modes — unmounting the form and discarding the draft.
-      if (showForm || editingVisit || viewingVisit) return;
+      if (showForm || editingVisit || viewingVisit || showOwner || showYearReview || showShortcuts) return;
 
-      if (e.key.toLowerCase() === 'v') {
-        setAppMode((prev) => {
-          return prev === APP_MODES.VIBES ? APP_MODES.VEST : APP_MODES.VIBES;
-        });
-      } else if (e.key === '/' && appMode === APP_MODES.VIBES) {
+      if (e.key === '/' && appMode === APP_MODES.VIBES) {
         e.preventDefault();
         searchRef.current?.focus();
       } else if (e.key === '?') {
@@ -143,20 +127,7 @@ export default function App() {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [appMode, showForm, viewingVisit, editingVisit, toggleDarkMode]);
-
-  // Badge unlock notifications
-  useEffect(() => {
-    if (!visits.length) return;
-    const newBadges = computeBadges(visits);
-    if (prevBadgesRef.current) {
-      const unlocked = detectNewBadges(prevBadgesRef.current, newBadges);
-      unlocked.forEach(b => {
-        toastBag.show(`${b.icon} Badge: ${b.name} (${b.tier})`);
-      });
-    }
-    prevBadgesRef.current = newBadges;
-  }, [visits]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [appMode, showForm, viewingVisit, editingVisit, showOwner, showYearReview, showShortcuts, owner, toggleDarkMode]);
 
   const loadVisits = async () => {
     try {
@@ -188,6 +159,7 @@ export default function App() {
   };
 
   const handleEditVisit = (visit) => {
+    if (!owner) { setShowOwner(true); return; }
     setEditingVisit(visit);
     setShowForm(false);
     setVisitDraft(null);
@@ -209,17 +181,16 @@ export default function App() {
   };
 
   const handleDeleteVisit = async (id) => {
-    const deletedVisit = visits.find((v) => v.id === id);
     try {
       setError(null);
       await deleteVisit(id);
       setVisits((prev) => prev.filter((v) => v.id !== id));
       setViewingVisit((prev) => (prev?.id === id ? null : prev));
-      toastBag.show('Visit deleted. Click to undo.', 'success', {
+      toastBag.show('Moved to deleted visits. Undo', 'success', {
         duration: 5000,
         onUndo: async () => {
           try {
-            const restored = await createVisit(deletedVisit);
+            const restored = await restoreVisit(id);
             setVisits((prev) => [restored, ...prev]);
             toastBag.show('Visit restored.');
           } catch {
@@ -234,6 +205,7 @@ export default function App() {
   };
 
   const handleOpenNewVisit = () => {
+    if (!owner) { setShowOwner(true); return; }
     // While browsing the Madison list, start new visits on that side of the toggle.
     setVisitDraft(
       scopeFilter === VISIT_TYPES.HOME
@@ -245,6 +217,7 @@ export default function App() {
   };
 
   const handleLogReturnVisit = (visit) => {
+    if (!owner) { setShowOwner(true); return; }
     setVisitDraft(buildReturnVisitDraft(visit));
     setEditingVisit(null);
     setViewingVisit(null);
@@ -357,70 +330,9 @@ export default function App() {
         }`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
             <div className="flex items-center justify-between gap-3 min-w-0">
-              <div className="relative flex-1 min-w-0" ref={modeMenuRef}>
-                <button
-                  ref={modeTriggerRef}
-                  onClick={() => setShowModeMenu((prev) => !prev)}
-                  className="flex max-w-full items-center gap-2 sm:gap-4 text-left hover:opacity-80 transition-opacity min-w-0"
-                  aria-label={`${appMode === APP_MODES.VIBES ? 'vibes & grinds' : modeLabel} — toggle app mode`}
-                  aria-expanded={showModeMenu}
-                  aria-haspopup="menu"
-                >
-                  {appMode === APP_MODES.VEST && <span className="brand-mark" aria-hidden="true">VT</span>}
-                  <h1 className={`text-xl sm:text-3xl leading-none ${
-                    appMode === APP_MODES.VEST
-                      ? 'coffee-shop-name font-black tracking-tight'
-                      : ''
-                  }`}
-                    style={appMode === APP_MODES.VIBES ? {
-                      fontFamily: 'Fraunces, Georgia, serif',
-                      fontWeight: 600,
-                      letterSpacing: '0',
-                      color: 'var(--ink)',
-                    } : undefined}
-                  >
-                    {appMode === APP_MODES.VIBES ? 'vibes & grinds' : modeLabel}
-                  </h1>
-                  <svg className="w-4 h-4 text-stone-500 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z" />
-                  </svg>
-                </button>
-
-                {showModeMenu && (
-                  <div className="absolute left-0 mt-2 w-56 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 shadow-lg z-20 overflow-hidden" role="menu">
-                    <button
-                      onClick={() => {
-                        setShowModeMenu(false);
-                        setAppMode(APP_MODES.VIBES);
-                      }}
-                      role="menuitemradio"
-                      aria-checked={appMode === APP_MODES.VIBES}
-                      className={`w-full text-left px-4 py-3.5 text-sm ${
-                        appMode === APP_MODES.VIBES
-                          ? 'bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-stone-100'
-                          : 'text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700'
-                      }`}
-                    >
-                      Vibes & Grinds
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowModeMenu(false);
-                        setAppMode(APP_MODES.VEST);
-                      }}
-                      role="menuitemradio"
-                      aria-checked={appMode === APP_MODES.VEST}
-                      className={`w-full text-left px-4 py-3.5 text-sm ${
-                        appMode === APP_MODES.VEST
-                          ? 'bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-stone-100'
-                          : 'text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700'
-                      }`}
-                    >
-                      Vest Tracker
-                    </button>
-                  </div>
-                )}
-              </div>
+              <a className="journal-brand" href={isVestDomain ? '/' : appMode === APP_MODES.VEST ? '/?app=vest' : '/'} onClick={(event) => { event.preventDefault(); navigate({ view: 'visits', visit: null, shop: null, season: null }); }}>
+                <h1>{appMode === APP_MODES.VEST ? 'Vest Tracker' : 'vibes & grinds'}</h1>
+              </a>
 
               <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                 <button
@@ -438,7 +350,7 @@ export default function App() {
                     </svg>
                   )}
                 </button>
-                {appMode === APP_MODES.VIBES && !showForm && !editingVisit && (
+                {owner && appMode === APP_MODES.VIBES && !showForm && !editingVisit && (
                   <>
                     <button onClick={handleOpenNewVisit} className="btn-primary hidden sm:block">Add visit</button>
                     <button onClick={handleOpenNewVisit} className="header-icon-button sm:hidden" aria-label="Add visit">
@@ -455,7 +367,7 @@ export default function App() {
 
         {appMode === APP_MODES.VEST ? (
           <Suspense fallback={<div className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading...</div>}>
-            <VestTrackerDashboard showToast={toastBag.show} />
+            <VestTrackerDashboard showToast={toastBag.show} canEdit={owner} />
           </Suspense>
         ) : loading ? (
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" aria-busy="true">
@@ -472,7 +384,7 @@ export default function App() {
           </main>
         ) : (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-5 pb-8">
-          {viewTab === 'visits' && <section className="journal-summary">
+          {viewTab === 'visits' && !route.shop && <section className="journal-summary">
             <div className="journal-intro">
               <h2>{visits.length} <span>{visits.length === 1 ? 'visit' : 'visits'}</span></h2>
               <p className="journal-totals">{shopCount} {shopCount === 1 ? 'shop' : 'shops'} <span>·</span> {cityCount} {cityCount === 1 ? 'city' : 'cities'}</p>
@@ -505,21 +417,21 @@ export default function App() {
               </button>
             ))}
             </div>
-            {seasonVisitCount >= 3 && (
-              <button onClick={() => setShowYearReview(true)} className="season-link hidden sm:inline-flex">
-                {reviewSeason} review
+            {seasonVisitCount > 0 && (
+              <button onClick={() => setShowYearReview(true)} className="season-link">
+                Seasons
                 <span aria-hidden="true">↗</span>
               </button>
             )}
           </div>
 
-          {viewTab === 'insights' ? (
+          {route.shop ? <ShopHistory shopId={route.shop} visits={visits} onBack={() => closeLayer('shop')} onVisitClick={setViewingVisit} onEdit={owner ? handleEditVisit : undefined} onDelete={owner ? handleDeleteVisit : undefined} onLogReturnVisit={owner ? handleLogReturnVisit : undefined} /> : viewTab === 'insights' ? (
             <Suspense fallback={<div className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading insights...</div>}>
-              <InsightsPanel visits={visits} />
+              <InsightsPanel visits={visits} onVisitClick={setViewingVisit} onShopClick={openShop} />
             </Suspense>
           ) : viewTab === 'map' ? (
             <Suspense fallback={<div className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading map...</div>}>
-              <MapExplorer visits={visits} onVisitClick={setViewingVisit} />
+              <MapExplorer visits={visits} onVisitClick={setViewingVisit} onShopClick={openShop} onRepair={owner ? handleEditVisit : undefined} />
             </Suspense>
           ) : (
           <>
@@ -649,10 +561,10 @@ export default function App() {
                 <div className="hidden sm:flex items-end gap-4 sm:gap-5 border-b border-stone-900/10 dark:border-stone-100/10 pb-0">
                   <span className="eyebrow pb-2.5">Sort</span>
                   {[
-                    { value: 'date', label: 'Date' },
-                    { value: 'vibe', label: 'Vibe' },
-                    { value: 'coffee', label: 'Coffee' },
-                    { value: 'composite', label: 'Total' },
+                    { value: 'date', label: sortBy === 'date' && sortAsc ? 'Oldest first' : 'Newest first' },
+                    { value: 'vibe', label: sortBy === 'vibe' && sortAsc ? 'Lowest vibe' : 'Highest vibe' },
+                    { value: 'coffee', label: sortBy === 'coffee' && sortAsc ? 'Lowest coffee' : 'Highest coffee' },
+                    { value: 'composite', label: sortBy === 'composite' && sortAsc ? 'Lowest total' : 'Highest total' },
                   ].map((option) => (
                     <button
                       key={option.value}
@@ -697,11 +609,11 @@ export default function App() {
           <VisitList
             visits={sortedVisits}
             loading={loading}
-            onEdit={handleEditVisit}
-            onDelete={handleDeleteVisit}
+            onEdit={owner ? handleEditVisit : undefined}
+            onDelete={owner ? handleDeleteVisit : undefined}
             onViewDetails={setViewingVisit}
-            onAddVisit={handleOpenNewVisit}
-            onLogReturnVisit={handleLogReturnVisit}
+            onAddVisit={owner ? handleOpenNewVisit : undefined}
+            onLogReturnVisit={owner ? handleLogReturnVisit : undefined}
             hasActiveFilters={hasActiveFilters}
             shopVisitCounts={shopVisitCounts}
           />
@@ -736,26 +648,36 @@ export default function App() {
           ) : (
             <p>Built for charting AJ's sideline fits and results</p>
           )}
+          <div className="footer-links"><a href={appMode === APP_MODES.VIBES ? '/?app=vest' : isVestDomain ? 'https://coffee.erikrole.com/' : '/'}>{appMode === APP_MODES.VIBES ? 'Vest Tracker ↗' : 'Coffee journal ↗'}</a><button type="button" onClick={() => setShowOwner(true)}>{owner ? 'Manage journal' : 'Owner sign-in'}</button></div>
         </footer>
         )}
+
+        {showOwner && <FormModal topmost title={owner ? 'Manage journal' : 'Owner sign-in'} onClose={() => setShowOwner(false)}>
+          <OwnerPanel owner={owner} onSignedIn={() => { setOwner(true); setShowOwner(false); toastBag.show('Signed in.'); }} onSignedOut={() => { setOwner(false); setShowOwner(false); }} onRestored={(visit) => { setVisits((items) => [visit, ...items]); toastBag.show('Visit restored.'); }} />
+        </FormModal>}
+
+        {!loading && !error && route.visit && !viewingVisit && <FormModal title="Visit not found" onClose={() => closeLayer('visit')}><VisitNotFound onBack={() => closeLayer('visit')} /></FormModal>}
 
         {viewingVisit && (
           <Suspense fallback={null}>
           <VisitDetailModal
+            key={viewingVisit.id}
+            suspended={showOwner}
             visit={viewingVisit}
-            visits={sortedVisits}
+            visits={sortVisits(visits)}
+            onShopClick={openShop}
             onClose={() => setViewingVisit(null)}
             onNavigate={setViewingVisit}
-            onUpdate={handleModalUpdateVisit}
-            onEdit={handleEditVisit}
-            onDelete={handleDeleteVisit}
-            onLogReturnVisit={handleLogReturnVisit}
+            onUpdate={owner ? handleModalUpdateVisit : undefined}
+            onEdit={owner ? handleEditVisit : undefined}
+            onDelete={owner ? handleDeleteVisit : undefined}
+            onLogReturnVisit={owner ? handleLogReturnVisit : undefined}
           />
           </Suspense>
         )}
 
         {appMode === APP_MODES.VIBES && showForm && (
-          <FormModal title={isReturnDraft ? 'Log return visit' : 'Add visit'} onClose={handleCancelForm}>
+          <FormModal active={!showOwner} title={isReturnDraft ? 'Log return visit' : 'Add visit'} onClose={handleCancelForm}>
             <AddVisitForm
               initialData={visitDraft}
               mode={isReturnDraft ? 'return' : 'add'}
@@ -766,7 +688,7 @@ export default function App() {
         )}
 
         {appMode === APP_MODES.VIBES && editingVisit && (
-          <FormModal title="Edit visit" onClose={handleCancelForm}>
+          <FormModal active={!showOwner} title="Edit visit" onClose={handleCancelForm}>
             <AddVisitForm initialData={editingVisit} mode="edit" onSubmit={handleUpdateVisit} visits={visits} />
           </FormModal>
         )}
@@ -790,7 +712,7 @@ export default function App() {
                   : 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-200'
               }`}
             >
-              <span>{toastBag.toast.onUndo ? 'Visit deleted.' : toastBag.toast.message}</span>
+              <span>{toastBag.toast.onUndo ? 'Moved to deleted visits.' : toastBag.toast.message}</span>
               {toastBag.toast.onUndo && (
                 <span className="font-semibold underline underline-offset-2">Undo</span>
               )}
@@ -804,7 +726,7 @@ export default function App() {
 
         {showYearReview && (
           <Suspense fallback={null}>
-            <YearInReview visits={visits} onClose={() => setShowYearReview(false)} />
+            <YearInReview visits={visits} initialSeason={route.season} onSeasonChange={(season) => navigate({ season }, { replace: true })} onVisitClick={(visit) => navigate({ season: null, visit: String(visit.id) }, { replace: true })} onClose={() => setShowYearReview(false)} />
           </Suspense>
         )}
 
@@ -836,4 +758,8 @@ function EditorialStat({ label, value, suffix }) {
       </div>
     </div>
   );
+}
+
+function VisitNotFound({ onBack }) {
+  return <section><h2 className="type-title">Visit not found</h2><p className="type-meta my-4">This visit is no longer published. You can keep browsing the journal.</p><button className="btn-primary" onClick={onBack}>Back</button></section>;
 }

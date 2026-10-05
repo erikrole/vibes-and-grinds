@@ -1,5 +1,6 @@
-import { getTodayDateString } from './dates';
-import { getVisitType } from './visitTypes';
+import { getTodayDateString } from './dates.js';
+import { getVisitType } from './visitTypes.js';
+import { shopKey, sameLocation } from '../../../shared/shops.mjs';
 
 export const DEFAULT_VISITOR_NAME = 'AJ';
 
@@ -15,12 +16,7 @@ export function normalizeRepeatValue(value = '') {
 }
 
 export function getShopRepeatKey(visit = {}) {
-  const placeId = visit.coffee_shop_place_id?.trim();
-  if (placeId) return `place:${placeId}`;
-
-  const name = normalizeRepeatValue(visit.coffee_shop_name);
-  const city = normalizeRepeatValue(visit.city);
-  return `shop:${name}|${city}`;
+  return shopKey(visit);
 }
 
 export function getShopVisitCounts(visits = []) {
@@ -32,7 +28,8 @@ export function getShopVisitCounts(visits = []) {
 }
 
 export function getRepeatVisits(visits = [], targetVisit = {}, { excludeId = null } = {}) {
-  const targetKey = getShopRepeatKey(targetVisit);
+  const matchingIds = [...new Set(visits.filter((visit) => sameLocation(targetVisit, visit)).map((visit) => visit.shop_id).filter(Boolean))];
+  const targetKey = getShopRepeatKey(!targetVisit.shop_id && matchingIds.length === 1 ? { ...targetVisit, shop_id: matchingIds[0] } : targetVisit);
   return visits
     .filter((visit) => {
       if (excludeId != null && String(visit.id) === String(excludeId)) return false;
@@ -66,8 +63,9 @@ export function buildReturnVisitDraft(visit = {}) {
     date: getTodayDateString(),
     coffee_shop_name: visit.coffee_shop_name || '',
     city: visit.city || '',
-    opponent: visit.opponent || '',
-    sport: visit.sport || '',
+    opponent: '',
+    sport: '',
+    shop_id: visit.shop_id || null,
     visit_type: getVisitType(visit),
     coffee_shop_address: visit.coffee_shop_address || '',
     coffee_shop_place_id: visit.coffee_shop_place_id || '',

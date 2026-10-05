@@ -1,162 +1,38 @@
 import { useMemo, useState } from 'react';
-import { leaderboard, sportDayAnalysis, trendComparison, repeatShopInsights } from '../utils/insights';
+import { titleCaseOrder } from '../utils/display';
+import { formatDate } from '../utils/dates';
 
-const average = (items, key) => items.length
-  ? items.reduce((sum, item) => sum + Number(item[key] || 0), 0) / items.length
-  : 0;
+import { buildComparisons } from '../utils/comparisons';
 
-const normalize = (value = '') => value.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-
-function normalizedLeaderboard(visits, field, minVisits = 2) {
-  const labels = new Map();
-  visits.forEach((visit) => {
-    const raw = visit[field]?.trim();
-    const key = normalize(raw);
-    if (key && !labels.has(key)) labels.set(key, raw);
-  });
-  return leaderboard(visits, (visit) => normalize(visit[field]), minVisits)
-    .map((item) => ({ ...item, key: labels.get(item.key) || item.key }));
-}
-
-export default function InsightsPanel({ visits }) {
-  const [compareBy, setCompareBy] = useState('coffee_shop_name');
-  const [minimumSample, setMinimumSample] = useState(2);
-
-  const recent = useMemo(
-    () => [...visits].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5),
-    [visits]
-  );
-  const previous = useMemo(
-    () => [...visits].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(5, 10),
-    [visits]
-  );
-  const comparisons = useMemo(
-    () => normalizedLeaderboard(visits, compareBy, minimumSample).slice(0, 12),
-    [visits, compareBy, minimumSample]
-  );
-  const sportDays = useMemo(() => sportDayAnalysis(visits), [visits]);
-  const trend = useMemo(() => trendComparison(visits), [visits]);
-  const repeat = useMemo(() => repeatShopInsights(visits), [visits]);
-  const best = useMemo(
-    () => visits.reduce((winner, visit) => !winner || visit.composite_score > winner.composite_score ? visit : winner, null),
-    [visits]
-  );
-
-  if (!visits.length) return <p className="empty-state">Add visits to compare ratings.</p>;
-
-  const recentDelta = previous.length
-    ? average(recent, 'composite_score') - average(previous, 'composite_score')
-    : null;
-  const ratingGap = average(visits, 'vibe_rating') - average(visits, 'coffee_rating');
-  const returningShops = repeat?.shops?.length || 0;
-  const historyDelta = trend ? trend.secondHalf.avgComposite - trend.firstHalf.avgComposite : null;
-
-  return (
-    <div className="insights-workbench">
-      <header className="section-intro">
-        <h2>Ratings and comparisons</h2>
-        <p>Compare shops, cities, and orders by average rating and number of visits.</p>
-      </header>
-
-      <section className="insight-highlight-grid" aria-label="Journal highlights">
-        <Highlight
-          label="Recent visits"
-          value={`${average(recent, 'composite_score').toFixed(1)}/20`}
-          detail={recentDelta == null ? `Last ${recent.length} visits` : `${signed(recentDelta)} vs the previous ${previous.length}`}
-        />
-        <Highlight
-          label="Vibe vs. coffee"
-          value={ratingGap >= 0 ? 'Vibe leads' : 'Coffee leads'}
-          detail={`${Math.abs(ratingGap).toFixed(1)} points on average across ${visits.length} visits`}
-        />
-        <Highlight
-          label="Best stop"
-          value={best?.coffee_shop_name || 'Not enough data'}
-          detail={best ? `${Number(best.composite_score).toFixed(1)}/20 in ${best.city || 'the journal'}` : ''}
-        />
-        <Highlight
-          label="Repeat shops"
-          value={`${returningShops} repeat ${returningShops === 1 ? 'shop' : 'shops'}`}
-          detail={`${new Set(visits.map((visit) => normalize(visit.coffee_shop_name))).size} distinct shops logged`}
-        />
-      </section>
-
-      <section className="insight-context-grid">
-        <ContextCard title="Game-day ratings">
-          {sportDays ? (
-            <>
-              <strong>{signed(sportDays.gameDay.avgComposite - sportDays.nonGameDay.avgComposite)} overall</strong>
-              <p>{sportDays.gameDay.count} game-day visits compared with {sportDays.nonGameDay.count} other road visits.</p>
-            </>
-          ) : <p>Log both game-day and non-game-day road stops to compare them.</p>}
-        </ContextCard>
-        <ContextCard title="Rating direction">
-          {trend ? (
-            <>
-              <strong>{signed(historyDelta)} overall</strong>
-              <p>Second half of the journal compared with the first half.</p>
-            </>
-          ) : <p>Four visits are needed before direction becomes meaningful.</p>}
-        </ContextCard>
-      </section>
-
-      <section className="compare-panel">
-        <div className="compare-heading">
-          <div>
-            <h3>Compare ratings</h3>
-          </div>
-          <div className="compare-controls">
-            <label>
-              Compare
-              <select value={compareBy} onChange={(event) => setCompareBy(event.target.value)} className="control-field">
-                <option value="coffee_shop_name">Shops</option>
-                <option value="city">Cities</option>
-                <option value="coffee_order">Orders</option>
-              </select>
-            </label>
-            <label>
-              Minimum visits
-              <select value={minimumSample} onChange={(event) => setMinimumSample(Number(event.target.value))} className="control-field">
-                <option value={2}>2 visits</option>
-                <option value={3}>3 visits</option>
-                <option value={5}>5 visits</option>
-              </select>
-            </label>
-          </div>
-        </div>
-
-        {comparisons.length ? (
-          <div className="comparison-table" role="table" aria-label="Ranked journal comparison">
-            <div className="comparison-row comparison-header" role="row">
-              <span role="columnheader">Name</span><span role="columnheader">Visits</span><span role="columnheader">Vibe</span><span role="columnheader">Coffee</span><span role="columnheader">Overall</span>
-            </div>
-            {comparisons.map((item, index) => (
-              <div className="comparison-row" role="row" key={item.key}>
-                <span role="cell"><b>{index + 1}</b>{item.key}</span>
-                <span role="cell">{item.count}</span>
-                <span role="cell">{item.avgVibe.toFixed(1)}</span>
-                <span role="cell">{item.avgCoffee.toFixed(1)}</span>
-                <strong role="cell">{item.avgComposite.toFixed(1)}</strong>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="compare-empty">No groups meet that sample size yet. Lower the minimum or keep logging.</p>
-        )}
-      </section>
-    </div>
-  );
-}
-
-function Highlight({ label, value, detail }) {
-  return <article className="insight-highlight"><p className="eyebrow">{label}</p><h3>{value}</h3><p>{detail}</p></article>;
-}
-
-function ContextCard({ title, children }) {
-  return <article className="insight-context"><p className="eyebrow">{title}</p>{children}</article>;
-}
-
-function signed(value) {
-  const number = Number(value || 0);
-  return `${number >= 0 ? '+' : ''}${number.toFixed(1)}`;
+export default function InsightsPanel({ visits, onVisitClick, onShopClick }) {
+  const [groupBy, setGroupBy] = useState('shop');
+  const [minVisits, setMinVisits] = useState(1);
+  const [rankBy, setRankBy] = useState('coffee_rating');
+  const [city, setCity] = useState('');
+  const cities = [...new Set(visits.map((visit) => visit.city).filter(Boolean))].sort();
+  const source = city ? visits.filter((visit) => visit.city === city) : visits;
+  const comparisons = useMemo(() => buildComparisons(source, groupBy, minVisits, rankBy), [visits, city, groupBy, minVisits, rankBy]);
+  const best = source.reduce((winner, visit) => !winner || Number(visit.coffee_rating) > Number(winner.coffee_rating) ? visit : winner, null);
+  const repeatGroups = buildComparisons(source, 'shop', 2);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const detail = comparisons.find((item) => item.key === selectedGroup);
+  if (!visits.length) return <p className="empty-state">Ratings and comparisons will appear after the first visit.</p>;
+  return <div className="insights-workbench">
+    <header className="section-intro"><h2>Find a good cup</h2><p>Compare the places and orders in AJ’s journal. Each rating is a personal take.</p></header>
+    <section className="insight-highlight-grid useful-highlights" aria-label="Journal highlights">
+      {best && <button type="button" className="insight-highlight text-left" onClick={() => onVisitClick(best)}><p className="eyebrow">Highest coffee rating{city ? ` · ${city}` : ''}</p><h3>{best.coffee_shop_name}</h3><p>{titleCaseOrder(best.coffee_order)} · {Number(best.coffee_rating).toFixed(1)} / 10</p></button>}
+      <article className="insight-highlight"><p className="eyebrow">Return visits</p><h3>{repeatGroups.length} {repeatGroups.length === 1 ? 'shop revisited' : 'shops revisited'}</h3><p>{repeatGroups.length ? 'Open a shop below to compare its visits.' : 'Repeat comparisons will appear when a shop has a second visit.'}</p></article>
+    </section>
+    <section className="compare-panel">
+      <div className="compare-heading"><h3>Compare ratings</h3><div className="compare-controls">
+        <label>Compare<select value={groupBy} onChange={(event) => { setGroupBy(event.target.value); setSelectedGroup(null); }} className="control-field"><option value="shop">Shops</option><option value="city">Cities</option><option value="order">Orders</option></select></label>
+        <label>City<select value={city} onChange={(event) => { setCity(event.target.value); setSelectedGroup(null); }} className="control-field"><option value="">All cities</option>{cities.map((name) => <option key={name}>{name}</option>)}</select></label>
+        <label>Rank by<select value={rankBy} onChange={(event) => setRankBy(event.target.value)} className="control-field"><option value="coffee_rating">Coffee</option><option value="vibe_rating">Vibe</option><option value="composite_score">Overall</option></select></label>
+        <label>Minimum visits<select value={minVisits} onChange={(event) => setMinVisits(Number(event.target.value))} className="control-field"><option value={1}>1 visit</option><option value={2}>2 visits</option><option value={3}>3 visits</option><option value={5}>5 visits</option></select></label>
+      </div></div>
+      <p className="comparison-explainer">Average ratings · vibe and coffee out of 10, overall out of 20. A single visit is one observation.</p>
+      {comparisons.length ? <div className="comparison-scroll"><table className="ratings-table"><caption className="sr-only">Ratings grouped by {groupBy}, with visit counts</caption><thead><tr><th scope="col">{groupBy === 'shop' ? 'Shop' : groupBy === 'city' ? 'City' : 'Order'}</th><th scope="col">Visits</th><th scope="col">Vibe</th><th scope="col">Coffee</th><th scope="col">Overall</th></tr></thead><tbody>{comparisons.map((group) => <tr key={group.key}><th scope="row"><button type="button" className="comparison-link" onClick={() => groupBy === 'shop' && group.best.shop_id ? onShopClick(group.best) : setSelectedGroup(group.key)}>{group.label}<span className="sr-only"> — view visits</span></button>{groupBy === 'shop' && <small>{group.best.city}</small>}</th><td>{group.visits.length}</td><td>{group.vibe.toFixed(1)}</td><td>{group.coffee.toFixed(1)}</td><td><strong>{group.total.toFixed(1)}</strong></td></tr>)}</tbody></table></div> : <p className="compare-empty">No groups have {minVisits} visits yet. Choose a lower minimum.</p>}
+      {detail && <section className="comparison-detail"><h4 className="text-lg font-semibold mb-3">Visits for {detail.label}</h4><ul>{detail.visits.map((visit) => <li key={visit.id}><button className="text-action text-left" onClick={() => onVisitClick(visit)}>{visit.coffee_shop_name} · {formatDate(visit.date)} · {titleCaseOrder(visit.coffee_order)} · {Number(visit.coffee_rating).toFixed(1)} coffee</button></li>)}</ul></section>}
+    </section>
+  </div>;
 }

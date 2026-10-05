@@ -1,5 +1,6 @@
 const express = require('express');
-const cors = require('cors');
+const path = require('node:path');
+const fs = require('node:fs/promises');
 const { initDatabase, getDatabase } = require('./database');
 require('dotenv').config();
 
@@ -12,14 +13,23 @@ const ESPN_SUMMARY_BASE = 'https://site.web.api.espn.com/apis/site/v2/sports/bas
 const FETCH_TIMEOUT_MS = 10000;
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '64kb' }));
+app.use('/api/upload', express.raw({ type: 'multipart/form-data', limit: '13mb' }));
 
 // Initialize database then start listening — prevents requests arriving before db is ready
 let db;
+let apiDB;
+let auth;
+let visitsApi;
 initDatabase()
-  .then((database) => {
+  .then(async (database) => {
     db = database;
+    auth = await import('../shared/auth.mjs');
+    visitsApi = await import('../shared/visits.mjs');
+    const { sqliteAdapter } = await import('../shared/sqlite-adapter.mjs');
+    apiDB = sqliteAdapter(db);
+    const { backfillShops } = await import('../shared/shops.mjs');
+    await backfillShops(apiDB);
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
@@ -136,182 +146,46 @@ function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
   return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 
-// Get all coffee visits
-app.get('/api/visits', async (req, res) => {
+function webRequest(req) {
+  const origin = process.env.LOCAL_ORIGIN || `http://${req.get('host')}`;
+  const headers = new Headers(req.headers);
+  const body = ['GET', 'HEAD'].includes(req.method) ? undefined : Buffer.isBuffer(req.body) ? req.body : JSON.stringify(req.body || {});
+  return new Request(`${origin}${req.originalUrl}`, { method: req.method, headers, body });
+}
+
+async function sendResponse(res, response) {
+  response.headers.forEach((value, key) => res.setHeader(key, value));
+  res.status(response.status).send(Buffer.from(await response.arrayBuffer()));
+}
+
+const ownerEnv = () => ({ DB: apiDB, OWNER_KEY_HASH: process.env.OWNER_KEY_HASH });
+app.use('/api', async (req, res, next) => {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) || req.path === '/owner/session') return next();
   try {
-    const visits = await db.all(
-      'SELECT * FROM coffee_visits ORDER BY date DESC, created_at DESC'
-    );
-    res.json(visits);
-  } catch (error) {
-    console.error('Error fetching visits:', error);
-    res.status(500).json({ error: 'Failed to fetch visits' });
-  }
+    const denied = await auth.authorizeWrite(webRequest(req), ownerEnv());
+    if (denied) return sendResponse(res, denied);
+    next();
+  } catch { res.status(500).json({ error: 'Could not authorize this request.' }); }
 });
-
-// Get a single visit
-app.get('/api/visits/:id', async (req, res) => {
-  try {
-    const visit = await db.get(
-      'SELECT * FROM coffee_visits WHERE id = ?',
-      [req.params.id]
-    );
-    if (!visit) {
-      return res.status(404).json({ error: 'Visit not found' });
-    }
-    res.json(visit);
-  } catch (error) {
-    console.error('Error fetching visit:', error);
-    res.status(500).json({ error: 'Failed to fetch visit' });
-  }
+app.all('/api/owner/session', async (req, res) => {
+  try { await sendResponse(res, await auth.ownerSession(webRequest(req), ownerEnv())); }
+  catch { res.status(500).json({ error: 'Could not sign in. Please try again.' }); }
 });
-
-// Create a new visit
-app.post('/api/visits', async (req, res) => {
-  try {
-    const {
-      date,
-      coffee_shop_name,
-      city,
-      opponent,
-      sport,
-      visit_type,
-      coffee_shop_address,
-      coffee_shop_place_id,
-      coffee_shop_lat,
-      coffee_shop_lng,
-      coffee_order,
-      vibe_rating,
-      coffee_rating,
-      notes,
-      photo_url
-    } = req.body;
-
-    const validationError = validateVisit({ date, coffee_shop_name, vibe_rating, coffee_rating });
-    if (validationError) {
-      return res.status(400).json({ error: validationError });
-    }
-
-    const trimmedName = String(coffee_shop_name).trim();
-
-    const result = await db.run(
-      `INSERT INTO coffee_visits (
-        date, coffee_shop_name, city, opponent, sport, visit_type, coffee_shop_address, coffee_shop_place_id,
-        coffee_shop_lat, coffee_shop_lng, coffee_order, vibe_rating, coffee_rating, notes, photo_url
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        date,
-        trimmedName,
-        normalizeOptionalText(city),
-        normalizeOptionalText(opponent),
-        sport || null,
-        normalizeVisitType(visit_type),
-        coffee_shop_address || null,
-        coffee_shop_place_id || null,
-        coffee_shop_lat,
-        coffee_shop_lng,
-        normalizeOptionalText(coffee_order),
-        Number(vibe_rating),
-        Number(coffee_rating),
-        normalizeOptionalText(notes),
-        photo_url || null
-      ]
-    );
-
-    const newVisit = await db.get(
-      'SELECT * FROM coffee_visits WHERE id = ?',
-      [result.lastID]
-    );
-
-    res.status(201).json(newVisit);
-  } catch (error) {
-    console.error('Error creating visit:', error);
-    res.status(500).json({ error: 'Failed to create visit' });
-  }
+app.all(['/api/owner/trash', '/api/owner/trash/:id', '/api/owner/export', '/api/owner/backfill', '/api/owner/vest-history', '/api/owner/vest-history/:id'], async (req, res) => {
+  try { await sendResponse(res, await visitsApi.ownerDataRoute(webRequest(req), ownerEnv(), req.params.id)); }
+  catch { res.status(500).json({ error: 'Could not complete this request.' }); }
 });
-
-// Update a visit
-app.put('/api/visits/:id', async (req, res) => {
-  try {
-    const {
-      date,
-      coffee_shop_name,
-      city,
-      opponent,
-      sport,
-      visit_type,
-      coffee_shop_address,
-      coffee_shop_place_id,
-      coffee_shop_lat,
-      coffee_shop_lng,
-      coffee_order,
-      vibe_rating,
-      coffee_rating,
-      notes,
-      photo_url
-    } = req.body;
-
-    const validationError = validateVisit({ date, coffee_shop_name, vibe_rating, coffee_rating });
-    if (validationError) {
-      return res.status(400).json({ error: validationError });
-    }
-
-    const trimmedName = String(coffee_shop_name).trim();
-
-    const updateResult = await db.run(
-      `UPDATE coffee_visits SET
-        date = ?, coffee_shop_name = ?, city = ?, opponent = ?, sport = ?, visit_type = ?, coffee_shop_address = ?,
-        coffee_shop_place_id = ?, coffee_shop_lat = ?, coffee_shop_lng = ?,
-        coffee_order = ?, vibe_rating = ?, coffee_rating = ?, notes = ?, photo_url = ?
-      WHERE id = ?`,
-      [
-        date,
-        trimmedName,
-        normalizeOptionalText(city),
-        normalizeOptionalText(opponent),
-        sport || null,
-        normalizeVisitType(visit_type),
-        coffee_shop_address || null,
-        coffee_shop_place_id || null,
-        coffee_shop_lat,
-        coffee_shop_lng,
-        normalizeOptionalText(coffee_order),
-        Number(vibe_rating),
-        Number(coffee_rating),
-        normalizeOptionalText(notes),
-        photo_url || null,
-        req.params.id
-      ]
-    );
-
-    if (updateResult.changes === 0) {
-      return res.status(404).json({ error: 'Visit not found' });
-    }
-
-    const updatedVisit = await db.get(
-      'SELECT * FROM coffee_visits WHERE id = ?',
-      [req.params.id]
-    );
-
-    res.json(updatedVisit);
-  } catch (error) {
-    console.error('Error updating visit:', error);
-    res.status(500).json({ error: 'Failed to update visit' });
-  }
-});
-
-// Delete a visit
-app.delete('/api/visits/:id', async (req, res) => {
-  try {
-    const result = await db.run('DELETE FROM coffee_visits WHERE id = ?', [req.params.id]);
-    if (result.changes === 0) {
-      return res.status(404).json({ error: 'Visit not found' });
-    }
-    res.status(204).send();
-  } catch (error) {
-    console.error('Error deleting visit:', error);
-    res.status(500).json({ error: 'Failed to delete visit' });
-  }
+app.all(['/api/visits', '/api/visits/:id'], async (req, res) => sendResponse(res, await visitsApi.visitRoute(webRequest(req), apiDB, req.params.id)));
+const uploadsDir = process.env.UPLOAD_DIR || path.resolve('uploads');
+app.use('/api/photos', express.static(uploadsDir));
+app.post('/api/upload', async (req, res) => {
+  const { onRequestPost } = await import('../functions/api/upload.js');
+  await sendResponse(res, await onRequestPost({ request: webRequest(req), env: {
+    R2_PUBLIC_URL: '/api/photos', PHOTOS: { put: async (name, stream) => {
+      await fs.mkdir(uploadsDir, { recursive: true });
+      await fs.writeFile(path.join(uploadsDir, name), Buffer.from(await new Response(stream).arrayBuffer()));
+    } },
+  } }));
 });
 
 // Get dashboard stats
@@ -324,7 +198,7 @@ app.get('/api/stats', async (req, res) => {
         ROUND(AVG(coffee_rating), 2) as avg_coffee,
         ROUND(AVG(composite_score), 2) as avg_composite,
         MAX(composite_score) as best_composite
-      FROM coffee_visits
+      FROM coffee_visits WHERE deleted_at IS NULL
     `);
 
     const topShops = await db.all(`
@@ -332,8 +206,8 @@ app.get('/api/stats', async (req, res) => {
         coffee_shop_name,
         COUNT(*) as visit_count,
         ROUND(AVG(composite_score), 2) as avg_composite
-      FROM coffee_visits
-      GROUP BY coffee_shop_name
+      FROM coffee_visits WHERE deleted_at IS NULL
+      GROUP BY shop_id
       ORDER BY avg_composite DESC
       LIMIT 5
     `);
@@ -347,82 +221,9 @@ app.get('/api/stats', async (req, res) => {
 
 
 
-app.get('/api/vest/games', async (req, res) => {
-  try {
-    const rows = await db.all(`
-      SELECT game_id, date, location, opponent, ranking, outfit, result, overtime
-      FROM vest_games
-      ORDER BY date ASC, game_id ASC
-    `);
-
-    const games = rows.map((row) => ({
-      id: row.game_id,
-      date: row.date,
-      location: row.location || 'vs',
-      opponent: row.opponent,
-      ranking: row.ranking,
-      outfit: row.outfit || '',
-      result: row.result || '',
-      overtime: Boolean(row.overtime),
-    }));
-
-    return res.json({ games });
-  } catch (error) {
-    console.error('Error fetching vest games:', error);
-    return res.status(500).json({ error: 'Failed to fetch vest games' });
-  }
-});
-
-app.put('/api/vest/games', async (req, res) => {
-  const incoming = Array.isArray(req.body?.games) ? req.body.games : null;
-  if (!incoming) {
-    return res.status(400).json({ error: 'Invalid payload. Expected { games: [] }' });
-  }
-
-  try {
-    await db.exec('BEGIN TRANSACTION');
-    await db.run('DELETE FROM vest_games');
-
-    const stmt = await db.prepare(`
-      INSERT INTO vest_games (game_id, date, location, opponent, ranking, outfit, result, overtime, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `);
-
-    let skipped = 0;
-    try {
-      for (const game of incoming) {
-        const gameId = Number.parseInt(game.id, 10);
-        const ranking = game.ranking === null || game.ranking === '' || game.ranking === undefined
-          ? null
-          : Number.parseInt(game.ranking, 10);
-
-        if (!Number.isFinite(gameId) || !`${game.opponent || ''}`.trim()) {
-          skipped++;
-          continue;
-        }
-
-        await stmt.run([
-          gameId,
-          game.date || null,
-          game.location || 'vs',
-          `${game.opponent}`.trim(),
-          Number.isFinite(ranking) ? ranking : null,
-          `${game.outfit || ''}`.trim(),
-          game.result || '',
-          game.overtime ? 1 : 0,
-        ]);
-      }
-    } finally {
-      await stmt.finalize();
-    }
-
-    await db.exec('COMMIT');
-    return res.json({ success: true, saved: incoming.length - skipped, skipped });
-  } catch (error) {
-    await db.exec('ROLLBACK');
-    console.error('Error syncing vest games:', error);
-    return res.status(500).json({ error: 'Failed to sync vest games' });
-  }
+app.all('/api/vest/games', async (req, res) => {
+  try { const { vestRoute } = await import('../shared/vest.mjs'); await sendResponse(res, await vestRoute(webRequest(req), apiDB)); }
+  catch { res.status(500).json({ error: 'Could not save games. Please try again.' }); }
 });
 
 app.get('/api/vest/schedule', async (req, res) => {

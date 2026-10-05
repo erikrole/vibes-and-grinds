@@ -83,7 +83,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                 <span className="regular-note">Visited {visitCount} times</span>
               )}
             </div>
-            <div className="relative ml-4 flex-shrink-0" ref={menuRef}>
+            {onEdit && <div className="relative ml-4 flex-shrink-0" ref={menuRef}>
               <button
                 onClick={(e) => { e.stopPropagation(); setShowMenu((prev) => !prev); }}
                 className="text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 p-3 -m-2 rounded-xl transition-colors"
@@ -109,7 +109,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                     className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors border-b border-stone-100 dark:border-stone-700"
                     role="menuitem"
                   >
-                    Edit Visit
+                    Edit visit
                   </button>
                   <button
                     onClick={(e) => {
@@ -120,11 +120,11 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                     className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors border-b border-stone-100 dark:border-stone-700"
                     role="menuitem"
                   >
-                    Log Return Visit
+                    Log return visit
                   </button>
                   {confirmingDelete ? (
                     <div className="px-4 py-3">
-                      <p className="text-xs text-stone-500 dark:text-stone-400 mb-2.5">Delete this visit?</p>
+                      <p className="text-xs text-stone-500 dark:text-stone-400 mb-2.5">Move to deleted visits? You can restore it later.</p>
                       <div className="flex gap-2">
                         <button
                           onClick={(e) => { e.stopPropagation(); onDelete(visit.id); setShowMenu(false); }}
@@ -146,12 +146,12 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                       className="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                       role="menuitem"
                     >
-                      Delete Visit
+                      Move to deleted visits
                     </button>
                   )}
                 </div>
               )}
-            </div>
+            </div>}
           </div>
 
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-stone-600 dark:text-stone-300 mt-3">

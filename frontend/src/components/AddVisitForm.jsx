@@ -7,39 +7,6 @@ import { getRepeatContext } from '../utils/repeats';
 import { titleCaseOrder } from '../utils/display';
 import { HOME_CITY, VISIT_TYPES, getVisitType, isMadisonArea } from '../utils/visitTypes';
 
-const BIG_TEN_TEAMS = {
-  'minneapolis': 'Minnesota Golden Gophers',
-  'minneapolis, mn': 'Minnesota Golden Gophers',
-  'madison': 'Wisconsin Badgers',
-  'madison, wi': 'Wisconsin Badgers',
-  'ann arbor': 'Michigan Wolverines',
-  'ann arbor, mi': 'Michigan Wolverines',
-  'east lansing': 'Michigan State Spartans',
-  'east lansing, mi': 'Michigan State Spartans',
-  'columbus': 'Ohio State Buckeyes',
-  'columbus, oh': 'Ohio State Buckeyes',
-  'state college': 'Penn State Nittany Lions',
-  'state college, pa': 'Penn State Nittany Lions',
-  'bloomington': 'Indiana Hoosiers',
-  'bloomington, in': 'Indiana Hoosiers',
-  'west lafayette': 'Purdue Boilermakers',
-  'west lafayette, in': 'Purdue Boilermakers',
-  'champaign': 'Illinois Fighting Illini',
-  'champaign, il': 'Illinois Fighting Illini',
-  'evanston': 'Northwestern Wildcats',
-  'evanston, il': 'Northwestern Wildcats',
-  'lincoln': 'Nebraska Cornhuskers',
-  'lincoln, ne': 'Nebraska Cornhuskers',
-  'iowa city': 'Iowa Hawkeyes',
-  'iowa city, ia': 'Iowa Hawkeyes',
-  'college park': 'Maryland Terrapins',
-  'college park, md': 'Maryland Terrapins',
-  'piscataway': 'Rutgers Scarlet Knights',
-  'piscataway, nj': 'Rutgers Scarlet Knights',
-  'milwaukee': 'Villanova',
-  'milwaukee, wi': 'Villanova',
-};
-
 // Transparent, borderless input style for use inside section cells
 const FI = 'form-control';
 const FS = 'form-control appearance-none cursor-pointer';
@@ -53,6 +20,7 @@ function getDefaultVisitData() {
     sport: '',
     visit_type: VISIT_TYPES.ROAD,
     coffee_shop_address: '',
+    shop_id: null,
     coffee_shop_place_id: '',
     coffee_shop_lat: '',
     coffee_shop_lng: '',
@@ -170,15 +138,8 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
 
     const updates = { [name]: value };
 
-    // Home stops never get an opponent, and Madison would otherwise match the map.
-    if (name === 'city' && value && !isHomeStop) {
-      const cityLower = value.toLowerCase().trim();
-      const matchedTeam = BIG_TEN_TEAMS[cityLower];
-      if (matchedTeam && formData.sport && !formData.opponent) updates.opponent = matchedTeam;
-    }
-
     if (name === 'city') {
-      Object.assign(updates, { coffee_shop_place_id: '', coffee_shop_lat: '', coffee_shop_lng: '' });
+      Object.assign(updates, { shop_id: null, coffee_shop_place_id: '', coffee_shop_lat: '', coffee_shop_lng: '' });
       Object.assign(updates, detectedScopeUpdates({ city: value }));
     }
 
@@ -197,6 +158,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
     const cityFromAddress = place.city || extractCityFromAddress(place.address);
     const updates = {
       coffee_shop_name: place.name || formData.coffee_shop_name,
+      shop_id: place.shop_id || null,
       coffee_shop_address: place.address || '',
       coffee_shop_place_id: place.place_id || '',
       coffee_shop_lat: place.lat ?? '',
@@ -204,10 +166,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
     };
     if (cityFromAddress) {
       updates.city = cityFromAddress;
-      if (!isHomeStop) {
-        const matchedTeam = BIG_TEN_TEAMS[cityFromAddress.toLowerCase()];
-        if (matchedTeam && formData.sport && !formData.opponent) updates.opponent = matchedTeam;
-      }
+
     }
 
     // Applied last so a Madison result clears any opponent guessed just above.
@@ -387,6 +346,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
                   coffee_shop_name: nextValue,
                   city: isHomeStop ? HOME_CITY : '',
                   coffee_shop_address: '',
+                  shop_id: null,
                   coffee_shop_place_id: '',
                   coffee_shop_lat: '',
                   coffee_shop_lng: '',
@@ -432,7 +392,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
             <Field label="Address" htmlFor={fieldIds.coffee_shop_address}>
               <input id={fieldIds.coffee_shop_address} name="coffee_shop_address" value={formData.coffee_shop_address} onChange={(event) => {
                 handleInputChange(event);
-                setFormData((prev) => ({ ...prev, coffee_shop_place_id: '', coffee_shop_lat: '', coffee_shop_lng: '' }));
+                setFormData((prev) => ({ ...prev, shop_id: null, coffee_shop_place_id: '', coffee_shop_lat: '', coffee_shop_lng: '' }));
               }} className={FI} placeholder="Street address" />
             </Field>
           </div>}
@@ -482,8 +442,8 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
               )}
             </div>
           </Field>
-              <Field label="Opponent" htmlFor={fieldIds.opponent}>
-                <AutocompleteInput id={fieldIds.opponent} name="opponent" value={formData.opponent} onChange={handleInputChange} suggestions={suggestions.opponents} className={FI} placeholder="Who were the Badgers playing?" />
+              <Field label="Event / opponent" htmlFor={fieldIds.opponent}>
+                <AutocompleteInput id={fieldIds.opponent} name="opponent" value={formData.opponent} onChange={handleInputChange} suggestions={suggestions.opponents} className={FI} placeholder={/Cross Country|Track/.test(formData.sport) ? "Meet or event name" : "Event or opponent (optional)"} />
               </Field>
             </FieldRow>
           </div>

@@ -1,8 +1,8 @@
 // Pure computation functions for the Insights panel.
 // All functions take a sorted-by-date visits array and return derived data.
-import { getShopRepeatKey } from './repeats';
-import { parseLocalDate } from './dates';
-import { isHomeVisit } from './visitTypes';
+import { getShopRepeatKey } from './repeats.js';
+import { parseLocalDate } from './dates.js';
+import { isHomeVisit } from './visitTypes.js';
 
 /**
  * Detect streaks where a rating field stays above a threshold.

@@ -10,7 +10,7 @@ export async function onRequestGet({ env }) {
         ROUND(AVG(coffee_rating), 2) as avg_coffee,
         ROUND(AVG(composite_score), 2) as avg_composite,
         MAX(composite_score) as best_composite
-      FROM coffee_visits
+      FROM coffee_visits WHERE deleted_at IS NULL
     `).all();
 
     // Get top shops
@@ -19,8 +19,8 @@ export async function onRequestGet({ env }) {
         coffee_shop_name,
         COUNT(*) as visit_count,
         ROUND(AVG(composite_score), 2) as avg_composite
-      FROM coffee_visits
-      GROUP BY coffee_shop_name
+      FROM coffee_visits WHERE deleted_at IS NULL
+      GROUP BY shop_id
       ORDER BY avg_composite DESC
       LIMIT 5
     `).all();

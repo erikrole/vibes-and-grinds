@@ -2,14 +2,14 @@ import { memo, useState } from 'react';
 
 // Auxiliary tabs: storylines, head-to-head matchup, game-day coffee.
 // Plain broadcast tab strip, no decoration.
-function VestExtras({ milestones, outfitStats, outfitBadges, coffeeCrossover }) {
+function VestExtras({ milestones, outfitStats, outfitBadges, coffeeCrossover, netStatus }) {
   const [openTab, setOpenTab] = useState(null);
   const [compareOutfits, setCompareOutfits] = useState([null, null]);
 
   const tabs = [
     { value: 'storylines', label: 'Storylines', count: milestones.length, available: milestones.length > 0 },
-    { value: 'compare', label: 'Head to Head', count: null, available: outfitStats.length >= 2 },
-    { value: 'coffee', label: 'Game-Day Brew', count: coffeeCrossover.length, available: coffeeCrossover.length > 0 },
+    { value: 'compare', label: 'Compare outfits', count: null, available: outfitStats.length >= 2 },
+    { value: 'coffee', label: 'Game-day orders', count: coffeeCrossover.length, available: coffeeCrossover.length > 0 },
   ].filter((t) => t.available);
 
   if (!tabs.length) return null;
@@ -98,8 +98,8 @@ function VestExtras({ milestones, outfitStats, outfitBadges, coffeeCrossover }) 
 
           {comparisonData ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <CompareCard stat={comparisonData.a} other={comparisonData.b} />
-              <CompareCard stat={comparisonData.b} other={comparisonData.a} />
+              <CompareCard stat={comparisonData.a} netAvailable={netStatus === 'loaded'} />
+              <CompareCard stat={comparisonData.b} netAvailable={netStatus === 'loaded'} />
             </div>
           ) : (
             <p className="vt-mono text-xs text-[color:var(--vt-ink-mute)] text-center py-4">
@@ -136,38 +136,23 @@ function VestExtras({ milestones, outfitStats, outfitBadges, coffeeCrossover }) 
   );
 }
 
-function CompareCard({ stat, other }) {
-  const winning = stat.smoothedRate > other.smoothedRate;
+function CompareCard({ stat, netAvailable }) {
   return (
-    <div
-      className="vt-card-inset p-3"
-      style={
-        winning
-          ? { borderColor: 'var(--vt-red)', borderLeftWidth: '2px' }
-          : undefined
-      }
-    >
+    <div className="vt-card-inset p-3">
       <div className="flex items-baseline justify-between gap-2 mb-2">
         <h4 className="vt-display text-base text-[color:var(--vt-ink)] uppercase truncate">
           {stat.outfit}
         </h4>
-        {winning && <span className="vt-label vt-label-red">Leader</span>}
       </div>
       <ul className="space-y-1 vt-mono text-xs text-[color:var(--vt-ink-mute)] vt-tabular">
         <li>
           <span className="text-[color:var(--vt-ink-faint)]">Record</span>{' '}
           <span className="text-[color:var(--vt-ink)]">{stat.wins}–{stat.losses}</span>{' '}
-          <span>· {stat.smoothedRatePct}% smoothed</span>
+          <span>· {stat.winRatePct}% in {stat.games} games</span>
         </li>
-        <li>Q1 {stat.quadrants[1].wins}–{stat.quadrants[1].losses} · Q2 {stat.quadrants[2].wins}–{stat.quadrants[2].losses}</li>
-        <li>Q3 {stat.quadrants[3].wins}–{stat.quadrants[3].losses} · Q4 {stat.quadrants[4].wins}–{stat.quadrants[4].losses}</li>
-        <li>
-          <span className="text-[color:var(--vt-ink-faint)]">vs Expected</span>{' '}
-          <span style={{ color: stat.winsAboveExpected >= 0 ? 'var(--vt-red)' : 'var(--vt-ink-mute)' }}>
-            {stat.winsAboveExpected >= 0 ? '+' : ''}{stat.winsAboveExpected.toFixed(1)}
-          </span>
-        </li>
-        {stat.avgNet && <li>Avg opp NET #{stat.avgNet}</li>}
+        {netAvailable && <><li>Q1 {stat.quadrants[1].wins}–{stat.quadrants[1].losses} · Q2 {stat.quadrants[2].wins}–{stat.quadrants[2].losses}</li>
+        <li>Q3 {stat.quadrants[3].wins}–{stat.quadrants[3].losses} · Q4 {stat.quadrants[4].wins}–{stat.quadrants[4].losses}</li></>}
+        {netAvailable && stat.avgNet && <li>Avg opp NET #{stat.avgNet}</li>}
       </ul>
       {stat.badges.length > 0 && (
         <div className="vt-mono text-[10px] text-[color:var(--vt-ink-mute)] mt-2 truncate">

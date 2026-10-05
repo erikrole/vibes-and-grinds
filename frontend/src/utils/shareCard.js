@@ -3,8 +3,8 @@
 // matching the app's paper/copper/Fraunces theme. Canvas draws with the page's
 // already-loaded fonts directly — no embedding, no cross-origin font issues.
 
-import { formatDate } from './dates';
-import { formatEventContext, titleCaseOrder } from './display';
+import { formatDate } from './dates.js';
+import { formatEventContext, titleCaseOrder } from './display.js';
 
 const W = 1080;
 const H = 1350;

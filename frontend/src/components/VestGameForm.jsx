@@ -13,8 +13,10 @@ const EMPTY_FORM = {
 };
 
 // Add/edit form. Collapses to a dashed-rule CTA until expanded.
-function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel }) {
+function VestGameForm({ enabled = true, editingGame, existingOutfits, onSave, onDelete, onCancel }) {
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [formState, setFormState] = useState(EMPTY_FORM);
   const [addingOutfit, setAddingOutfit] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -43,21 +45,23 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
   };
 
   const handleCancel = useCallback(() => {
+    if (saving) return;
     setFormState(EMPTY_FORM);
     setAddingOutfit(false);
     setConfirmDelete(false);
     setOpen(false);
     onCancel?.();
-  }, [onCancel]);
+  }, [onCancel, saving]);
 
-  useFocusTrap(panelRef, { onEscape: handleCancel, enabled: open || Boolean(editingGame), initialFocusRef: closeRef });
+  useFocusTrap(panelRef, { onEscape: handleCancel, enabled: enabled && (open || Boolean(editingGame)), initialFocusRef: closeRef });
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     const opponent = formState.opponent.trim();
     if (!opponent) return;
 
-    onSave({
+    setSaving(true); setError('');
+    try { await onSave({
       date: toIsoDate(formState.date),
       location: formState.location,
       opponent,
@@ -69,9 +73,11 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
 
     reset();
     setOpen(false);
+    } catch (err) { setError(err.message); } finally { setSaving(false); }
   };
 
   if (!open && !editingGame) {
+    if (!enabled) return null;
     return (
       <section className="mb-6">
         <button
@@ -97,6 +103,8 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
       </div>
 
       <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-3">
+        {error && <p role="alert">{error}</p>}
+        <fieldset disabled={saving || !enabled} className="space-y-3">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Field label="Date">
             <input
@@ -226,13 +234,16 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
         {confirmDelete && (
           <div role="alertdialog" aria-labelledby="vest-delete-title" className="mt-4 border border-[color:var(--vt-red)] bg-[color:var(--vt-red-soft)] p-4 rounded">
             <p id="vest-delete-title" className="vt-condensed text-lg uppercase">Delete game against {editingGame.opponent}?</p>
-            <p className="vt-mono text-xs text-[color:var(--vt-ink-mute)] mt-1">This permanently removes the game from Vest Tracker.</p>
+            <p className="vt-mono text-xs text-[color:var(--vt-ink-mute)] mt-1">The previous game list is saved in owner tools and can be restored.</p>
             <div className="flex gap-2 mt-4">
-              <button type="button" className="vt-btn-primary" onClick={() => { onDelete(editingGame.id); handleCancel(); }}>Delete Game</button>
+              <button type="button" className="vt-btn-primary" onClick={async () => { setSaving(true); setError('');
+                      try { await onDelete(editingGame.id); reset(); setOpen(false); }
+                      catch (err) { setError(err.message); } finally { setSaving(false); } }}>Delete game</button>
               <button type="button" className="vt-btn-ghost" onClick={() => setConfirmDelete(false)}>Keep Game</button>
             </div>
           </div>
         )}
+        </fieldset>
       </form>
       </section>
       </div>

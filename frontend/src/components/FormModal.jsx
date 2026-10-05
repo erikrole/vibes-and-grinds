@@ -1,7 +1,7 @@
 import { cloneElement, useCallback, useEffect, useRef, useState } from 'react';
 import useFocusTrap from '../hooks/useFocusTrap';
 
-export default function FormModal({ title, onClose, children }) {
+export default function FormModal({ title, onClose, children, active = true, topmost = false }) {
   const modalRef = useRef(null);
   const closeRef = useRef(null);
   const closeTimerRef = useRef(null);
@@ -25,10 +25,16 @@ export default function FormModal({ title, onClose, children }) {
     close();
   }, [saving, dirty, close]);
 
-  useFocusTrap(modalRef, { onEscape: handleClose, enabled: !confirmDiscard, initialFocusRef: closeRef });
+  useFocusTrap(modalRef, { onEscape: handleClose, enabled: active && !confirmDiscard, initialFocusRef: closeRef });
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
 
   return (
-    <div className="dialog-shell" role="dialog" aria-modal="true" aria-label={title}>
+    <div className="dialog-shell" style={topmost ? { zIndex: 1010 } : undefined} role="dialog" aria-modal="true" aria-label={title}>
       <div
         className={`dialog-backdrop ${closing ? 'animate-backdrop-out' : 'animate-backdrop-in'}`}
         onClick={handleClose}

@@ -23,7 +23,7 @@ export default function VestDetailModal({ game, outfit, games, onClose, onEditGa
             <button ref={closeRef} type="button" onClick={handleClose} className="vt-label hover:text-[color:var(--vt-ink)]">Close</button>
           </header>
           {game ? (
-            <GameDetail game={game} onEdit={() => { onClose(); onEditGame(game); }} />
+            <GameDetail game={game} onEdit={onEditGame ? () => { onClose(); onEditGame(game); } : undefined} />
           ) : (
             <OutfitDetail outfit={outfit} games={outfitGames} onFilter={() => { onFilterOutfit(outfit.outfit); onClose(); }} />
           )}
@@ -48,7 +48,7 @@ function GameDetail({ game, onEdit }) {
         <DetailMetric label="Context" value={[game.quadrant ? `Q${game.quadrant}` : null, game.overtime ? 'OT' : null].filter(Boolean).join(' · ') || 'Regular'} />
       </div>
       <div className="mt-6 pt-5 border-t border-[color:var(--vt-rule)] flex justify-end">
-        <button type="button" onClick={onEdit} className="vt-btn-primary">Edit Game</button>
+        {onEdit && <button type="button" onClick={onEdit} className="vt-btn-primary">Edit game</button>}
       </div>
     </div>
   );
@@ -58,14 +58,14 @@ function OutfitDetail({ outfit, games, onFilter }) {
   if (!outfit) return null;
   return (
     <div className="p-5 sm:p-7">
-      <p className="vt-label">Outfit performance</p>
+      <p className="vt-label">Outfit record</p>
       <h2 id="vest-detail-title" className="vt-display-tight text-4xl sm:text-6xl mt-2 uppercase">{outfit.outfit}</h2>
-      <p className="vt-mono text-sm text-[color:var(--vt-ink-mute)] mt-2">n={outfit.games} · {outfit.tier.replace(/\b\w/g, (letter) => letter.toUpperCase())} sample</p>
+      <p className="vt-mono text-sm text-[color:var(--vt-ink-mute)] mt-2">{outfit.games} completed {outfit.games === 1 ? 'game' : 'games'}</p>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-6">
         <DetailMetric label="Record" value={`${outfit.wins}–${outfit.losses}`} accent={outfit.wins > outfit.losses} />
         <DetailMetric label="Raw win rate" value={`${outfit.winRatePct}%`} />
-        <DetailMetric label="Confidence" value={`${outfit.wilsonPct}%`} />
-        <DetailMetric label="vs expected" value={`${outfit.winsAboveExpected >= 0 ? '+' : ''}${outfit.winsAboveExpected.toFixed(1)}`} />
+        <DetailMetric label="Games" value={outfit.games} />
+        <DetailMetric label="Road record" value={`${outfit.roadWins}–${outfit.roadLosses}`} />
       </div>
       <div className="mt-6">
         <p className="vt-label mb-2">Game history</p>

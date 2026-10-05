@@ -1,21 +1,27 @@
 # Roadmap
 
-## Implemented in the current UI/maps update
+## Implemented in the whole-site update
 
-- Compact journal summary and navigation; quieter copy and restrained motion.
-- Correct newest/best sorting, saved-shop autofill, optional trip/photo details, precise ratings, and visible save action.
-- Preserve drafts on failed saves and confirm before discarding unsaved changes.
-- Provider-safe Apple place IDs and Apple Maps links for new, existing, and manual entries.
-- Conditional MapKit JS map/search integration; repaired OpenStreetMap fallback.
-- Accessible search keyboard controls, coordinate validation, and mapping/sorting regression checks.
+- Compact journal, clear sorting/filtering, warm light/dark themes, and restrained motion.
+- Shareable entry, shop, view, and season URLs with browser Back and full shop histories.
+- Stable internal shop IDs and evidence-based Apple/Google provider aliases; chain branches stay separate.
+- Return visits reset event context and ratings. Meets use event labels; around-Madison visits omit game context.
+- Comparisons include single visits, display sample counts, and open their source entries.
+- Factual July–June road-season reviews distinguish active and completed seasons, actual new shops, and single samples.
+- Server-enforced owner editing, private export, recoverable visits, and versioned/conflict-safe Vest saves.
+- Explicit Vest footer navigation. Browsing never saves games. Generated hype and outfit recommendations removed.
+- Missing locations have an owner repair flow; pins represent shops rather than duplicate visits.
 
-## Remaining acceptance
+## Verification and release gates
 
-- The production Apple Maps token was provisioned with approval on 2026-10-04 and restricted to `coffee.erikrole.com`. Live Apple map rendering, dark mode, and exact shop/address autofill passed after deployment.
-- Apple search and maps are active on the production domain. Mocked regression tests cover canonical identity; production test entries were not created. Cluster-click zoom still needs a manual interaction check because automated browser input cannot target the SDK’s closed shadow root. Nearby markers cluster, and search excludes broad queries and address-only results.
-- Successful create/edit persistence, including zero and decimal ratings, passed against a temporary local SQLite database. Photo upload remains an additional acceptance step; production data was not changed during testing.
+- Apple Maps was enabled with approval and restricted to `coffee.erikrole.com`; verify it on that domain after each affected release.
+- Frontend and isolated SQLite API regression tests pass. Local review covers owner sign-in, return save, deletion/restoration, shop history/Back, comparison counts, current/completed seasons, narrow dark layout, Vest game save/snapshot restore, and draft retention through owner-session expiry.
+- Production release and full original-data comparison are pending for this update.
+- Retire or restrict old unguarded Pages deployment URLs before considering owner-write protection complete. Retirement needs separate explicit approval.
+- Native photo-picker automation is unavailable in the current in-app browser; isolated upload and image read-back passed; manual picker acceptance remains distinct.
+- Two original visits lack location coordinates. The repair flow exposes them; do not guess a business branch or fabricate pins.
 
 ## Follow-up maintenance
 
-- Review existing dependency audit findings separately; this change is not a dependency security remediation.
-- Consider moving the Cloudflare production branch to main after explicit infrastructure approval. Current releases can target the existing production branch without changing its setting.
+- Review existing dependency audit findings separately.
+- Consider changing the Cloudflare production branch to main only with explicit infrastructure approval. Releases target the existing production branch.

@@ -28,3 +28,6 @@ yarn-error.log*
 
 # Wrangler local state
 .wrangler/
+
+backend/uploads/
+.owner-access

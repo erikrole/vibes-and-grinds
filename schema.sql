@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS coffee_visits (
   date TEXT NOT NULL,
   coffee_shop_name TEXT NOT NULL,
   city TEXT,
+  shop_id TEXT,
+  deleted_at TEXT,
   opponent TEXT,
   sport TEXT,
   -- 'road' = road-trip stop, 'home' = around-Madison stop (no opponent/sport)
@@ -94,3 +96,24 @@ CREATE TABLE IF NOT EXISTS vest_game_stats (
 
 CREATE INDEX IF NOT EXISTS idx_vest_stats_espn ON vest_game_stats(espn_event_id);
 CREATE INDEX IF NOT EXISTS idx_vest_stats_game ON vest_game_stats(game_id);
+
+-- Additive migration: original visits and IDs are preserved.
+CREATE TABLE IF NOT EXISTS coffee_shops (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  city TEXT,
+  address TEXT,
+  lat REAL,
+  lng REAL,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS coffee_shop_aliases (
+  provider_id TEXT PRIMARY KEY,
+  shop_id TEXT NOT NULL REFERENCES coffee_shops(id)
+);
+CREATE INDEX IF NOT EXISTS idx_visit_shop ON coffee_visits(shop_id);
+CREATE TABLE IF NOT EXISTS owner_sessions (token_hash TEXT PRIMARY KEY, expires_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS owner_login_attempts (client_hash TEXT PRIMARY KEY, attempts INTEGER NOT NULL, window_start INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS vest_state (id INTEGER PRIMARY KEY CHECK(id = 1), revision INTEGER NOT NULL DEFAULT 0, commit_token TEXT);
+INSERT OR IGNORE INTO vest_state (id, revision) VALUES (1, 0);
+CREATE TABLE IF NOT EXISTS vest_snapshots (id INTEGER PRIMARY KEY AUTOINCREMENT, games_json TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP);

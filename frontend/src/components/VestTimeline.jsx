@@ -15,7 +15,7 @@ function VestTimeline({ games, onEditGame, onLogResult }) {
       <div className="vt-section-head">
         <div>
           <span className="vt-label block">Recent Games</span>
-          <span className="vt-mono text-[10px] text-[color:var(--vt-ink-faint)] mt-1 block">Newest first · select a game to edit</span>
+          <span className="vt-mono text-[10px] text-[color:var(--vt-ink-faint)] mt-1 block">Newest first · select a game for details</span>
         </div>
         {games.length > 8 && (
           <button type="button" onClick={() => setShowAll((value) => !value)} className="vt-label hover:text-[color:var(--vt-ink)] transition-colors">
@@ -36,7 +36,7 @@ function GameRow({ game, onEdit, onLogResult }) {
   const pending = game.result !== 'W' && game.result !== 'L';
   return (
     <div role="listitem" className="flex items-stretch">
-      <button type="button" onClick={onEdit} className="flex-1 min-w-0 grid grid-cols-[3.5rem_minmax(0,1fr)_auto] sm:grid-cols-[5rem_minmax(0,1fr)_minmax(10rem,.7fr)_auto] items-center gap-3 px-4 sm:px-5 py-3 text-left hover:bg-white/[0.025] transition-colors" aria-label={`Edit ${formatLocationLabel(game.location, 'full')} ${game.opponent}`}>
+      <button type="button" onClick={onEdit} className="flex-1 min-w-0 grid grid-cols-[3.5rem_minmax(0,1fr)_auto] sm:grid-cols-[5rem_minmax(0,1fr)_minmax(10rem,.7fr)_auto] items-center gap-3 px-4 sm:px-5 py-3 text-left hover:bg-white/[0.025] transition-colors" aria-label={`View ${formatLocationLabel(game.location, 'full')} ${game.opponent}`}>
         <span className={`vt-display text-xl vt-tabular ${game.result === 'W' ? 'text-[color:var(--vt-red)]' : 'text-[color:var(--vt-ink-mute)]'}`}>{pending ? 'TBD' : game.result}</span>
         <span className="min-w-0">
           <strong className="vt-condensed text-base sm:text-lg uppercase text-[color:var(--vt-ink)] truncate block">
@@ -45,7 +45,7 @@ function GameRow({ game, onEdit, onLogResult }) {
           <small className="vt-mono text-[10px] text-[color:var(--vt-ink-faint)]">{formatDate(game.date) || 'Date TBD'}{game.quadrant ? ` · Q${game.quadrant}` : ''}</small>
         </span>
         <span className="hidden sm:block vt-condensed text-sm uppercase text-[color:var(--vt-ink-dim)] truncate">{game.outfit || 'Outfit TBD'}</span>
-        <span className="vt-label text-[10px]">Edit</span>
+        <span className="vt-label text-[10px]">Details</span>
       </button>
       {pending && onLogResult && (
         <div className="flex border-l border-[color:var(--vt-rule)]">

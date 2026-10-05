@@ -6,7 +6,7 @@ As verified on 2026-10-04, production tracks `claude/coffee-shop-tracker-iIWcb`;
 
 ## Release an update
 
-Run frontend tests/build and the syntax checks from `.github/workflows/frontend-build.yml`. Commit only source/docs; omit databases, private files, credentials, and generated review artifacts.
+Run frontend and backend tests and the frontend build and the syntax checks from `.github/workflows/frontend-build.yml`. Commit only source/docs; omit databases, private files, credentials, and generated review artifacts.
 
 From the repository root, an authorized direct release can target the existing production branch, preserving current bindings and environment configuration:
 
@@ -27,6 +27,8 @@ Without a token, saved-shop/manual entry still works, remote autocomplete uses t
 
 ## Data and rollback
 
-This UI/maps update needs no schema migration. Preserve the current production bindings. Inspect and back up data before any migration; destructive changes require approval. Roll back code by redeploying a previously verified source/build or using the Pages deployment rollback capability. Do not reset a database to diagnose a frontend issue.
+The whole-site update requires `migrations/0001_owner_shops_recovery.sql` once on existing D1. Inspect columns first and export a private database backup. The migration adds columns/tables; original journal and game rows remain intact. Configure the generated owner access-key hash as production `OWNER_KEY_HASH`; missing keys fail closed. After deploying, sign in and run owner-only `/api/owner/backfill`, then compare all original fields and counts with the backup. Never create production test visits.
+
+A code rollback must retain the owner-write middleware and recovery contracts. Do not roll back to the old public-write release. Retire or restrict **all** older unguarded production and preview deployments, not just the custom domain: immutable Pages URLs can still invoke their old functions against shared bindings. Retirement removes deployment URLs/history and requires explicit approval under the workspace contract. Preserve source in Git and retain the private backup before retirement. Preserve the current production bindings. Inspect and back up data before any migration; destructive changes require approval. Roll back code by redeploying a previously verified source/build or using the Pages deployment rollback capability. Do not reset a database to diagnose a frontend issue.
 
 Local development uses SQLite; see README. A local production-data preview must have `VITE_PROXY_READ_ONLY=true`.

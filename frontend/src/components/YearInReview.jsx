@@ -1,125 +1,34 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { computeSeasonReview, getAvailableSeasons } from '../utils/yearReview';
+import { formatDate } from '../utils/dates';
 import useFocusTrap from '../hooks/useFocusTrap';
 
-export default function YearInReview({ visits, onClose }) {
+export default function YearInReview({ visits, initialSeason, onSeasonChange, onVisitClick, onClose }) {
   const seasons = useMemo(() => getAvailableSeasons(visits), [visits]);
-  const [selectedSeason, setSelectedSeason] = useState(seasons[0] || null);
-  const review = useMemo(
-    () => selectedSeason ? computeSeasonReview(visits, selectedSeason) : null,
-    [visits, selectedSeason],
-  );
-  const reportRef = useRef(null);
+  const [selectedSeason, setSelectedSeason] = useState(initialSeason || seasons[0]);
+  const review = useMemo(() => computeSeasonReview(visits, selectedSeason), [visits, selectedSeason]);
+  const ref = useRef(null);
   const closeRef = useRef(null);
-
-  useFocusTrap(reportRef, { onEscape: onClose, initialFocusRef: closeRef });
-
-  useEffect(() => {
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = originalOverflow; };
-  }, []);
-
-  if (!review) {
-    return (
-      <div className="year-report-shell" role="dialog" aria-modal="true" aria-label="Season report">
-        <div className="year-report-empty">
-          <p>{selectedSeason ? `No road visits in the ${selectedSeason} season` : 'No season data available'}</p>
-          <button ref={closeRef} type="button" onClick={onClose}>Close</button>
-        </div>
-      </div>
-    );
-  }
-
-  const maxMonth = Math.max(...review.monthlyBreakdown.map((month) => month.count), 1);
-  const discoveryRate = Math.round((review.uniqueShops / review.totalVisits) * 100);
-
-  return (
-    <div className="year-report-shell" role="dialog" aria-modal="true" aria-label={`${review.season} coffee season report`}>
-      <main ref={reportRef} className="year-report">
-        <header className="year-report-nav">
-          <div>
-            <p className="year-report-kicker">Vibes &amp; Grinds</p>
-            <p className="year-report-range">{review.dateRange}</p>
-          </div>
-          <div className="year-report-actions">
-            <label>
-              <span className="sr-only">Season</span>
-              <select value={selectedSeason} onChange={(event) => setSelectedSeason(event.target.value)}>
-                {seasons.map((season) => <option key={season} value={season}>{season}</option>)}
-              </select>
-            </label>
-            <button ref={closeRef} type="button" onClick={onClose} aria-label="Close season report">×</button>
-          </div>
-        </header>
-
-        <section className="year-report-hero">
-          <p className="year-report-kicker">Your season in coffee</p>
-          <h1><span>{review.totalVisits}</span> stops.<br />One road season.</h1>
-          <p className="year-report-deck">A field report from {review.uniqueCities} cities, {review.uniqueShops} shops, and every cup in between.</p>
-          <dl className="year-report-stat-row">
-            <div><dt>Average score</dt><dd>{review.avgComposite}</dd></div>
-            <div><dt>New-shop rate</dt><dd>{discoveryRate}%</dd></div>
-            <div><dt>Photos kept</dt><dd>{review.totalPhotos}</dd></div>
-          </dl>
+  useFocusTrap(ref, { onEscape: onClose, initialFocusRef: closeRef });
+  useEffect(() => { const overflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = overflow; }; }, []);
+  return <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="Road season review">
+    <div className="dialog-backdrop" onClick={onClose} />
+    <div className="dialog-positioner"><section ref={ref} className="dialog-panel season-review max-w-4xl">
+      <header className="season-review-header"><div><p className="eyebrow">Road seasons</p><h2>{selectedSeason} {review?.complete ? 'season review' : 'season so far'}</h2></div>
+        <div className="flex items-center gap-3"><label><span className="sr-only">Season</span><select className="control-field" value={selectedSeason} onChange={(event) => { setSelectedSeason(event.target.value); onSeasonChange(event.target.value); }}>{seasons.map((season) => <option key={season}>{season}</option>)}</select></label><button type="button" ref={closeRef} className="header-icon-button" onClick={onClose} aria-label="Close season review">×</button></div>
+      </header>
+      {!review ? <p className="type-meta">No road visits in this season.</p> : <>
+        <p className="type-meta mb-6">{review.dateRange}. Road trips only; stops around Madison are in the journal.</p>
+        <div className="season-counts"><p><strong>{review.totalVisits}</strong> {review.totalVisits === 1 ? 'visit' : 'visits'}</p><p><strong>{review.uniqueShops}</strong> {review.uniqueShops === 1 ? 'shop' : 'shops'}</p><p><strong>{review.uniqueCities}</strong> {review.uniqueCities === 1 ? 'city' : 'cities'}</p></div>
+        <dl className="shop-history-stats"><div><dt>Average vibe</dt><dd>{review.avgVibe.toFixed(1)}<small> / 10</small></dd></div><div><dt>Average coffee</dt><dd>{review.avgCoffee.toFixed(1)}<small> / 10</small></dd></div><div><dt>Average overall</dt><dd>{review.avgComposite.toFixed(1)}<small> / 20</small></dd></div></dl>
+        <section className="season-stop-grid">
+          <button type="button" className="season-stop text-left" onClick={() => onVisitClick(review.bestVisit)}><p className="eyebrow">{review.totalVisits === 1 ? 'Only stop logged' : 'Highest rated stop'}</p>{review.bestVisit.photo_url && <img src={review.bestVisit.photo_url} alt="" />}<h3>{review.bestVisit.coffee_shop_name}</h3><p>{review.bestVisit.city} · {Number(review.bestVisit.composite_score).toFixed(1)} / 20</p><p>{formatDate(review.bestVisit.date)}</p></button>
+          {review.mostVisitedShop && <button type="button" className="season-stop text-left" onClick={() => onVisitClick(review.mostVisitedShop.visit)}><p className="eyebrow">Most return visits</p><h3>{review.mostVisitedShop.name}</h3><p>{review.mostVisitedShop.count} visits this season</p></button>}
         </section>
-
-        <section className="year-report-grid">
-          <article className="year-report-card year-report-best">
-            <div className="year-report-card-copy">
-              <p className="year-report-kicker">High point</p>
-              <h2>{review.bestVisit.coffee_shop_name}</h2>
-              <p>{review.bestVisit.city || 'On the road'} · {review.bestVisit.composite_score.toFixed(1)} / 20</p>
-            </div>
-            {review.bestVisit.photo_url && <img src={review.bestVisit.photo_url} alt={`Coffee at ${review.bestVisit.coffee_shop_name}`} />}
-          </article>
-
-          <article className="year-report-card year-report-persona">
-            <p className="year-report-kicker">The read</p>
-            <h2>{review.persona.name}</h2>
-            <p>{review.persona.description}</p>
-            <div className="year-report-rating-pair">
-              <span>Vibe <b>{review.avgVibe}</b></span>
-              <span>Coffee <b>{review.avgCoffee}</b></span>
-            </div>
-          </article>
-
-          <article className="year-report-card year-report-favorites">
-            <p className="year-report-kicker">Kept coming back</p>
-            <h2>{review.mostVisitedShop.name}</h2>
-            <p>{review.mostVisitedShop.count} visit{review.mostVisitedShop.count === 1 ? '' : 's'} this season</p>
-            {review.topOrder && (
-              <div className="year-report-order">
-                <span>Most ordered</span>
-                <strong>{review.topOrder.order}</strong>
-                <small>{review.topOrder.count} time{review.topOrder.count === 1 ? '' : 's'}</small>
-              </div>
-            )}
-          </article>
-        </section>
-
-        <section className="year-report-rhythm">
-          <div>
-            <p className="year-report-kicker">Season rhythm</p>
-            <h2>{review.busiestMonth.month} carried the season.</h2>
-          </div>
-          <div className="year-report-chart" aria-label="Visits by month">
-            {review.monthlyBreakdown.map((month) => (
-              <div key={month.month} className="year-report-month">
-                <span>{month.count || ''}</span>
-                <i style={{ height: `${Math.max((month.count / maxMonth) * 100, 5)}%` }} />
-                <small>{month.month}</small>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <footer className="year-report-footer">
-          <p>{review.dateRange}</p>
-          <h2>{review.firstVisit.coffee_shop_name} started it.<br />{review.lastVisit.coffee_shop_name} closed it.</h2>
-          <button type="button" onClick={onClose}>Back to the journal</button>
-        </footer>
-      </main>
-    </div>
-  );
+        <div className="season-facts"><p>{review.newShops} {review.newShops === 1 ? 'shop first visited' : 'shops first visited'} in this season.</p><p>{review.totalPhotos} {review.totalPhotos === 1 ? 'visit has a photo' : 'visits have photos'}.</p>{review.totalVisits === 1 && <p>More comparisons will appear as visits are added.</p>}</div>
+        <section className="season-months"><h3>Visits by month</h3><ol>{review.monthlyBreakdown.map((month) => <li key={month.month}><span>{month.month}</span><b>{month.count}</b><span className="season-month-bar" aria-hidden="true" style={{ width: `${month.count / Math.max(...review.monthlyBreakdown.map((item) => item.count), 1) * 100}%` }} /></li>)}</ol></section>
+        {review.totalVisits > 1 && <div className="season-bookends"><p>First recorded: {review.firstVisit.coffee_shop_name} · {formatDate(review.firstVisit.date)}</p><p>{review.complete ? 'Last recorded' : 'Latest recorded'}: {review.lastVisit.coffee_shop_name} · {formatDate(review.lastVisit.date)}</p></div>}
+      </>}
+    </section></div>
+  </div>;
 }

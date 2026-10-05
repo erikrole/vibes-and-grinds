@@ -1,5 +1,13 @@
 # Change notes
 
+## 2026-10-04 — Whole-site flows and owner editing
+
+The journal now has full shop histories, shareable URLs and browser Back, clearer sorting, sample-aware comparisons, and factual road-season summaries. Return visits start with fresh event context and ratings; track/cross country labels use events rather than head-to-head matchups. The compact warm-paper UI includes narrow-screen and dark treatments, and missing locations have an owner repair flow.
+
+Owner sign-in protects server-side changes, including uploads and Vest saves. Visits move to a recoverable deleted list; a private export includes all journal/recovery records. Stable internal shop IDs reconcile provider aliases only with physical-location evidence. Vest saves validate the complete list, reject stale revisions, preserve ESPN IDs, and create recoverable snapshots. Public browsing never saves games. Generated hype, outfit recommendations, misleading confidence percentages, and the hidden logo mode switch are removed. Outfit summaries show actual completed-game records and games worn.
+
+Verification: 15 frontend and 5 isolated SQLite API tests pass, production frontend build passes. Local owner return-save, deletion/restoration, history/Back, comparisons, season labels, mobile and dark rendering reviewed. Vest saves/restoration and draft retention after session expiry passed. Isolated photo upload and image read-back passed; the native picker could not be automated. Production data backed up; additive migration applied. Release/live verification and retirement of old public-write deployment URLs remain pending.
+
 ## 2026-10-04 — Journal UI and maps
 
 Released: compact journal counts and average ratings; clearer add/edit/return flows; saved-shop autofill; optional trip/photo details; precise ratings including zero; draft retention and discard confirmation; immediate filtering and corrected newest/best sorting.
