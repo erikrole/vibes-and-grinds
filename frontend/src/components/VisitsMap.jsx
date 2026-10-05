@@ -35,6 +35,10 @@ export default function VisitsMap({ visits, selectedVisitId, onVisitSelect, onVi
         observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
         map.addEventListener('select', (event) => {
           const annotation = event.annotation || event.detail?.annotation;
+          if (annotation?.memberAnnotations?.length) {
+            map.showItems(annotation.memberAnnotations, { padding: new kit.Padding(55, 55, 55, 55) });
+            return;
+          }
           if (annotation?.data) callbacksRef.current.onVisitSelect?.(annotation.data);
         });
         setProvider('apple'); setReady(true);
@@ -53,6 +57,8 @@ export default function VisitsMap({ visits, selectedVisitId, onVisitSelect, onVi
       return new kit.MarkerAnnotation(new kit.Coordinate(lat, lng), {
         title: visit.coffee_shop_name, subtitle: visit.city || '',
         glyphText: Number(visit.composite_score).toFixed(1), color: '#8c5036', data: visit,
+        clusteringIdentifier: 'coffee-stops', titleVisibility: kit.FeatureVisibility.Hidden,
+        subtitleVisibility: kit.FeatureVisibility.Hidden,
       });
     });
     annotationsRef.current = annotations;
@@ -64,6 +70,7 @@ export default function VisitsMap({ visits, selectedVisitId, onVisitSelect, onVi
     if (!ready) return;
     annotationsRef.current.forEach((annotation) => {
       annotation.selected = annotation.data.id === selectedVisitId;
+      annotation.titleVisibility = annotation.selected ? window.mapkit.FeatureVisibility.Visible : window.mapkit.FeatureVisibility.Hidden;
     });
   }, [ready, located, selectedVisitId]);
 

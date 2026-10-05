@@ -37,7 +37,9 @@ export async function searchPlaces(query, { signal, city = '' } = {}) {
   if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
   if (token) {
     const mapkit = await loadAppleMaps();
-    const data = await new mapkit.Search().autocomplete(city ? `${query} ${city}` : query, { signal });
+    const data = await new mapkit.Search().autocomplete(city ? `${query} ${city}` : query, {
+      signal, includePointsOfInterest: true, includeAddresses: false, includeQueries: false,
+    });
     return (data.results || []).map((result, index) => ({
       key: result.id || `apple-${index}`,
       mainText: result.displayLines?.[0] || result.name || query,

@@ -69,7 +69,12 @@ test('Apple autocomplete passes the exact selected result to search for details'
   const selected = { id: 'I123', displayLines: ['Coffee', 'Madison, WI'] };
   let received;
   const api = await client({ token: 'test-public-token', Search: class {
-    async autocomplete(query, { signal }) { assert.equal(query, 'Coffee'); assert.equal(signal.aborted, false); return { results: [selected] }; }
+    async autocomplete(query, options) {
+      assert.equal(query, 'Coffee'); assert.equal(options.signal.aborted, false);
+      assert.equal(options.includeQueries, false); assert.equal(options.includeAddresses, false);
+      assert.equal(options.includePointsOfInterest, true);
+      return { results: [selected] };
+    }
     async search(query) { received = query; return { places: [{ id: 'I123', name: 'Coffee', locality: 'Madison' }] }; }
   } });
   const matches = await api.searchPlaces('Coffee', { signal: new AbortController().signal });
