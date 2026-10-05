@@ -27,7 +27,7 @@ export function parseScheduleEvent(event) {
     wisconsinScore: number(wi.score), opponentScore: number(opponent.score),
     wisconsinH1: number(wiLine[0]), wisconsinH2: number(wiLine[1]),
     opponentH1: number(oppLine[0]), opponentH2: number(oppLine[1]),
-    otPeriods: Math.max(0, wiLine.length - 2),
+    otPeriods: Math.max(0, wiLine.length - 2, (number(competition.status?.period) ?? 2) - 2),
     venue: competition.venue?.fullName || null, venueCity: competition.venue?.address?.city || null,
     broadcast: competition.broadcasts?.[0]?.names?.[0] || competition.broadcasts?.[0]?.media?.shortName || null,
     attendance: competition.attendance || null,

@@ -34,6 +34,10 @@ test('ESPN scores parse objects and use the Chicago game date and season end yea
   assert.equal(parsed.wisconsinScore, 96);
   assert.equal(parsed.opponentScore, 64);
   assert.equal(parsed.wisconsinH1, 47);
+  const overtime = event('ot', '2025-11-04T01:00Z');
+  overtime.competitions[0].status.period = 3;
+  delete overtime.competitions[0].competitors[0].linescores;
+  assert.equal(parseScheduleEvent(overtime).otPeriods, 1);
   assert.equal(seasonForDate('2025-11-03'), 2026);
   assert.equal(seasonForDate('2026-03-20'), 2026);
   const incomplete = event('regular', '2025-11-04T01:00Z');

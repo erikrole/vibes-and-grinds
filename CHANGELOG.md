@@ -6,7 +6,9 @@ With approval and a fresh private database backup, repaired Madison Chocolate Co
 
 Score loading now derives the correct season from saved games, includes NCAA tournament events, parses ESPN's structured scores, and uses Chicago game dates. Public reads cache supplementary scores only; they cannot rewrite saved game links or change owner revisions. Cached responses exclude other seasons and unlinked events. Around-Madison Apple autocomplete now requires the metro region; road searches retain entered city context.
 
-Verification: 16 frontend and 8 isolated SQLite tests pass, frontend build and backend/shared/Pages syntax checks pass. The actual ESPN schedules produced all 35 expected scores in an isolated database; saved results agree and game records remain unchanged. Authenticated production read-back confirms the planned corrections, stable IDs, and retained snapshot. Live code verification follows deployment. Seven photos and 17 personal notes remain blank rather than invented.
+The ESPN stats screen now uses the existing readable Vest surfaces, leads with final scores and expandable box scores, preserves neutral-site and overtime labels, includes one-game outfit samples, and replaces generated-style labels with factual descriptions. Missing halftime scores are excluded instead of appearing as zero; available halftime records report their coverage. Box scores keep Wisconsin and opponent turnovers in their proper columns, and changing the selected game cannot show a previous game's delayed response.
+
+Verification: 17 frontend and 8 isolated SQLite tests pass, frontend build and backend/shared/Pages syntax checks pass. The actual ESPN schedules produced all 35 expected scores in an isolated database; saved results agree and game records remain unchanged. Authenticated production read-back confirms the planned corrections, stable IDs, and retained snapshot. Live code verification follows deployment. Seven photos and 17 personal notes remain blank rather than invented.
 
 ## 2026-10-04 — Whole-site flows and owner editing
 
