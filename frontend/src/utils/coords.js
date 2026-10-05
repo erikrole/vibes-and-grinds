@@ -17,7 +17,7 @@ function toCoordinate(value) {
 export function getVisitCoordinates(visit = {}) {
   const lat = toCoordinate(visit.coffee_shop_lat);
   const lng = toCoordinate(visit.coffee_shop_lng);
-  if (lat === null || lng === null) return null;
+  if (lat === null || lng === null || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
   return { lat, lng };
 }
 

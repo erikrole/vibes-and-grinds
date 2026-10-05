@@ -1,212 +1,140 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-
-const MIN_QUERY_LENGTH = 2;
-
-async function parseApiError(response, fallbackMessage) {
-  try {
-    const data = await response.json();
-    return {
-      message: data?.error || data?.details || fallbackMessage,
-      details: data?.details || '',
-      googleStatus: data?.googleStatus || '',
-      upstreamStatus: data?.upstreamStatus || '',
-    };
-  } catch {
-    return {
-      message: fallbackMessage,
-      details: '',
-      googleStatus: '',
-      upstreamStatus: '',
-    };
-  }
-}
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { resolvePlace, searchPlaces } from '../utils/mapkit';
 
 export default function PlacesAutocomplete({
-  id,
-  onPlaceSelected,
-  value,
-  onChange,
-  onBlur,
-  disabled = false,
-  inputClassName = 'input-field',
-  ariaInvalid,
-  ariaDescribedBy,
-  enterKeyHint,
+  id, onPlaceSelected, value, onChange, onBlur, disabled = false,
+  inputClassName = 'input-field', ariaInvalid, ariaDescribedBy, enterKeyHint,
+  savedPlaces = [], city = '', onBusyChange,
 }) {
   const [suggestions, setSuggestions] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('');
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [debugInfo, setDebugInfo] = useState(null);
-  const containerRef = useRef(null);
-  const requestIdRef = useRef(0);
+  const [loading, setLoading] = useState(false);
+  const [resolving, setResolving] = useState(false);
+  const [message, setMessage] = useState('');
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
+  const requestRef = useRef(0);
+  const selectedValueRef = useRef(value || '');
+  const selectionRef = useRef(null);
+  const inputRef = useRef(null);
+  const listId = useId();
+  const statusId = `${listId}-status`;
+  const localSuggestions = useMemo(() => {
+    const query = (value || '').trim().toLowerCase();
+    if (query.length < 2) return [];
+    const seen = new Set();
+    return savedPlaces.filter((place) => {
+      const key = place.coffee_shop_place_id || `${place.coffee_shop_name}|${place.city}`;
+      if (seen.has(key) || !place.coffee_shop_name?.toLowerCase().includes(query)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, 4).map((place) => ({
+      key: `saved-${place.id}`, mainText: place.coffee_shop_name,
+      secondaryText: place.city || place.coffee_shop_address, provider: 'saved', place,
+    }));
+  }, [value, savedPlaces]);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
-        setShowSuggestions(false);
-      }
-    };
+    onBusyChange?.(resolving);
+  }, [resolving, onBusyChange]);
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [value]);
+  useEffect(() => () => selectionRef.current?.abort(), []);
 
   useEffect(() => {
-    const query = (value || '').trim();
-
-    if (query.length < MIN_QUERY_LENGTH) {
-      setSuggestions([]);
-      setIsLoading(false);
-      setStatusMessage('');
-      setDebugInfo(null);
-      return;
-    }
-
+    const ticket = ++requestRef.current;
+    setSuggestions([]);
+    setActive(-1);
+    setMessage('');
+    setLoading(false);
+    if (!open || (value || '').trim().length < 2 || value === selectedValueRef.current) return;
     const controller = new AbortController();
-    const currentRequestId = ++requestIdRef.current;
-
     const timer = setTimeout(async () => {
-      setIsLoading(true);
-      setStatusMessage('');
-      setDebugInfo(null);
-
+      setLoading(true);
       try {
-        const response = await fetch(`/api/places-autocomplete?input=${encodeURIComponent(query)}`, {
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          const parsedError = await parseApiError(
-            response,
-            'Google Places is unavailable right now. You can still type manually.'
-          );
-          throw parsedError;
-        }
-
-        const data = await response.json();
-        if (requestIdRef.current !== currentRequestId) return;
-
-        const nextSuggestions = data.suggestions || [];
-        setSuggestions(nextSuggestions);
-
-        if (!nextSuggestions.length) {
-          setStatusMessage('No Google Places matches yet. Keep typing or enter manually.');
-        }
+        const matches = await searchPlaces(value.trim(), { signal: controller.signal, city });
+        if (ticket !== requestRef.current) return;
+        setSuggestions(matches.slice(0, 6));
+        if (!matches.length) setMessage('No matching shops. Try adding the city, or enter the location manually.');
       } catch (error) {
-        if (error.name === 'AbortError') return;
-        if (requestIdRef.current !== currentRequestId) return;
-
-        setSuggestions([]);
-        setStatusMessage(error.message || 'Google Places unavailable right now. You can still type manually.');
-        setDebugInfo({
-          details: error.details || '',
-          googleStatus: error.googleStatus || '',
-          upstreamStatus: error.upstreamStatus || '',
-        });
+        if (controller.signal.aborted || ticket !== requestRef.current) return;
+        setMessage('Search is unavailable. Choose a saved shop or enter the location manually.');
       } finally {
-        if (requestIdRef.current === currentRequestId) {
-          setIsLoading(false);
-        }
+        if (ticket === requestRef.current) setLoading(false);
       }
     }, 250);
+    return () => { clearTimeout(timer); controller.abort(); ++requestRef.current; };
+  }, [value, open, city]);
 
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [value]);
-
-  const hasSuggestions = suggestions.length > 0;
-
-  const helperText = useMemo(() => {
-    if (isLoading) {
-      return 'Searching Google Places…';
-    }
-
-    return statusMessage;
-  }, [isLoading, statusMessage]);
-
-  const handleSelectSuggestion = async (suggestion) => {
-    setShowSuggestions(false);
-    setStatusMessage('');
-    setDebugInfo(null);
-
-    if (!suggestion?.placeId) {
-      return;
-    }
-
+  const matches = [...localSuggestions, ...suggestions];
+  const expanded = open && matches.length > 0;
+  const select = async (suggestion) => {
+    const controller = new AbortController();
+    selectionRef.current?.abort();
+    selectionRef.current = controller;
+    setOpen(false);
+    setMessage('');
+    setResolving(true);
     try {
-      const response = await fetch(`/api/places-details?placeId=${encodeURIComponent(suggestion.placeId)}`);
-      if (!response.ok) {
-        const parsedError = await parseApiError(response, 'Could not load full place details. You can still save manually.');
-        throw parsedError;
-      }
-
-      const data = await response.json();
-      onPlaceSelected?.(data.place);
+      const place = suggestion.provider === 'saved' ? {
+        name: suggestion.place.coffee_shop_name, city: suggestion.place.city,
+        address: suggestion.place.coffee_shop_address, place_id: suggestion.place.coffee_shop_place_id,
+        lat: suggestion.place.coffee_shop_lat, lng: suggestion.place.coffee_shop_lng,
+      } : await resolvePlace(suggestion, { signal: controller.signal });
+      if (controller.signal.aborted) return;
+      selectedValueRef.current = place.name;
+      onPlaceSelected?.(place);
     } catch (error) {
-      setStatusMessage(error.message || 'Could not load full place details. You can still save manually.');
-      setDebugInfo({
-        details: error.details || '',
-        googleStatus: error.googleStatus || '',
-        upstreamStatus: error.upstreamStatus || '',
-      });
+      if (!controller.signal.aborted) setMessage(error.message || 'Could not load the shop. Try again or enter the location manually.');
+    } finally {
+      if (selectionRef.current === controller) setResolving(false);
     }
   };
 
   return (
-    <div className="relative" ref={containerRef}>
-      <input
-        id={id}
-        type="text"
-        value={value}
-        onChange={onChange}
-        onFocus={() => setShowSuggestions(true)}
-        onBlur={(e) => { onBlur?.({ target: { name: 'coffee_shop_name', value: e.target.value } }); }}
-        placeholder="Search for a coffee shop..."
-        className={inputClassName}
-        autoComplete="off"
-        disabled={disabled}
-        aria-invalid={ariaInvalid}
-        aria-describedby={ariaDescribedBy}
-        enterKeyHint={enterKeyHint}
-        autoCapitalize="words"
+    <div className="places-input" onBlur={(event) => {
+      if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+    }}>
+      <input ref={inputRef} id={id} name="coffee_shop_name" type="text" value={value}
+        onChange={(event) => {
+          selectionRef.current?.abort(); setResolving(false);
+          selectedValueRef.current = ''; setOpen(true); onChange(event);
+        }}
+        onFocus={() => setOpen(true)} onBlur={onBlur}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape' && open) {
+            event.preventDefault(); event.stopPropagation(); setOpen(false); return;
+          }
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            if (!matches.length) return;
+            event.preventDefault(); setOpen(true);
+            setActive((previous) => event.key === 'ArrowDown' ? (previous + 1) % matches.length : (previous <= 0 ? matches.length - 1 : previous - 1));
+          } else if (event.key === 'Enter' && expanded && active >= 0 && matches[active]) {
+            event.preventDefault(); select(matches[active]);
+          }
+        }}
+        placeholder="Search a shop, or type its name" className={inputClassName}
+        autoComplete="off" autoCapitalize="words" disabled={disabled}
+        role="combobox" aria-autocomplete="list" aria-expanded={expanded}
+        aria-controls={expanded ? listId : undefined}
+        aria-activedescendant={expanded && active >= 0 && matches[active] ? `${listId}-${active}` : undefined}
+        aria-invalid={ariaInvalid} aria-describedby={[ariaDescribedBy, statusId].filter(Boolean).join(' ')}
+        aria-busy={loading || resolving} enterKeyHint={enterKeyHint}
       />
-
-      {showSuggestions && hasSuggestions && (
-        <ul className="absolute z-[1010] mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-stone-200 bg-white py-1 shadow-xl dark:border-stone-700 dark:bg-stone-900">
-          {suggestions.map((suggestion) => (
-            <li key={suggestion.placeId}>
-              <button
-                type="button"
-                className="w-full px-3 py-2 text-left hover:bg-stone-100 dark:hover:bg-stone-800"
-                onClick={() => handleSelectSuggestion(suggestion)}
-              >
-                <p className="text-sm font-medium text-stone-800 dark:text-stone-100">{suggestion.mainText}</p>
-                {suggestion.secondaryText && (
-                  <p className="text-xs text-stone-500 dark:text-stone-400">{suggestion.secondaryText}</p>
-                )}
-              </button>
+      {expanded && (
+        <ul id={listId} className="places-results" role="listbox" aria-label="Coffee shops">
+          {matches.map((suggestion, index) => (
+            <li id={`${listId}-${index}`} key={suggestion.key} role="option" aria-selected={active === index}
+              onPointerDown={(event) => event.preventDefault()}
+              onMouseMove={() => setActive(index)} onClick={() => select(suggestion)}>
+              <strong>{suggestion.mainText}</strong>
+              <span>{suggestion.secondaryText}</span>
+              <small>{suggestion.provider === 'saved' ? 'From your journal' : suggestion.provider === 'apple' ? 'Apple Maps' : 'Google Maps'}</small>
             </li>
           ))}
         </ul>
       )}
-
-      {helperText && <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">{helperText}</p>}
-
-      {import.meta.env.DEV && debugInfo && (debugInfo.googleStatus || debugInfo.details || debugInfo.upstreamStatus) && (
-        <details className="mt-2 rounded-md border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-900/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
-          <summary className="cursor-pointer font-medium">Why autocomplete failed?</summary>
-          <div className="mt-2 space-y-1">
-            {debugInfo.googleStatus && <p><span className="font-semibold">googleStatus:</span> {debugInfo.googleStatus}</p>}
-            {debugInfo.upstreamStatus && <p><span className="font-semibold">upstreamStatus:</span> {debugInfo.upstreamStatus}</p>}
-            {debugInfo.details && <p><span className="font-semibold">details:</span> {debugInfo.details}</p>}
-          </div>
-        </details>
-      )}
+      <p id={statusId} className="places-status" role="status">
+        {resolving ? 'Filling in the location…' : loading ? 'Looking for shops…' : message}
+      </p>
     </div>
   );
 }

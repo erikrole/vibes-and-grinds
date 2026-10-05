@@ -6,7 +6,7 @@ import { DEFAULT_VISITOR_NAME, getRepeatVisits } from '../utils/repeats';
 import ShareCardModal from './ShareCardModal';
 import useFocusTrap from '../hooks/useFocusTrap';
 import { formatEventContext, titleCaseOrder } from '../utils/display';
-import { getVisitCoordinates } from '../utils/coords';
+import { getAppleMapsUrl } from '../utils/maps';
 
 export default function VisitDetailModal({ visit, visits, onClose, onNavigate, onUpdate, onEdit, onDelete, onLogReturnVisit }) {
   const modalRef = useRef(null);
@@ -28,7 +28,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
     setClosing(true);
     // Let the exit animation finish before unmounting, but never fire twice.
     clearTimeout(closeTimerRef.current);
-    closeTimerRef.current = setTimeout(onClose, 200);
+    closeTimerRef.current = setTimeout(onClose, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 200);
   }, [onClose]);
 
   const handleEscape = useCallback(() => {
@@ -169,16 +169,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
   const handleLogReturnVisit = () => {
     setShowMenu(false);
-    setConfirmAction({
-      type: 'return',
-      title: 'Log return visit?',
-      message: 'This will prefill the shop, location, and last order so you can add fresh ratings.',
-      confirmText: 'Log Return Visit',
-      onConfirm: () => {
-        setConfirmAction(null);
-        onLogReturnVisit?.(visit);
-      },
-    });
+    onLogReturnVisit?.(visit);
   };
 
   const handleDelete = () => {
@@ -204,19 +195,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
     !best || Number(candidate.composite_score) > Number(best.composite_score) ? candidate : best
   ), null);
 
-  const coordinates = getVisitCoordinates(visit);
-  const hasCoordinates = coordinates !== null;
-  const webMapUrl = visit.coffee_shop_place_id
-    ? `https://www.google.com/maps/place/?q=place_id:${visit.coffee_shop_place_id}`
-    : `https://www.google.com/maps?q=${encodeURIComponent(visit.coffee_shop_name)}&ll=${coordinates?.lat},${coordinates?.lng}`;
-  const appleMapParams = new URLSearchParams({
-    coordinate: `${coordinates?.lat},${coordinates?.lng}`,
-    name: visit.coffee_shop_name,
-    ...(visit.coffee_shop_address ? { address: visit.coffee_shop_address } : {}),
-  });
-  const nativeMapUrl = `https://maps.apple.com/place?${appleMapParams.toString()}`;
-  const isMac = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform || navigator.userAgent);
-  const mapUrl = isMac ? nativeMapUrl : webMapUrl;
+  const mapUrl = getAppleMapsUrl(visit);
 
   return (
     <div
@@ -391,8 +370,8 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                 color: 'var(--ink)',
               }}
             >
-              {hasCoordinates ? (
-                <a className="detail-shop-map-link" href={mapUrl} target={isMac ? undefined : '_blank'} rel={isMac ? undefined : 'noopener noreferrer'} aria-label={`Open ${visit.coffee_shop_name} in Maps`}>
+              {visit.coffee_shop_name ? (
+                <a className="detail-shop-map-link" href={mapUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${visit.coffee_shop_name} in Maps`}>
                   <span>{visit.coffee_shop_name}</span>
                   <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5h5v5m0-5L10 14M19 13v5a1 1 0 01-1 1H6a1 1 0 01-1-1V6a1 1 0 011-1h5" /></svg>
                 </a>
@@ -420,6 +399,12 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                   <span className="text-stone-500 dark:text-stone-400">{formatEventContext(visit)}</span>
                 </>
               )}
+            </div>
+
+            <div className="detail-quick-actions">
+              <button type="button" className="btn-primary" onClick={handleLogReturnVisit}>Log return visit</button>
+              <a className="btn-secondary" href={mapUrl} target="_blank" rel="noopener noreferrer">Open in Apple Maps ↗</a>
+              <button type="button" className="text-action" onClick={handleEdit}>Edit visit</button>
             </div>
 
             {/* Ratings */}
@@ -463,7 +448,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
             {visit.notes && (
               <blockquote className="visit-note-card">
-                <p className="eyebrow mb-2 text-[0.65rem]">Straight from AJ</p>
+                <p className="eyebrow mb-2 text-[0.65rem]">Notes</p>
                 <p className="visit-note-copy">
                   {visit.notes}
                 </p>

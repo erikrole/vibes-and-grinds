@@ -30,6 +30,9 @@ initDatabase()
   });
 
 // Routes
+app.get('/api/maps-config', (req, res) => {
+  res.set('Cache-Control', 'no-store').json({ token: process.env.APPLE_MAPS_TOKEN || null });
+});
 
 
 function stripHtmlTags(value = '') {

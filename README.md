@@ -1,251 +1,76 @@
-# ☕ Vibes & Grinds
+# Vibes & Grinds
 
-A beautiful web app for tracking coffee shop visits during basketball road trips. Rate the vibe, rate the coffee, and keep track of all your caffeinated adventures!
+AJ Harrison’s coffee journal for road trips and stops around Madison. Live at [coffee.erikrole.com](https://coffee.erikrole.com).
 
-**🚀 Live at:** [coffee.erikrole.com](https://coffee.erikrole.com)
+## What the app does
 
-> **Deploying to Cloudflare?** See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete instructions on deploying to Cloudflare Pages with D1 database.
+- Records a shop, date, order, vibe and coffee ratings, notes, and photo.
+- Searches saved shops and fills their location for return visits.
+- Supports Apple Maps search and maps when a public domain-restricted token is configured. Existing Google Places search and OpenStreetMap tiles remain available when it is absent. All entry links open Apple Maps.
+- Filters and sorts the journal, shows mapped stops, and summarizes ratings and road seasons.
+- Includes the separate Vest Tracker, with database-backed games and NET rankings.
 
-## Features
+Ratings accept decimals from 0 to 10, including zero. Overall score is their sum, out of 20. Madison-area shops are detected from coordinates or Wisconsin city/address text. Manually choosing Road trip or Around Madison locks that choice for the entry. Road season reviews exclude Madison stops.
 
-- **Clean, Modern Interface** - Beautiful card-based design with intuitive layout
-- **Color-Coded Ratings** - Visual gradient system (red → yellow → green) for 0-10 ratings
-- **Composite Scoring** - Automatically calculates total score (vibe + coffee)
-- **Google Places Integration** - Autocomplete for coffee shop names and addresses
-- **Date Tracking** - Keep track of when you visited each shop
-- **Order History** - Remember what you ordered at each spot
-- **Notes** - Add any additional thoughts or memories
+## Development
 
-## Tech Stack
+Use Node 20 or newer. The frontend uses React, Vite, Tailwind, and MapKit JS. Local APIs use Express and SQLite; production uses Cloudflare Pages Functions and the existing D1 `DB` binding.
 
-### Frontend
-- **React 18** - Modern UI framework
-- **Vite** - Lightning-fast build tool
-- **Tailwind CSS** - Utility-first styling
-- **Google Maps/Places API** - Autocomplete and location data
-
-### Backend
-- **Node.js & Express** - RESTful API (local development)
-- **Cloudflare Pages Functions** - Production API
-- **SQLite / Cloudflare D1** - Lightweight, globally distributed database
-- **CORS enabled** - Frontend/backend communication
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+ and npm
-- Google Maps API key (for autocomplete feature)
-
-### 1. Clone the Repository
-
-```bash
-git clone <your-repo-url>
-cd vibes-and-grinds
+```sh
+npm --prefix frontend ci
+npm --prefix backend ci
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 ```
 
-### 2. Backend Setup
+Start the API from the backend directory so its SQLite database is created there:
 
-```bash
+```sh
 cd backend
-npm install
-cp .env.example .env
-# Edit .env if needed (default port is 3001)
 npm start
 ```
 
-The backend will:
-- Start on `http://localhost:3001`
-- Create a SQLite database file (`vibes-and-grinds.db`)
-- Initialize the database schema automatically
+In another terminal:
 
-### 3. Frontend Setup
-
-```bash
+```sh
 cd frontend
-npm install
-cp .env.example .env
-```
-
-**Important:** Edit `frontend/.env` and add your Google Maps API key:
-
-```env
-VITE_API_URL=http://localhost:3001
-```
-
-Then in the project root `.env` (for the backend), add:
-
-```env
-GOOGLE_MAPS_API_KEY=your_actual_api_key_here
-NET_RANKINGS_URL=https://big-ten-standings.erikrole.workers.dev  # optional override
-```
-
-If you want the frontend to call your worker directly instead of the API proxy, you can also set:
-
-```env
-VITE_NET_RANKINGS_URL=https://big-ten-standings.erikrole.workers.dev  # optional direct browser override
-```
-
-The vest tracker accepts either a dedicated NET rankings payload, your Big Ten standings worker shape (`{ standings: [{ team, netRank, ... }] }`), or a full D1 map shape (`{ netRankings: { "DUKE": 1, ... } }`). If no env var is set on the API, it defaults to `https://www.warrennolan.com/basketball/2026/net` and parses all teams from HTML.
-
-Vest games now sync via `/api/vest/games` backed by DB storage (instead of device-only localStorage), so updates on one device can appear on another once both are online.
-
-If using Cloudflare D1, re-run migrations/schema apply so `vest_games` exists.
-
-Visits also carry a `visit_type` column (`road` or `home`) so Madison stops can be tracked separately from road trips. Existing D1 databases need a one-time column add — see [Madison Coffee Shops](#madison-coffee-shops).
-
-Then start the development server:
-
-```bash
 npm run dev
 ```
 
-The frontend will open at `http://localhost:3000`
+The frontend runs at http://localhost:3000 and proxies `/api` to http://localhost:3001. Backend `.env` supplies optional mapping credentials. Saved shops and manual entry work without them. No database reset is needed for this UI/maps update.
 
-### 4. Getting a Google Places API Key
+For a local preview of production data, use the read-only guard:
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Enable the **Places API (New)**
-4. Create credentials (API key)
-5. Restrict the key to the Places API (New) and your deployment usage
-
-## Usage
-
-### Adding a Visit
-
-1. Click the "Add Visit" button
-2. Confirm the visit type — **Road trip** or **Around Madison** (Madison-area shops select themselves)
-3. Select a date (defaults to today)
-4. Start typing a coffee shop name - autocomplete will suggest places
-5. Enter what you ordered (optional)
-6. Rate the vibe (0-10, decimals allowed)
-7. Rate the coffee (0-10, decimals allowed)
-8. Add any notes (optional)
-9. Click "Add Visit"
-
-### Madison Coffee Shops
-
-Everyday stops around Madison live in the same journal as road trips, tagged `visit_type = 'home'`:
-
-- **Madison-area locations tag themselves.** Pick a shop from Places autocomplete (or type a city) anywhere within ~25 miles of Madison — Middleton, Fitchburg, Verona, Sun Prairie and friends — and the visit becomes a home stop on its own. Coordinates decide when Places supplies them; city/address text is the fallback, and it requires Wisconsin so Madison Avenue in Manhattan doesn't qualify.
-- The **Around Madison** toggle is the override. Using it by hand locks your choice for that form, so auto-detection can't undo it (useful for a coffee before a Badgers home game). Home stops hide Sport and Opponent and default City to `Madison, WI`.
-- The **Road & Madison** filter above the visit list scopes the list to one or the other. While the list is scoped to Madison, "Add Visit" opens pre-set to a Madison stop.
-- Repeat visits work as they do everywhere else: the "Visited N times" note, the **Regular spots** filter, and "Log Return Visit" (which keeps the Madison tag).
-- **Madison stops sit outside the seasons.** The Season-in-Review report, its season list, and the `{season} review` link all cover road trips only — a season is a road season. Everywhere else (visit list, hero totals, search, map, insights, badges) counts every visit, Madison included.
-
-Existing databases need the column added once. Locally this happens automatically on server start; for D1:
-
-```bash
-wrangler d1 execute vibes-and-grinds-db --remote \
-  --command "ALTER TABLE coffee_visits ADD COLUMN visit_type TEXT DEFAULT 'road'"
+```sh
+cd frontend
+VITE_PROXY_TARGET=https://coffee.erikrole.com VITE_PROXY_READ_ONLY=true npm run dev
 ```
 
-SQLite backfills existing rows with `'road'`, so past visits stay road trips.
+Never use an unguarded production proxy to test writes. Keep databases, photos, tokens, and generated exports out of Git.
 
-### Understanding the Ratings
+## Apple Maps setup
 
-- **Vibe Rating** - Atmosphere, ambiance, seating, music, etc. (0-10)
-- **Coffee Rating** - Taste, quality, temperature, presentation (0-10)
-- **Composite Score** - Sum of both ratings (0-20)
+Set `APPLE_MAPS_TOKEN` on the API to a public MapKit JS token restricted to the intended domains. `/api/maps-config` returns this browser token with `Cache-Control: no-store`. **Never put a private `.p8` signing key in this variable or in browser code.** The frontend uses Apple’s official loader and SDK 6. Saved Apple place IDs use the `apple:` prefix in the existing place-ID column; existing Google records keep their identity and coordinates.
 
-### Color Coding
+A selected search result must resolve to exactly one place before it fills the entry. Changing a shop, city, or address clears stale place identity and coordinates. Entries without coordinates stay in the list without a fabricated pin.
 
-- **Red (0-3)** - Not great
-- **Orange/Yellow (4-6)** - Decent
-- **Yellow/Green (7-8)** - Good
-- **Green (9-10)** - Excellent
+When no token is configured, Google Places lookup uses the existing backend `GOOGLE_MAPS_API_KEY`; map tiles use OpenStreetMap. Apple token provisioning and domain restrictions require account access and approval. See [Apple Maps on the web](https://developer.apple.com/maps/web/) and [DEPLOYMENT.md](DEPLOYMENT.md).
 
-## API Endpoints
+## Checks
 
-- `GET /api/visits` - Get all visits
-- `GET /api/visits/:id` - Get a single visit
-- `POST /api/visits` - Create a new visit
-- `PUT /api/visits/:id` - Update a visit
-- `DELETE /api/visits/:id` - Delete a visit
-- `GET /api/stats` - Get dashboard statistics
-
-## Project Structure
-
-```
-vibes-and-grinds/
-├── backend/
-│   ├── server.js           # Express server
-│   ├── database.js         # Database initialization
-│   ├── package.json
-│   └── .env.example
-├── frontend/
-│   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── utils/          # Helper functions
-│   │   ├── App.jsx         # Main app component
-│   │   ├── main.jsx        # Entry point
-│   │   └── index.css       # Tailwind styles
-│   ├── index.html
-│   ├── package.json
-│   └── .env.example
-└── README.md
+```sh
+npm --prefix frontend test
+npm --prefix frontend run build
 ```
 
-See also **[PRODUCT_PLAN.md](./PRODUCT_PLAN.md)** for v1/v2 scope and roadmap.
+The tests cover place identity, cancellation, ambiguous results, links, coordinate validation, public config, and sorting. The GitHub workflow also checks backend and Pages function syntax. Browser review should cover saved-shop selection, draft retention on save failure, discard confirmation, mobile layouts, maps, and light/dark themes. Mocked SDK tests do not establish live Apple authentication or rendering.
 
-## Future Features (v2)
+## API and data
 
-- **Interactive Map** - View all coffee shop locations on a map
-- **Dashboard Stats** - Average ratings, favorite shops, total visits
-- **Year-End Recap** - Fun visualizations and statistics
-- **Filtering & Sorting** - Find visits by date, rating, or shop
-- **Trip Snapshot** - See total visits and average ratings at a glance
-- **Import from Google Sheets** - Migrate existing data
-- **Export Reports** - Generate PDFs or spreadsheets
+Coffee visit CRUD is under `/api/visits`, with aggregate stats at `/api/stats`. Mapping config is `/api/maps-config`; Google fallback lookup uses `/api/places-autocomplete` and `/api/places-details`. Photos use `/api/upload`. Vest endpoints are under `/api/vest`.
 
-## Development Commands
+`NET_RANKINGS_URL` can override the backend feed. `VITE_NET_RANKINGS_URL` optionally uses a browser feed directly. Existing payload shapes include dedicated NET rankings, Big Ten `standings`, and a D1 `netRankings` map.
 
-### Backend
-```bash
-npm run dev    # Start with nodemon (auto-reload)
-npm start      # Start production server
-```
+Existing older D1 databases may need the `visit_type` column or Vest tables; check their schema and the original [schema.sql](schema.sql) before planning any migration. This change requires no migration. Back up data and obtain approval before destructive changes.
 
-### Frontend
-```bash
-npm run dev    # Start development server
-npm run build  # Build for production
-npm run preview # Preview production build
-```
-
-## Deployment
-
-### Frontend (Vercel)
-1. Connect your GitHub repo to Vercel
-2. Set environment variable: `GOOGLE_MAPS_API_KEY` (and optionally `VITE_GOOGLE_MAPS_API_KEY` for legacy frontend usage)
-3. Build command: `cd frontend && npm install && npm run build`
-4. Output directory: `frontend/dist`
-
-### Backend (Railway/Heroku)
-1. Deploy the `backend` folder
-2. Set environment variable: `PORT` (provided by platform)
-3. For production, consider upgrading to PostgreSQL
-
-## Troubleshooting
-
-**Autocomplete not working?**
-- Check that `GOOGLE_MAPS_API_KEY` is set in the backend/root `.env` (or in Cloudflare Pages env vars).
-- Make sure Places API (New) is enabled in Google Cloud Console.
-- Confirm billing is active for the Google Cloud project (click **Activate** in Billing if shown).
-- Check API key restrictions and allow Places API (New) for the project key.
-
-**Backend not connecting?**
-- Ensure backend is running on port 3001
-- Check that `VITE_API_URL` in frontend `.env` matches backend URL
-
-**Database issues?**
-- Delete `backend/vibes-and-grinds.db` and restart the server to reset
-
-## Contributing
-
-Feel free to open issues or submit pull requests!
-
-## License
-
-MIT
+See [ROADMAP.md](ROADMAP.md) for remaining work and [CHANGELOG.md](CHANGELOG.md) for change notes.

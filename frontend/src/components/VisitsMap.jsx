@@ -1,105 +1,77 @@
-import { useEffect, useMemo, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { getMapsConfig, loadAppleMaps } from '../utils/mapkit';
 import { getVisitCoordinates, hasVisitCoordinates } from '../utils/coords';
-
-const markerIcon = (score, selected) => L.divIcon({
-  html: `<span class="journal-map-pin${selected ? ' is-selected' : ''}"><b>${Number(score).toFixed(1)}</b></span>`,
-  className: 'journal-map-marker',
-  iconSize: [44, 44],
-  iconAnchor: [22, 42],
-});
+const LegacyVisitsMap = lazy(() => import('./LegacyVisitsMap'));
 
 export default function VisitsMap({ visits, selectedVisitId, onVisitSelect, onVisitClick }) {
-  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+  const containerRef = useRef(null);
+  const mapRef = useRef(null);
+  const annotationsRef = useRef([]);
+  const callbacksRef = useRef({ onVisitSelect, onVisitClick });
+  callbacksRef.current = { onVisitSelect, onVisitClick };
+  const [provider, setProvider] = useState('loading');
+  const [ready, setReady] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const located = useMemo(() => visits.filter(hasVisitCoordinates), [visits]);
 
   useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsDark(document.documentElement.classList.contains('dark'));
+    let cancelled = false;
+    let observer;
+    let map;
+    setReady(false);
+    setProvider('loading');
+    (async () => {
+      const { token } = await getMapsConfig();
+      if (cancelled) return;
+      if (!token) { setProvider('legacy'); return; }
+      try {
+        const kit = await loadAppleMaps();
+        if (cancelled) return;
+        map = new kit.Map(containerRef.current, { showsUserLocationControl: false });
+        mapRef.current = map;
+        const theme = () => { map.colorScheme = document.documentElement.classList.contains('dark') ? kit.ColorScheme.Dark : kit.ColorScheme.Light; };
+        theme();
+        observer = new MutationObserver(theme);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        map.addEventListener('select', (event) => {
+          const annotation = event.annotation || event.detail?.annotation;
+          if (annotation?.data) callbacksRef.current.onVisitSelect?.(annotation.data);
+        });
+        setProvider('apple'); setReady(true);
+      } catch { if (!cancelled) setProvider('error'); }
+    })();
+    return () => { cancelled = true; observer?.disconnect(); map?.destroy(); mapRef.current = null; };
+  }, [retry]);
+
+  useEffect(() => {
+    if (!ready || !mapRef.current) return;
+    const kit = window.mapkit;
+    const map = mapRef.current;
+    map.removeAnnotations(annotationsRef.current);
+    const annotations = located.map((visit) => {
+      const { lat, lng } = getVisitCoordinates(visit);
+      return new kit.MarkerAnnotation(new kit.Coordinate(lat, lng), {
+        title: visit.coffee_shop_name, subtitle: visit.city || '',
+        glyphText: Number(visit.composite_score).toFixed(1), color: '#8c5036', data: visit,
+      });
     });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
+    annotationsRef.current = annotations;
+    map.addAnnotations(annotations);
+    if (annotations.length) map.showItems(annotations, { padding: new kit.Padding(55, 55, 55, 55) });
+  }, [ready, located]);
 
-  const tileUrl = isDark
-    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+  useEffect(() => {
+    if (!ready) return;
+    annotationsRef.current.forEach((annotation) => {
+      annotation.selected = annotation.data.id === selectedVisitId;
+    });
+  }, [ready, located, selectedVisitId]);
 
-  const visitsWithCoords = useMemo(
-    () => visits.filter(hasVisitCoordinates).map((visit) => ({ visit, ...getVisitCoordinates(visit) })),
-    [visits]
-  );
-
-  const center = useMemo(() => {
-    if (visitsWithCoords.length === 0) return [39.8283, -98.5795];
-    const avgLat = visitsWithCoords.reduce((sum, v) => sum + v.lat, 0) / visitsWithCoords.length;
-    const avgLng = visitsWithCoords.reduce((sum, v) => sum + v.lng, 0) / visitsWithCoords.length;
-    return [avgLat, avgLng];
-  }, [visitsWithCoords]);
-
-  const zoom = useMemo(() => {
-    if (visitsWithCoords.length === 0) return 4;
-    if (visitsWithCoords.length === 1) return 13;
-    const lats = visitsWithCoords.map((v) => v.lat);
-    const lngs = visitsWithCoords.map((v) => v.lng);
-    const maxSpread = Math.max(Math.max(...lats) - Math.min(...lats), Math.max(...lngs) - Math.min(...lngs));
-    if (maxSpread < 0.1) return 12;
-    if (maxSpread < 0.5) return 10;
-    if (maxSpread < 2) return 8;
-    if (maxSpread < 5) return 7;
-    if (maxSpread < 10) return 6;
-    return 5;
-  }, [visitsWithCoords]);
-
-  if (visitsWithCoords.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full bg-stone-100 dark:bg-stone-700 rounded-xl p-8">
-        <svg className="w-10 h-10 mb-3 text-stone-300 dark:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-        <p className="text-stone-500 dark:text-stone-400 text-center font-medium">
-          No visits with location data yet.
-        </p>
-        <p className="text-stone-400 dark:text-stone-500 text-center text-sm mt-1">
-          Add visits with Google Places autocomplete to see them on the map.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <MapContainer
-      center={center}
-      zoom={zoom}
-      className="h-full w-full rounded-xl"
-      scrollWheelZoom={false}
-      key={`map-${visitsWithCoords.length}-${center.join(',')}`}
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url={tileUrl}
-      />
-      {visitsWithCoords.map(({ visit, lat, lng }) => (
-        <Marker
-          key={visit.id}
-          position={[lat, lng]}
-          icon={markerIcon(visit.composite_score, selectedVisitId === visit.id)}
-          keyboard
-          title={`${visit.coffee_shop_name}, ${Number(visit.composite_score).toFixed(1)} out of 20`}
-          eventHandlers={{
-            mouseover: () => onVisitSelect?.(visit),
-            focus: () => onVisitSelect?.(visit),
-            click: () => onVisitClick?.(visit),
-          }}
-        >
-          <Tooltip direction="top" offset={[0, -30]} className="map-shop-label">
-            {visit.coffee_shop_name}
-            {visit.composite_score != null && ` · ${Number(visit.composite_score).toFixed(1)}`}
-          </Tooltip>
-        </Marker>
-      ))}
-    </MapContainer>
-  );
+  if (provider === 'legacy') return <Suspense fallback={<p className="map-message">Loading the map…</p>}><LegacyVisitsMap visits={visits} selectedVisitId={selectedVisitId} onVisitSelect={onVisitSelect} onVisitClick={onVisitClick} /></Suspense>;
+  return <div className="apple-map-stage">
+    <div ref={containerRef} className="apple-map-canvas" aria-label="Coffee shop locations" />
+    {provider === 'loading' && <p className="map-message" role="status">Loading the map…</p>}
+    {provider === 'error' && <div className="map-message" role="alert"><p>Apple Maps couldn’t connect. Your visits are still available in the list.</p><button className="btn-secondary" onClick={() => setRetry((value) => value + 1)}>Try again</button></div>}
+    {provider === 'apple' && !located.length && <p className="map-message">No stops to pin here yet. Choose a shop from search when adding a visit.</p>}
+  </div>;
 }

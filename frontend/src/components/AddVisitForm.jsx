@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import PhotoCropper from './PhotoCropper';
 import AutocompleteInput from './AutocompleteInput';
 import PlacesAutocomplete from './PlacesAutocomplete';
@@ -64,12 +64,11 @@ function getDefaultVisitData() {
   };
 }
 
-export default function AddVisitForm({ onSubmit, initialData = null, visits = [], mode = 'add' }) {
+export default function AddVisitForm({ onSubmit, initialData = null, visits = [], mode = 'add', onDirtyChange, onSavingChange }) {
   const isEditing = mode === 'edit';
   const isReturnVisit = mode === 'return';
 
   const suggestions = useMemo(() => ({
-    coffeeShops: [...new Set(visits.map((v) => v.coffee_shop_name).filter(Boolean))].sort(),
     cities: [...new Set(visits.map((v) => v.city).filter(Boolean))].sort(),
     opponents: [...new Set(visits.map((v) => v.opponent).filter(Boolean))].sort(),
     orders: [...new Set(visits.map((v) => v.coffee_order).filter(Boolean))].sort(),
@@ -78,6 +77,8 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
   const [formData, setFormData] = useState({ ...getDefaultVisitData(), ...(initialData || {}) });
 
   const [errors, setErrors] = useState({});
+  const [locating, setLocating] = useState(false);
+  const [editingLocation, setEditingLocation] = useState(false);
   const [showCustomSport, setShowCustomSport] = useState(false);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(initialData?.photo_url || null);
@@ -106,6 +107,12 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
     () => getRepeatContext(visits, formData, { excludeId: isEditing ? initialData?.id : null }),
     [formData, initialData?.id, isEditing, visits]
   );
+
+  const baselineRef = useRef(JSON.stringify({ ...getDefaultVisitData(), ...(initialData || {}) }));
+  useEffect(() => {
+    onDirtyChange?.(JSON.stringify(formData) !== baselineRef.current || Boolean(photoFile));
+  }, [formData, photoFile, onDirtyChange]);
+  useEffect(() => { onSavingChange?.(uploading); }, [uploading, onSavingChange]);
 
   const visitType = getVisitType(formData);
   const isHomeStop = visitType === VISIT_TYPES.HOME;
@@ -167,10 +174,11 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
     if (name === 'city' && value && !isHomeStop) {
       const cityLower = value.toLowerCase().trim();
       const matchedTeam = BIG_TEN_TEAMS[cityLower];
-      if (matchedTeam && !formData.opponent) updates.opponent = matchedTeam;
+      if (matchedTeam && formData.sport && !formData.opponent) updates.opponent = matchedTeam;
     }
 
     if (name === 'city') {
+      Object.assign(updates, { coffee_shop_place_id: '', coffee_shop_lat: '', coffee_shop_lng: '' });
       Object.assign(updates, detectedScopeUpdates({ city: value }));
     }
 
@@ -186,19 +194,19 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
 
   const handlePlaceSelected = (place) => {
     if (!place) return;
-    const cityFromAddress = extractCityFromAddress(place.address);
+    const cityFromAddress = place.city || extractCityFromAddress(place.address);
     const updates = {
       coffee_shop_name: place.name || formData.coffee_shop_name,
-      coffee_shop_address: place.address || formData.coffee_shop_address,
+      coffee_shop_address: place.address || '',
       coffee_shop_place_id: place.place_id || '',
-      coffee_shop_lat: typeof place.lat === 'number' ? place.lat : '',
-      coffee_shop_lng: typeof place.lng === 'number' ? place.lng : '',
+      coffee_shop_lat: place.lat ?? '',
+      coffee_shop_lng: place.lng ?? '',
     };
-    if (cityFromAddress && !formData.city) {
+    if (cityFromAddress) {
       updates.city = cityFromAddress;
       if (!isHomeStop) {
         const matchedTeam = BIG_TEN_TEAMS[cityFromAddress.toLowerCase()];
-        if (matchedTeam && !formData.opponent) updates.opponent = matchedTeam;
+        if (matchedTeam && formData.sport && !formData.opponent) updates.opponent = matchedTeam;
       }
     }
 
@@ -214,6 +222,8 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
     ));
 
     setFormData((prev) => ({ ...prev, ...updates }));
+    setEditingLocation(false);
+    setErrors((prev) => ({ ...prev, coffee_shop_name: '' }));
   };
 
   const processPhotoFile = (file) => {
@@ -263,14 +273,14 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
 
   const validateField = (name, value) => {
     if (name === 'date' && !value) return 'Date is required';
-    if (name === 'coffee_shop_name' && !value) return 'Coffee shop is required';
+    if (name === 'coffee_shop_name' && !String(value || '').trim()) return 'Coffee shop is required';
     if (name === 'vibe_rating') {
-      if (!value) return 'Vibe rating is required';
+      if (value === '' || value == null) return 'Vibe rating is required';
       const num = parseFloat(value);
       if (isNaN(num) || num < 0 || num > 10) return 'Must be 0–10';
     }
     if (name === 'coffee_rating') {
-      if (!value) return 'Coffee rating is required';
+      if (value === '' || value == null) return 'Coffee rating is required';
       const num = parseFloat(value);
       if (isNaN(num) || num < 0 || num > 10) return 'Must be 0–10';
     }
@@ -303,7 +313,8 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (uploading || locating || !validate()) return;
+    setErrors((prev) => ({ ...prev, submit: '' }));
     setUploading(true);
     try {
       let photoUrl = formData.photo_url;
@@ -317,6 +328,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
       }
       await onSubmit({
         ...formData,
+        coffee_shop_name: formData.coffee_shop_name.trim(),
         visit_type: visitType,
         vibe_rating: parseFloat(formData.vibe_rating),
         coffee_rating: parseFloat(formData.coffee_rating),
@@ -324,7 +336,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
       });
     } catch (error) {
       console.error('Error submitting visit:', error);
-      setErrors({ ...errors, photo: 'Failed to save visit. Please try again.' });
+      setErrors((prev) => ({ ...prev, submit: 'Couldn’t save this visit. Your entry is still here. Try again.' }));
     } finally {
       setUploading(false);
     }
@@ -334,15 +346,10 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
     <div>
       {/* Header */}
       <div className="visit-form-header">
-        <p className="type-label">{isHomeStop ? 'Madison coffee journal' : 'Road coffee journal'}</p>
         <h2 className="type-title">
-          {isEditing ? 'Edit Visit' : isReturnVisit ? 'Return Visit' : 'New Visit'}
+          {isEditing ? 'Edit visit' : isReturnVisit ? 'Return visit' : 'Add visit'}
         </h2>
-        <p className="type-meta">
-          {isHomeStop
-            ? 'A regular stop around town. No game, no opponent — just the cup.'
-            : 'Capture the stop first. Add the trip context only when it matters.'}
-        </p>
+        {isReturnVisit && <p className="type-meta">The shop is filled in. Add your order and today’s ratings.</p>}
       </div>
 
       <form ref={formRef} onSubmit={handleSubmit} className="visit-form" noValidate>
@@ -364,12 +371,12 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
         </div>
 
         {repeatContext?.personalCount > 0 && (
-          <RepeatContextPanel context={repeatContext} isReturnVisit={isReturnVisit} />
+          <RepeatContextPanel context={repeatContext} />
         )}
 
         {/* ── WHEN & WHERE ─────────────────────────────── */}
-        <FormSection title="Where did you stop?" description="Search first and the location details will fill themselves in.">
-          <Field label="Coffee Shop" htmlFor={fieldIds.coffee_shop_name} required error={errors.coffee_shop_name}>
+        <FormSection title="Location" description="Choose a shop to fill in its city and address.">
+          <Field label="Coffee shop" htmlFor={fieldIds.coffee_shop_name} required error={errors.coffee_shop_name}>
             <PlacesAutocomplete
               id={fieldIds.coffee_shop_name}
               value={formData.coffee_shop_name}
@@ -378,12 +385,11 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
                 setFormData((prev) => ({
                   ...prev,
                   coffee_shop_name: nextValue,
-                  ...(!isEditing && {
-                    coffee_shop_address: '',
-                    coffee_shop_place_id: '',
-                    coffee_shop_lat: '',
-                    coffee_shop_lng: '',
-                  }),
+                  city: isHomeStop ? HOME_CITY : '',
+                  coffee_shop_address: '',
+                  coffee_shop_place_id: '',
+                  coffee_shop_lat: '',
+                  coffee_shop_lng: '',
                 }));
                 if (errors.coffee_shop_name) setErrors((prev) => ({ ...prev, coffee_shop_name: '' }));
               }}
@@ -393,6 +399,9 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
               ariaInvalid={Boolean(errors.coffee_shop_name)}
               ariaDescribedBy={errors.coffee_shop_name ? `${fieldIds.coffee_shop_name}-error` : undefined}
               enterKeyHint="next"
+              savedPlaces={visits}
+              city={isHomeStop ? HOME_CITY : ''}
+              onBusyChange={setLocating}
             />
           </Field>
           <FieldRow>
@@ -411,7 +420,29 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
             </Field>
           </FieldRow>
 
-          {!isHomeStop && (
+          <div className="location-summary">
+            <span className="location-pin" aria-hidden="true">↗</span>
+            <div><strong>{formData.city || 'Add a location'}</strong><p>{formData.coffee_shop_address || 'Select a shop, or edit the location manually.'}</p></div>
+            <button type="button" className="text-action" onClick={() => setEditingLocation((value) => !value)} aria-expanded={editingLocation} aria-controls={`${reactId}-location-fields`}>{editingLocation ? 'Done' : 'Edit'}</button>
+          </div>
+          {editingLocation && <div id={`${reactId}-location-fields`}>
+            <Field label="City" htmlFor={fieldIds.city}>
+              <AutocompleteInput id={fieldIds.city} name="city" value={formData.city} onChange={handleInputChange} suggestions={suggestions.cities} className={FI} placeholder="City, state" />
+            </Field>
+            <Field label="Address" htmlFor={fieldIds.coffee_shop_address}>
+              <input id={fieldIds.coffee_shop_address} name="coffee_shop_address" value={formData.coffee_shop_address} onChange={(event) => {
+                handleInputChange(event);
+                setFormData((prev) => ({ ...prev, coffee_shop_place_id: '', coffee_shop_lat: '', coffee_shop_lng: '' }));
+              }} className={FI} placeholder="Street address" />
+            </Field>
+          </div>}
+        </FormSection>
+
+
+        {!isHomeStop && <details className="form-disclosure" open={formData.sport || formData.opponent || showCustomSport ? true : undefined}>
+          <summary>Trip details <span>Optional</span></summary>
+          <div className="form-surface">
+            <FieldRow>
           <Field label="Sport" htmlFor={showCustomSport ? fieldIds.customSport : fieldIds.sport}>
             <div className="relative">
               {showCustomSport ? (
@@ -451,80 +482,16 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
               )}
             </div>
           </Field>
-          )}
-
-          {repeatContext?.personalCount > 0 && (
-            <div className="px-4 py-3 bg-amber-50/70 dark:bg-amber-900/10 text-sm text-stone-600 dark:text-stone-300">
-              <span className="font-semibold text-stone-900 dark:text-stone-100">
-                {repeatContext.visitorName}'s visit #{repeatContext.visitNumber}
-              </span>
-              {repeatContext.lastVisit?.coffee_order && (
-                <span className="text-stone-500 dark:text-stone-400"> · Last order: {titleCaseOrder(repeatContext.lastVisit.coffee_order)}</span>
-              )}
-            </div>
-          )}
-
-          {isHomeStop ? (
-            <Field label="City" htmlFor={fieldIds.city}>
-              <AutocompleteInput
-                id={fieldIds.city}
-                name="city"
-                value={formData.city}
-                onChange={handleInputChange}
-                suggestions={suggestions.cities}
-                className={FI}
-                placeholder={HOME_CITY}
-                enterKeyHint="next"
-                autoCapitalize="words"
-              />
-            </Field>
-          ) : (
-          <FieldRow>
-            <Field label="City" htmlFor={fieldIds.city}>
-              <AutocompleteInput
-                id={fieldIds.city}
-                name="city"
-                value={formData.city}
-                onChange={handleInputChange}
-                suggestions={suggestions.cities}
-                className={FI}
-                enterKeyHint="next"
-                autoCapitalize="words"
-              />
-            </Field>
-            <Field label="Opponent" htmlFor={fieldIds.opponent}>
-              <AutocompleteInput
-                id={fieldIds.opponent}
-                name="opponent"
-                value={formData.opponent}
-                onChange={handleInputChange}
-                suggestions={suggestions.opponents}
-                className={FI}
-                enterKeyHint="next"
-                autoCapitalize="words"
-              />
-            </Field>
-          </FieldRow>
-          )}
-
-          <Field label="Address" htmlFor={fieldIds.coffee_shop_address}>
-            <input
-              id={fieldIds.coffee_shop_address}
-              type="text"
-              name="coffee_shop_address"
-              value={formData.coffee_shop_address}
-              onChange={handleInputChange}
-              className={`${FI} text-stone-500 dark:text-stone-400`}
-              placeholder="Auto-fills from Places"
-              enterKeyHint="next"
-              autoCapitalize="words"
-            />
-          </Field>
-        </FormSection>
+              <Field label="Opponent" htmlFor={fieldIds.opponent}>
+                <AutocompleteInput id={fieldIds.opponent} name="opponent" value={formData.opponent} onChange={handleInputChange} suggestions={suggestions.opponents} className={FI} placeholder="Who were the Badgers playing?" />
+              </Field>
+            </FieldRow>
+          </div>
+        </details>}
 
         {/* ── ORDER & RATINGS ───────────────────────────── */}
-        <FormSection title="What did AJ order?" description="Name the drink, then score the cup and the room.">
-          <Field label="Coffee Order" htmlFor={fieldIds.coffee_order}>
+        <FormSection title="Order and ratings">
+          <Field label="Order" htmlFor={fieldIds.coffee_order}>
             <AutocompleteInput
               id={fieldIds.coffee_order}
               name="coffee_order"
@@ -560,6 +527,9 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
                 />
                 <span>/ 10</span>
               </div>
+
+              <input type="range" min="0" max="10" step="0.1" name="vibe_rating" value={formData.vibe_rating === '' ? 0 : formData.vibe_rating} onChange={handleInputChange} aria-label="Vibe rating slider" aria-valuetext={formData.vibe_rating === '' ? 'Not rated yet' : `${formData.vibe_rating} out of 10`} className="rating-slider" />
+              <div className="rating-anchors"><span>Not great</span><span>Excellent</span></div>
             </Field>
             <Field label="Coffee" htmlFor={fieldIds.coffee_rating} required error={errors.coffee_rating}>
               <div className="form-rating-control">
@@ -583,17 +553,21 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
                 />
                 <span>/ 10</span>
               </div>
+              <input type="range" min="0" max="10" step="0.1" name="coffee_rating" value={formData.coffee_rating === '' ? 0 : formData.coffee_rating} onChange={handleInputChange} aria-label="Coffee rating slider" aria-valuetext={formData.coffee_rating === '' ? 'Not rated yet' : `${formData.coffee_rating} out of 10`} className="rating-slider" />
+              <div className="rating-anchors"><span>Not great</span><span>Excellent</span></div>
             </Field>
           </FieldRow>
         </FormSection>
 
         {/* ── MEMORIES ─────────────────────────────────── */}
-        <FormSection title="Save the memory" description="A photo and one honest line are enough.">
+        <details className="form-disclosure memory-disclosure" open={formData.notes || photoPreview ? true : undefined}>
+          <summary>Photo and notes <span>Optional</span></summary>
+          <FormSection>
           {/* Photo */}
           {photoPreview ? (
             <>
               <div className="relative aspect-[4/5] rounded-t-2xl overflow-hidden">
-                <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                <img src={photoPreview} alt="Visit photo preview" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                 <div className="absolute bottom-3 right-3 flex gap-2">
                   <button
@@ -620,7 +594,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
                   Change photo
                 </span>
                 {errors.photo && <span className="text-xs text-red-500 ml-auto">{errors.photo}</span>}
-                <input id={fieldIds.photo} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+                <input id={fieldIds.photo} type="file" accept="image/*" onChange={handlePhotoChange} className="sr-only" />
               </label>
             </>
           ) : (
@@ -639,13 +613,13 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[15px] font-medium text-stone-700 dark:text-stone-300">{dragging ? 'Drop photo here' : 'Add a photo'}</p>
-                <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">Drag & drop or click to browse</p>
+                <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">Choose a photo</p>
               </div>
               <svg className="w-4 h-4 text-stone-300 dark:text-stone-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
               {errors.photo && <span className="text-xs text-red-500">{errors.photo}</span>}
-              <input id={fieldIds.photo} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+              <input id={fieldIds.photo} type="file" accept="image/*" onChange={handlePhotoChange} className="sr-only" />
             </label>
           )}
 
@@ -663,14 +637,18 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
           </Field>
         </FormSection>
 
+        </details>
+
         {/* ── ACTIONS ──────────────────────────────────── */}
         <div className="form-actions safe-bottom">
+          {errors.submit && <p className="form-save-error" role="alert">{errors.submit}</p>}
+          <div className="form-save-summary"><span>{formData.coffee_shop_name || 'New visit'}</span><strong>{formData.vibe_rating !== '' && formData.coffee_rating !== '' ? `${(Number(formData.vibe_rating) + Number(formData.coffee_rating)).toFixed(1)} / 20` : 'Rate the vibe and the coffee'}</strong></div>
           <button
             type="submit"
-            disabled={uploading}
+            disabled={uploading || locating}
             className="form-submit"
           >
-            {uploading ? 'Saving…' : isEditing ? 'Save Changes' : 'Add Visit'}
+            {uploading ? 'Saving…' : locating ? 'Finding the shop…' : isEditing ? 'Save changes' : 'Save visit'}
           </button>
         </div>
       </form>
@@ -687,10 +665,10 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
 function FormSection({ title, description, children }) {
   return (
     <section className="form-section">
-      <div className="form-section-heading">
+      {title && <div className="form-section-heading">
         <h3>{title}</h3>
         {description && <p>{description}</p>}
-      </div>
+      </div>}
       {/* No overflow-hidden so autocomplete dropdowns can escape the card */}
       <div className="form-surface">
         {children}
@@ -699,7 +677,7 @@ function FormSection({ title, description, children }) {
   );
 }
 
-function RepeatContextPanel({ context, isReturnVisit }) {
+function RepeatContextPanel({ context }) {
   const lastVisitDate = context.lastVisit?.date
     ? formatDate(context.lastVisit.date, { month: 'short', day: 'numeric' })
     : null;
@@ -708,14 +686,14 @@ function RepeatContextPanel({ context, isReturnVisit }) {
     : null;
 
   return (
-    <div className="rounded-2xl border border-amber-200/80 dark:border-amber-800/50 bg-amber-50/80 dark:bg-amber-900/15 px-4 py-3.5">
+    <div className="repeat-context px-4 py-3.5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300">
-            {isReturnVisit ? 'Return visit ready' : 'Repeat visit'}
+          <p className="text-xs font-medium text-stone-500 dark:text-stone-400">
+            Previous visits
           </p>
           <p className="mt-1 text-sm font-semibold text-stone-900 dark:text-stone-50">
-            {context.visitorName}'s visit #{context.visitNumber} here
+            Visit {context.visitNumber} to this shop
           </p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs text-stone-600 dark:text-stone-300">

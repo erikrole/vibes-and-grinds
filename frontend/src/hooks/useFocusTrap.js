@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE = 'button, summary, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 export default function useFocusTrap(ref, { onEscape, enabled = true, initialFocusRef } = {}) {
   // Callers rebuild onEscape whenever their own state changes (VisitDetailModal
@@ -17,6 +17,7 @@ export default function useFocusTrap(ref, { onEscape, enabled = true, initialFoc
     if (!enabled) return;
 
     const handleKeyDown = (e) => {
+      if (e.defaultPrevented) return;
       if (e.key === 'Escape') {
         onEscapeRef.current?.();
         return;
@@ -27,7 +28,7 @@ export default function useFocusTrap(ref, { onEscape, enabled = true, initialFoc
       const container = ref.current;
       if (!container) return;
 
-      const focusable = container.querySelectorAll(FOCUSABLE);
+      const focusable = [...container.querySelectorAll(FOCUSABLE)].filter((element) => !element.disabled && element.getClientRects().length > 0);
       if (focusable.length === 0) return;
 
       const first = focusable[0];

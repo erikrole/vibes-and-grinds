@@ -10,6 +10,7 @@ const InsightsPanel = lazy(() => import('./components/InsightsPanel'));
 const YearInReview = lazy(() => import('./components/YearInReview'));
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import ErrorBoundary from './components/ErrorBoundary';
+import { sortVisits } from './utils/sortVisits';
 import { titleCaseOrder } from './utils/display';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from './utils/api';
 import { getAvailableSeasons, getCurrentSeason, getSeasonVisits } from './utils/yearReview';
@@ -181,9 +182,8 @@ export default function App() {
       toastBag.show('Visit added.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
-      setError('Failed to add visit. Please try again.');
       toastBag.show('Could not add visit.', 'error');
-      console.error(err);
+      throw err;
     }
   };
 
@@ -203,9 +203,8 @@ export default function App() {
       toastBag.show('Visit updated.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
-      setError('Failed to update visit. Please try again.');
       toastBag.show('Could not update visit.', 'error');
-      console.error(err);
+      throw err;
     }
   };
 
@@ -229,7 +228,6 @@ export default function App() {
         },
       });
     } catch (err) {
-      setError('Failed to delete visit. Please try again.');
       toastBag.show('Could not delete visit.', 'error');
       console.error(err);
     }
@@ -261,9 +259,8 @@ export default function App() {
       setViewingVisit(updatedVisit);
       toastBag.show('Visit updated.');
     } catch (err) {
-      setError('Failed to update visit. Please try again.');
       toastBag.show('Could not update visit.', 'error');
-      console.error(err);
+      throw err;
     }
   };
 
@@ -273,8 +270,10 @@ export default function App() {
     setEditingVisit(null);
   };
   const shopVisitCounts = useMemo(() => getShopVisitCounts(visits), [visits]);
+  const shopCount = Object.keys(shopVisitCounts).length;
+  const cityCount = new Set(visits.map((visit) => visit.city).filter(Boolean)).size;
 
-  // A draft with a shop already filled in came from "Log Return Visit"; a bare
+  // A draft with a shop already filled in came from "Log return visit"; a bare
   // draft only carries scope defaults for a brand-new stop.
   const isReturnDraft = Boolean(visitDraft?.coffee_shop_name);
 
@@ -305,41 +304,27 @@ export default function App() {
     );
   }), [visits, scopeFilter, sportFilter, repeatFilter, searchQuery, shopVisitCounts]);
 
-  const sortedVisits = useMemo(() => [...filteredVisits].sort((a, b) => {
-    const dir = sortAsc ? 1 : -1;
-    switch (sortBy) {
-      case 'date':
-        return dir * (new Date(b.date) - new Date(a.date));
-      case 'vibe':
-        return dir * (b.vibe_rating - a.vibe_rating);
-      case 'coffee':
-        return dir * (b.coffee_rating - a.coffee_rating);
-      case 'composite':
-        return dir * (b.composite_score - a.composite_score);
-      default:
-        return 0;
-    }
-  }), [filteredVisits, sortBy, sortAsc]);
+  const sortedVisits = useMemo(() => sortVisits(filteredVisits, sortBy, sortAsc), [filteredVisits, sortBy, sortAsc]);
 
   const hasActiveFilters = Boolean(searchQuery || sportFilter || repeatFilter || scopeFilter);
   const modeLabel = appMode === APP_MODES.VEST ? 'VEST TRACKER' : 'VIBES & GRINDS';
 
   const avgVibe = useMemo(
     () =>
-      visits.length ? (visits.reduce((sum, visit) => sum + visit.vibe_rating, 0) / visits.length).toFixed(1) : '0.0',
+      visits.length ? (visits.reduce((sum, visit) => sum + Number(visit.vibe_rating), 0) / visits.length).toFixed(1) : '0.0',
     [visits]
   );
   const avgCoffee = useMemo(
     () =>
       visits.length
-        ? (visits.reduce((sum, visit) => sum + visit.coffee_rating, 0) / visits.length).toFixed(1)
+        ? (visits.reduce((sum, visit) => sum + Number(visit.coffee_rating), 0) / visits.length).toFixed(1)
         : '0.0',
     [visits]
   );
   const avgComposite = useMemo(
     () =>
       visits.length
-        ? (visits.reduce((sum, visit) => sum + visit.composite_score, 0) / visits.length).toFixed(1)
+        ? (visits.reduce((sum, visit) => sum + Number(visit.composite_score), 0) / visits.length).toFixed(1)
         : '0.0',
     [visits]
   );
@@ -364,7 +349,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-    <div className={`min-h-screen transition-colors duration-200 ${appMode === APP_MODES.VEST ? 'vest-tracker-page' : ''}`}>
+    <div className={`min-h-screen transition-colors duration-200 ${appMode === APP_MODES.VEST ? 'vest-tracker-page' : 'coffee-journal-page'}`}>
         <header className={`safe-top transition-colors duration-200 ${
           appMode === APP_MODES.VEST
             ? 'vest-tracker-header'
@@ -455,8 +440,8 @@ export default function App() {
                 </button>
                 {appMode === APP_MODES.VIBES && !showForm && !editingVisit && (
                   <>
-                    <button onClick={handleOpenNewVisit} className="btn-primary hidden sm:block">Add Visit</button>
-                    <button onClick={handleOpenNewVisit} className="header-icon-button sm:hidden" aria-label="Add Visit">
+                    <button onClick={handleOpenNewVisit} className="btn-primary hidden sm:block">Add visit</button>
+                    <button onClick={handleOpenNewVisit} className="header-icon-button sm:hidden" aria-label="Add visit">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.25} d="M12 5v14M5 12h14" />
                       </svg>
@@ -487,30 +472,26 @@ export default function App() {
           </main>
         ) : (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-5 pb-8">
-          <section className="journal-summary mb-8">
-            <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1px_1fr] gap-6 lg:gap-10 items-end">
-              <div>
-                <p className="eyebrow mb-3">Coffee journal</p>
-                <div className="flex items-end gap-3">
-                  <p className="hero-numeral text-6xl sm:text-7xl">{visits.length}</p>
-                  <p className="text-sm sm:text-base mb-1.5" style={{ color: 'var(--ink-soft)' }}>stops logged on the road and around Madison</p>
-                </div>
-              </div>
-              <div className="rule-v hidden lg:block" />
-              <div className="rule-h lg:hidden" />
-              <div className="grid grid-cols-3 gap-4 sm:gap-6">
-                <EditorialStat label="Vibe" value={avgVibe} index={0} />
-                <EditorialStat label="Coffee" value={avgCoffee} index={1} />
-                <EditorialStat label="Overall" value={avgComposite} suffix="/ 20" index={2} />
+          {viewTab === 'visits' && <section className="journal-summary">
+            <div className="journal-intro">
+              <h2>{visits.length} <span>{visits.length === 1 ? 'visit' : 'visits'}</span></h2>
+              <p className="journal-totals">{shopCount} {shopCount === 1 ? 'shop' : 'shops'} <span>·</span> {cityCount} {cityCount === 1 ? 'city' : 'cities'}</p>
+            </div>
+            <div className="journal-averages">
+              <p className="eyebrow">Average ratings</p>
+              <div className="journal-average-values">
+                <EditorialStat label="Vibe" value={avgVibe} suffix="/ 10" />
+                <EditorialStat label="Coffee" value={avgCoffee} suffix="/ 10" />
+                <EditorialStat label="Overall" value={avgComposite} suffix="/ 20" />
               </div>
             </div>
-          </section>
+          </section>}
 
           {/* Section nav */}
-          <div className="flex items-center justify-between gap-5 mb-6 border-b border-stone-900/10 dark:border-stone-100/10">
+          <div className="journal-navigation flex items-center justify-between gap-5 mb-6 border-b border-stone-900/10 dark:border-stone-100/10">
             <div className="flex items-end gap-7 sm:gap-9">
             {[
-              { id: 'visits', label: 'Visits' },
+              { id: 'visits', label: 'Journal' },
               { id: 'map', label: 'Map' },
               { id: 'insights', label: 'Insights' },
             ].map(tab => (
@@ -547,7 +528,8 @@ export default function App() {
               <input
                 ref={searchRef}
                 type="search"
-                placeholder="Search shops, cities, opponents, or orders"
+                aria-label="Search the coffee journal"
+                placeholder="Find a shop, city, or favorite order"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="journal-search"
@@ -566,7 +548,7 @@ export default function App() {
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
               <div>
                 <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-stone-900 dark:text-stone-50 transition-colors leading-tight">
-                  Visits
+                  {hasActiveFilters ? 'Matching stops' : 'All stops'}
                 </h2>
                 <p className="text-stone-500 dark:text-stone-400 text-sm tracking-wide transition-colors mt-2">
                   {hasActiveFilters
@@ -645,14 +627,14 @@ export default function App() {
                 <div className="flex sm:hidden gap-2">
                   <select
                     value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
+                    onChange={(e) => setViewPrefs((prefs) => ({ ...prefs, sortBy: e.target.value, sortAsc: false }))}
                     aria-label="Sort visits"
                     className="control-field flex-1"
                   >
-                    <option value="date">Sort: Date</option>
-                    <option value="vibe">Sort: Vibe</option>
-                    <option value="coffee">Sort: Coffee</option>
-                    <option value="composite">Sort: Total</option>
+                    <option value="date">{sortAsc && sortBy === 'date' ? 'Oldest first' : 'Newest first'}</option>
+                    <option value="vibe">{sortAsc && sortBy === 'vibe' ? 'Lowest vibe' : 'Best vibe'}</option>
+                    <option value="coffee">{sortAsc && sortBy === 'coffee' ? 'Lowest coffee' : 'Best coffee'}</option>
+                    <option value="composite">{sortAsc && sortBy === 'composite' ? 'Lowest overall' : 'Best overall'}</option>
                   </select>
                   <button
                     type="button"
@@ -749,7 +731,7 @@ export default function App() {
         }`}>
           {appMode === APP_MODES.VIBES ? (
             <p className="text-stone-500 dark:text-stone-400 text-sm">
-              Built for logging AJ Harrison's road coffee orders
+              AJ Harrison’s coffee journal
             </p>
           ) : (
             <p>Built for charting AJ's sideline fits and results</p>
@@ -773,7 +755,7 @@ export default function App() {
         )}
 
         {appMode === APP_MODES.VIBES && showForm && (
-          <FormModal title={isReturnDraft ? 'Log Return Visit' : 'Add Visit'} onClose={handleCancelForm}>
+          <FormModal title={isReturnDraft ? 'Log return visit' : 'Add visit'} onClose={handleCancelForm}>
             <AddVisitForm
               initialData={visitDraft}
               mode={isReturnDraft ? 'return' : 'add'}
@@ -784,7 +766,7 @@ export default function App() {
         )}
 
         {appMode === APP_MODES.VIBES && editingVisit && (
-          <FormModal title="Edit Visit" onClose={handleCancelForm}>
+          <FormModal title="Edit visit" onClose={handleCancelForm}>
             <AddVisitForm initialData={editingVisit} mode="edit" onSubmit={handleUpdateVisit} visits={visits} />
           </FormModal>
         )}
@@ -831,7 +813,7 @@ export default function App() {
   );
 }
 
-function EditorialStat({ label, value, suffix, index = 0 }) {
+function EditorialStat({ label, value, suffix }) {
   return (
     <div className="flex flex-col min-w-0">
       <div className="flex items-center gap-1.5 mb-2">
@@ -839,11 +821,10 @@ function EditorialStat({ label, value, suffix, index = 0 }) {
       </div>
       <div className="flex items-baseline gap-1.5 min-w-0">
         <span
-          className="text-3xl sm:text-4xl lg:text-5xl animate-stat-pop tracking-tight font-semibold tabular-nums"
+          className="text-2xl sm:text-3xl tracking-tight font-semibold tabular-nums"
           style={{
-            animationDelay: `${index * 80}ms`,
             color: 'var(--ink)',
-            fontFamily: 'Fraunces, Georgia, serif',
+            fontFamily: 'Inter, system-ui, sans-serif',
             fontWeight: 600,
           }}
         >

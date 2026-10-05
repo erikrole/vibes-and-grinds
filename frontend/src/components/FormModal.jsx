@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { cloneElement, useCallback, useEffect, useRef, useState } from 'react';
 import useFocusTrap from '../hooks/useFocusTrap';
 
 export default function FormModal({ title, onClose, children }) {
@@ -6,17 +6,26 @@ export default function FormModal({ title, onClose, children }) {
   const closeRef = useRef(null);
   const closeTimerRef = useRef(null);
   const [closing, setClosing] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   useEffect(() => () => clearTimeout(closeTimerRef.current), []);
 
-  const handleClose = useCallback(() => {
+  const close = useCallback(() => {
     setClosing(true);
     // Let the exit animation finish before unmounting, but never fire twice.
     clearTimeout(closeTimerRef.current);
-    closeTimerRef.current = setTimeout(onClose, 200);
+    closeTimerRef.current = setTimeout(onClose, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 200);
   }, [onClose]);
 
-  useFocusTrap(modalRef, { onEscape: handleClose, initialFocusRef: closeRef });
+  const handleClose = useCallback(() => {
+    if (saving) return;
+    if (dirty) { setConfirmDiscard(true); return; }
+    close();
+  }, [saving, dirty, close]);
+
+  useFocusTrap(modalRef, { onEscape: handleClose, enabled: !confirmDiscard, initialFocusRef: closeRef });
 
   return (
     <div className="dialog-shell" role="dialog" aria-modal="true" aria-label={title}>
@@ -40,9 +49,21 @@ export default function FormModal({ title, onClose, children }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <div className="dialog-body p-4 sm:p-7 md:p-9">{children}</div>
+          <div className="dialog-body p-4 sm:p-7 md:p-9">{cloneElement(children, { onDirtyChange: setDirty, onSavingChange: setSaving })}</div>
+          {confirmDiscard && <DiscardPrompt onKeep={() => setConfirmDiscard(false)} onDiscard={close} />}
         </div>
       </div>
     </div>
   );
+}
+
+function DiscardPrompt({ onKeep, onDiscard }) {
+  const ref = useRef(null);
+  const keepRef = useRef(null);
+  useFocusTrap(ref, { onEscape: onKeep, initialFocusRef: keepRef });
+  return <div className="discard-overlay"><div ref={ref} className="discard-panel" role="alertdialog" aria-modal="true" aria-labelledby="discard-title" aria-describedby="discard-copy">
+    <h3 id="discard-title">Discard this entry?</h3>
+    <p id="discard-copy">You have unsaved changes. Keep editing to finish your visit.</p>
+    <div><button ref={keepRef} type="button" className="btn-primary" onClick={onKeep}>Keep editing</button><button type="button" className="btn-secondary" onClick={onDiscard}>Discard changes</button></div>
+  </div></div>;
 }

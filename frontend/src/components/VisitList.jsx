@@ -47,14 +47,14 @@ export default function VisitList({
           {hasActiveFilters ? 'No matching visits' : 'No visits yet'}
         </h3>
         <p className="text-stone-500 dark:text-stone-400 mb-6">
-          {hasActiveFilters ? 'Try a different search or remove filters.' : 'Your first road coffee stop starts here.'}
+          {hasActiveFilters ? 'Try a different search or remove filters.' : 'Add a shop, your order, and your ratings.'}
         </p>
         {!hasActiveFilters && onAddVisit && (
           <button onClick={onAddVisit} className="btn-primary inline-flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
             </svg>
-            Add Your First Visit
+            Add a visit
           </button>
         )}
       </div>
@@ -63,13 +63,9 @@ export default function VisitList({
 
   return (
     <div className="space-y-4">
-      {visits.map((visit, index) => (
-        <div
-          key={visit.id}
-          className="animate-card-in"
-          style={{ animationDelay: `${Math.min(index * 50, 400)}ms` }}
-        >
+      {visits.map((visit) => (
           <VisitCard
+            key={visit.id}
             visit={visit}
             onEdit={onEdit}
             onDelete={onDelete}
@@ -77,7 +73,6 @@ export default function VisitList({
             onLogReturnVisit={onLogReturnVisit}
             visitCount={shopVisitCounts[getShopRepeatKey(visit)] || 1}
           />
-        </div>
       ))}
     </div>
   );

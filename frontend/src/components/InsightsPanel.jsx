@@ -42,7 +42,7 @@ export default function InsightsPanel({ visits }) {
     [visits]
   );
 
-  if (!visits.length) return <p className="empty-state">Add a few visits to unlock patterns.</p>;
+  if (!visits.length) return <p className="empty-state">Add visits to compare ratings.</p>;
 
   const recentDelta = previous.length
     ? average(recent, 'composite_score') - average(previous, 'composite_score')
@@ -54,19 +54,18 @@ export default function InsightsPanel({ visits }) {
   return (
     <div className="insights-workbench">
       <header className="section-intro">
-        <p className="eyebrow">Highlights</p>
-        <h2>What the journal is saying</h2>
-        <p>Patterns use the full history. Each comparison shows its sample size so a lucky one-off does not win.</p>
+        <h2>Ratings and comparisons</h2>
+        <p>Compare shops, cities, and orders by average rating and number of visits.</p>
       </header>
 
       <section className="insight-highlight-grid" aria-label="Journal highlights">
         <Highlight
-          label="Recent form"
+          label="Recent visits"
           value={`${average(recent, 'composite_score').toFixed(1)}/20`}
           detail={recentDelta == null ? `Last ${recent.length} visits` : `${signed(recentDelta)} vs the previous ${previous.length}`}
         />
         <Highlight
-          label="The balance"
+          label="Vibe vs. coffee"
           value={ratingGap >= 0 ? 'Vibe leads' : 'Coffee leads'}
           detail={`${Math.abs(ratingGap).toFixed(1)} points on average across ${visits.length} visits`}
         />
@@ -76,14 +75,14 @@ export default function InsightsPanel({ visits }) {
           detail={best ? `${Number(best.composite_score).toFixed(1)}/20 in ${best.city || 'the journal'}` : ''}
         />
         <Highlight
-          label="Regular rotation"
+          label="Repeat shops"
           value={`${returningShops} repeat ${returningShops === 1 ? 'shop' : 'shops'}`}
           detail={`${new Set(visits.map((visit) => normalize(visit.coffee_shop_name))).size} distinct shops logged`}
         />
       </section>
 
       <section className="insight-context-grid">
-        <ContextCard title="Game-day effect">
+        <ContextCard title="Game-day ratings">
           {sportDays ? (
             <>
               <strong>{signed(sportDays.gameDay.avgComposite - sportDays.nonGameDay.avgComposite)} overall</strong>
@@ -104,8 +103,7 @@ export default function InsightsPanel({ visits }) {
       <section className="compare-panel">
         <div className="compare-heading">
           <div>
-            <p className="eyebrow">Explore and compare</p>
-            <h3>Rank like with like</h3>
+            <h3>Compare ratings</h3>
           </div>
           <div className="compare-controls">
             <label>
@@ -117,7 +115,7 @@ export default function InsightsPanel({ visits }) {
               </select>
             </label>
             <label>
-              Minimum sample
+              Minimum visits
               <select value={minimumSample} onChange={(event) => setMinimumSample(Number(event.target.value))} className="control-field">
                 <option value={2}>2 visits</option>
                 <option value={3}>3 visits</option>
@@ -130,12 +128,12 @@ export default function InsightsPanel({ visits }) {
         {comparisons.length ? (
           <div className="comparison-table" role="table" aria-label="Ranked journal comparison">
             <div className="comparison-row comparison-header" role="row">
-              <span role="columnheader">Name</span><span role="columnheader">Sample</span><span role="columnheader">Vibe</span><span role="columnheader">Coffee</span><span role="columnheader">Overall</span>
+              <span role="columnheader">Name</span><span role="columnheader">Visits</span><span role="columnheader">Vibe</span><span role="columnheader">Coffee</span><span role="columnheader">Overall</span>
             </div>
             {comparisons.map((item, index) => (
               <div className="comparison-row" role="row" key={item.key}>
                 <span role="cell"><b>{index + 1}</b>{item.key}</span>
-                <span role="cell">n={item.count}</span>
+                <span role="cell">{item.count}</span>
                 <span role="cell">{item.avgVibe.toFixed(1)}</span>
                 <span role="cell">{item.avgCoffee.toFixed(1)}</span>
                 <strong role="cell">{item.avgComposite.toFixed(1)}</strong>
