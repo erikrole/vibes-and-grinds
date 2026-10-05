@@ -12,7 +12,7 @@
 ## Remaining acceptance
 
 - The production Apple Maps token was provisioned with approval on 2026-10-04 and restricted to `coffee.erikrole.com`. Live Apple map rendering, dark mode, and exact shop/address autofill passed after deployment.
-- Apple search and maps are active on the production domain. Mocked regression tests cover canonical identity; production test entries were not created. Nearby markers cluster, and search excludes broad queries and address-only results.
+- Apple search and maps are active on the production domain. Mocked regression tests cover canonical identity; production test entries were not created. Cluster-click zoom still needs a manual interaction check because automated browser input cannot target the SDK’s closed shadow root. Nearby markers cluster, and search excludes broad queries and address-only results.
 - Successful create/edit persistence, including zero and decimal ratings, passed against a temporary local SQLite database. Photo upload remains an additional acceptance step; production data was not changed during testing.
 
 ## Follow-up maintenance
