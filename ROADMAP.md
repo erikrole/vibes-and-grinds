@@ -18,7 +18,8 @@
 - Frontend and isolated SQLite API regression tests pass. Local review covers owner sign-in, return save, deletion/restoration, shop history/Back, comparison counts, current/completed seasons, narrow dark layout, Vest game save/snapshot restore, and draft retention through owner-session expiry.
 - Production released at https://305b1af5.vibes-and-grinds.pages.dev (source `c75bb59b4cd9e7ead59c45079addf8f92d853b66`), serving https://coffee.erikrole.com. GitHub CI run `37251590037` passed. Every original field and ID matches the private backup: 34 coffee visits, 35 Vest games, no deleted original rows; all visits have stable shop IDs.
 - Live checks passed: guest mutations rejected on visit CRUD/upload/Vest/backfill; owner sign-in/backfill/export; Apple rendering and exact Williamson Street autofill; shop history/Back; factual active/completed seasons; mobile dark journal.
-- Retire or restrict old unguarded Pages deployment URLs before considering owner-write protection complete. Retirement needs separate explicit approval.
+- With explicit approval, 25 older unguarded Pages deployments were retired on 2026-10-04. All 25 `/api/visits` URLs return 404; every journal/shop/alias/game/recovery field matches the pre-retirement export. Current production, protected previews, and production/main aliases reject guest writes.
+- A complete paginated inventory revealed 226 additional older deployments. Their exact retirement plan is prepared privately and awaits approval; owner-write protection remains incomplete while older unguarded copies can reach shared data. Wrangler lists only the first 25 deployments: always inspect every API page.
 - Native photo-picker automation is unavailable in the current in-app browser; isolated upload and image read-back passed; manual picker acceptance remains distinct.
 - Two original visits lack location coordinates. The repair flow exposes them; do not guess a business branch or fabricate pins.
 

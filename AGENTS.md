@@ -8,6 +8,7 @@ Follow `/Users/role/Code/AGENTS.md` and the RoleDev handoff contract. Work main-
 - Share API contracts through `shared/`; Pages uses D1, local Express uses the serialized SQLite adapter. Existing data uses additive migrations, stable internal shop IDs, soft deletion, and versioned Vest snapshots.
 - Keep the existing warm paper/espresso palette, Fraunces for identity/shop names, and Inter for controls. Prefer useful compact rows, sentence-case copy, immediate filtering, and restrained motion with reduced-motion support.
 - Production is Cloudflare Pages project `vibes-and-grinds`, custom domain `coffee.erikrole.com`, existing D1 binding `DB`. On 2026-10-04 the production branch is `claude/coffee-shop-tracker-iIWcb`; main is a preview branch. Verify current settings before deployment. Do not change production branch or bindings without approval.
+- Deployment audits must inspect every Cloudflare API page; Wrangler lists only the first 25. Retire only explicitly approved IDs, preserve the protected production/previews, and verify retired URLs plus unchanged data.
 - Never commit credentials, runtime databases, photos, exports, or browser-review artifacts. `.env` files are ignored.
 - Ask before credential/auth/infrastructure changes or destructive data operations. A public Maps token still requires explicit provisioning approval; never expose its private signing key.
 - Use `VITE_PROXY_READ_ONLY=true` whenever previewing production data locally. Do not create test visits in production.

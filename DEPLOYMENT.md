@@ -25,6 +25,12 @@ After approved configuration and redeployment, check live autocomplete, exact se
 
 Without a token, saved-shop/manual entry still works, remote autocomplete uses the existing `GOOGLE_MAPS_API_KEY`, and the map uses OpenStreetMap tiles with visible attribution. Do not change existing Google credentials as part of this update.
 
+## Complete deployment inventory
+
+Wrangler `pages deployment list` returns only the first 25 deployments. It is insufficient to audit the full history. Read the Cloudflare Pages deployments API with `page` and `per_page=25` until the returned page is shorter than 25; keep credentials out of logs. Prepare the exact retirement list, preserve protected releases, obtain approval, and verify both inventory removal and retired URL responses. Do not assume a short visible history covers every deployment.
+
+On 2026-10-04, the approved first 25 older deployments were retired and every retired `/api/visits` URL returned 404. Production `305b1af5-169f-4e66-863d-281e75f05c35` (source `c75bb59`) and protected previews were preserved. The complete inventory then revealed 226 additional older copies; their retirement is prepared and awaits explicit approval. All original and recovery records match the private pre-retirement export.
+
 ## Data and rollback
 
 The whole-site update requires `migrations/0001_owner_shops_recovery.sql` once on existing D1. Inspect columns first and export a private database backup. The migration adds columns/tables; original journal and game rows remain intact. Configure the generated owner access-key hash as production `OWNER_KEY_HASH`; missing keys fail closed. After deploying, sign in and run owner-only `/api/owner/backfill`, then compare all original fields and counts with the backup. Never create production test visits.

@@ -80,6 +80,6 @@ Owner sign-in uses a generated 256-bit access key, with only its SHA-256 digest 
 
 Season reviews cover July through June and road visits only. Current seasons say “so far”; single visits do not imply a trend. Insights starts with one-visit samples and links to the records behind comparisons. Vest comparisons describe completed-game records without generated narratives or recommendations; simply browsing never saves game records.
 
-Older immutable Pages deployments must be retired or access-restricted before owner-only editing is considered complete; their old code can still reach shared production data. See [DEPLOYMENT.md](DEPLOYMENT.md).
+Older immutable Pages deployments must be retired or access-restricted before owner-only editing is considered complete; their old code can still reach shared production data. The approved first 25 were retired on 2026-10-04; a paginated audit revealed 226 additional older copies awaiting retirement approval. Wrangler shows only the first 25 deployments, so audit the complete API history. See [DEPLOYMENT.md](DEPLOYMENT.md).
 
 See [ROADMAP.md](ROADMAP.md) for remaining work and [CHANGELOG.md](CHANGELOG.md) for change notes.
