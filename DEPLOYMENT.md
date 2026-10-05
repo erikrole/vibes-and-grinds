@@ -29,7 +29,7 @@ Without a token, saved-shop/manual entry still works, remote autocomplete uses t
 
 Wrangler `pages deployment list` returns only the first 25 deployments. It is insufficient to audit the full history. Read the Cloudflare Pages deployments API with `page` and `per_page=25` until the returned page is shorter than 25; keep credentials out of logs. Prepare the exact retirement list, preserve protected releases, obtain approval, and verify both inventory removal and retired URL responses. Do not assume a short visible history covers every deployment.
 
-On 2026-10-04, the approved first 25 older deployments were retired and every retired `/api/visits` URL returned 404. Production `305b1af5-169f-4e66-863d-281e75f05c35` (source `c75bb59`) and protected previews were preserved. The complete inventory then revealed 226 additional older copies; their retirement is prepared and awaits explicit approval. All original and recovery records match the private pre-retirement export.
+On 2026-10-04, all 251 older unguarded deployments were retired with explicit approval: the first 25, then 226 additional copies discovered through pagination. Every retired `/api/visits` URL returned 404. A complete inventory retained only protected releases: production `305b1af5-169f-4e66-863d-281e75f05c35` (source `c75bb59`) and protected previews. All remaining deployments and production/main aliases rejected guest writes. All journal/shop/alias/game/recovery fields matched the private pre-retirement export: 34 visits, 33 shops, 35 games, Vest revision 0. Production branch, bindings, and credentials were preserved.
 
 ## Data and rollback
 
