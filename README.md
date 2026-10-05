@@ -56,6 +56,8 @@ Set `APPLE_MAPS_TOKEN` on the API to a public MapKit JS token restricted to the 
 
 A selected search result must resolve to exactly one place before it fills the entry. Changing a shop, city, or address clears stale place identity and coordinates. Entries without coordinates stay in the list without a fabricated pin.
 
+Around-Madison searches require results within the metro region. Road searches include the entered city when available and keep other destinations searchable.
+
 When no token is configured, Google Places lookup uses the existing backend `GOOGLE_MAPS_API_KEY`; map tiles use OpenStreetMap. Apple token provisioning and domain restrictions require account access and approval. See [Apple Maps on the web](https://developer.apple.com/maps/web/) and [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Checks
@@ -66,7 +68,7 @@ npm --prefix backend test
 npm --prefix frontend run build
 ```
 
-The tests cover place identity, cancellation, ambiguous results, links, coordinate validation, public config, and sorting. Backend tests cover owner sessions, origin checks, throttling, shop matching, deletion/restoration, and conflicting Vest updates. The GitHub workflow also checks backend, shared modules, and all Pages functions. Browser review should cover saved-shop selection, draft retention on save failure, discard confirmation, mobile layouts, maps, and light/dark themes. Mocked SDK tests do not establish live Apple authentication or rendering.
+The tests cover place identity, cancellation, ambiguous results, geographic search scope, links, coordinate validation, public config, and sorting. Backend tests cover owner sessions, origin checks, throttling, shop matching, deletion/restoration, conflicting Vest updates, and score loading without owner-record changes. The GitHub workflow also checks backend, shared modules, and all Pages functions. Browser review should cover saved-shop selection, draft retention on save failure, discard confirmation, mobile layouts, maps, and light/dark themes. Mocked SDK tests do not establish live Apple authentication or rendering.
 
 ## API and data
 
@@ -79,6 +81,8 @@ Fresh databases use [schema.sql](schema.sql). Existing production databases requ
 Owner sign-in uses a generated 256-bit access key, with only its SHA-256 digest in `OWNER_KEY_HASH`. Never use a human password as this key. Use the footer’s Owner sign-in to enter the private key; a secure, HttpOnly, same-origin session lasts 12 hours. Rotating the configured hash invalidates previous sessions. Missing configuration disables writes. Every Pages API mutation and local API mutation is protected, including photo upload. Owner export includes visits, deleted visits, shops, aliases, and Vest recovery data, and excludes credentials and sessions. Store the access key securely and never commit it.
 
 Season reviews cover July through June and road visits only. Current seasons say “so far”; single visits do not imply a trend. Insights starts with one-visit samples and links to the records behind comparisons. Vest comparisons describe completed-game records without generated narratives or recommendations; simply browsing never saves game records.
+
+Vest score loading derives the ESPN season end year from the latest saved game (2026 for 2025–26), includes regular/conference and NCAA tournament schedules, and uses Chicago calendar dates. Supplementary scores require an exact saved ESPN ID, date, and opponent match. Loading scores updates only the stats cache; owner games, revision, and recovery snapshots stay unchanged. Cached responses exclude unlinked events and other seasons.
 
 Older immutable Pages deployments must be retired or access-restricted before owner-only editing is considered complete; their old code can still reach shared production data. All 251 older unguarded copies were retired with explicit approval on 2026-10-04; every retired API URL returned 404 and every remaining deployment rejected guest writes. Saved records remained unchanged. Wrangler shows only the first 25 deployments, so audit the complete API history. See [DEPLOYMENT.md](DEPLOYMENT.md).
 

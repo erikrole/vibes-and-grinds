@@ -37,8 +37,14 @@ export async function searchPlaces(query, { signal, city = '' } = {}) {
   if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
   if (token) {
     const mapkit = await loadAppleMaps();
+    const local = /^Madison,?\s*WI$/i.test(city.trim());
+    const region = local ? new mapkit.CoordinateRegion(
+      new mapkit.Coordinate(43.07476, -89.38484), new mapkit.CoordinateSpan(0.65, 0.9)
+    ) : undefined;
     const data = await new mapkit.Search().autocomplete(city ? `${query} ${city}` : query, {
       signal, includePointsOfInterest: true, includeAddresses: false, includeQueries: false,
+      coordinate: new mapkit.Coordinate(local ? 43.07476 : 39.5, local ? -89.38484 : -98.35),
+      ...(region ? { region, regionPriority: 'required' } : {}),
     });
     return (data.results || []).map((result, index) => ({
       key: result.id || `apple-${index}`,

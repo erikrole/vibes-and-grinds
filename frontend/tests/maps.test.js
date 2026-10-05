@@ -47,7 +47,13 @@ async function client({ token = null, fetcher, Search } = {}) {
   globalThis.fetch = async (url, options) => url === '/api/maps-config'
     ? new Response(JSON.stringify({ token })) : fetcher(url, options);
   globalThis.document = { head: { querySelector: () => ({}) } };
-  globalThis.window = { mapkit: { Search, load: async function () { return this; } } };
+  globalThis.window = { mapkit: {
+    Search,
+    Coordinate: class { constructor(latitude, longitude) { Object.assign(this, { latitude, longitude }); } },
+    CoordinateSpan: class { constructor(latitudeDelta, longitudeDelta) { Object.assign(this, { latitudeDelta, longitudeDelta }); } },
+    CoordinateRegion: class { constructor(center, span) { Object.assign(this, { center, span }); } },
+    load: async function () { return this; },
+  } };
   return import(`../src/utils/mapkit.js?case=${++clientNumber}`);
 }
 
@@ -89,6 +95,22 @@ test('ambiguous Apple results require a more specific selection instead of guess
     async search() { return { places: [{ name: 'Shop A' }, { name: 'Shop B' }] }; }
   } });
   await assert.rejects(api.resolvePlace({ provider: 'apple', result: {} }), /more specific/);
+});
+
+test('Madison searches require the metro region while road searches keep other destinations available', async () => {
+  const calls = [];
+  const api = await client({ token: 'test-public-token', Search: class {
+    async autocomplete(query, options) { calls.push({ query, options }); return { results: [] }; }
+  } });
+  await api.searchPlaces('Madison Chocolate Company', { city: 'Madison, WI' });
+  await api.searchPlaces('Yaw Farm', { city: 'Las Vegas, NV' });
+  assert.equal(calls[0].query, 'Madison Chocolate Company Madison, WI');
+  assert.equal(calls[0].options.regionPriority, 'required');
+  assert.equal(calls[0].options.region.center.latitude, 43.07476);
+  assert.equal(calls[0].options.region.center.longitude, -89.38484);
+  assert.equal(calls[1].query, 'Yaw Farm Las Vegas, NV');
+  assert.equal(calls[1].options.region, undefined);
+  assert.equal(calls[1].options.regionPriority, undefined);
 });
 
 test('cancelled searches never reach the provider', async () => {

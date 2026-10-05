@@ -6,6 +6,7 @@ Follow `/Users/role/Code/AGENTS.md` and the RoleDev handoff contract. Work main-
 
 - Coffee journal and Vest Tracker share the shell. Keep public browsing read-only and server-enforced owner writes on both modes. Never restore unguarded old deployment code.
 - Share API contracts through `shared/`; Pages uses D1, local Express uses the serialized SQLite adapter. Existing data uses additive migrations, stable internal shop IDs, soft deletion, and versioned Vest snapshots.
+- Public score loading may update supplementary stats only. Match existing ESPN IDs, Chicago calendar dates, and opponents; never relink or edit owner game rows from a GET request. Derive the season end year from saved games and include NCAA postseason scores.
 - Keep the existing warm paper/espresso palette, Fraunces for identity/shop names, and Inter for controls. Prefer useful compact rows, sentence-case copy, immediate filtering, and restrained motion with reduced-motion support.
 - Production is Cloudflare Pages project `vibes-and-grinds`, custom domain `coffee.erikrole.com`, existing D1 binding `DB`. On 2026-10-04 the production branch is `claude/coffee-shop-tracker-iIWcb`; main is a preview branch. Verify current settings before deployment. Do not change production branch or bindings without approval.
 - Deployment audits must inspect every Cloudflare API page; Wrangler lists only the first 25. Retire only explicitly approved IDs, preserve the protected production/previews, and verify retired URLs plus unchanged data.

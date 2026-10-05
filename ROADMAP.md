@@ -21,7 +21,9 @@
 - With explicit approval, all 251 older unguarded Pages deployments were retired on 2026-10-04 (the first 25, then 226 found through pagination). All 251 `/api/visits` URLs return 404. A complete inventory leaves only the protected production release and protected previews; every remaining deployment and production/main alias rejects guest writes. Every journal/shop/alias/game/recovery field matches the pre-retirement export: 34 visits, 33 shops, 35 games, Vest revision 0.
 - Wrangler lists only the first 25 deployments: always inspect every Cloudflare API page when auditing deployment history. Handoff CI `37255032376` passed; the production source remains `c75bb59`.
 - Native photo-picker automation is unavailable in the current in-app browser; isolated upload and image read-back passed; manual picker acceptance remains distinct.
-- Two original visits lack location coordinates. The repair flow exposes them; do not guess a business branch or fabricate pins.
+- Approved data cleanup on 2026-10-04 mapped the two missing locations against exact Apple place pages. All 34 visits across 33 shops now have coordinates. Corrected Finca's municipality, seven meet labels, home event context, Pike Place spelling, and formatting. All 35 games have exact ESPN links; BYU is neutral-site. Stable IDs, ratings, dates, photos, and personal note wording were preserved. Vest revision is now 1 with the original game list retained in a recovery snapshot.
+- Score-loading safeguards and Madison-scoped Apple search pass 16 frontend and 8 isolated SQLite tests plus the build and syntax checks. Both ESPN schedule types produced all 35 actual scores in an isolated copy; results agree and saved games remain unchanged. Live verification of the new code follows deployment.
+- Seven missing photos and 17 empty notes remain optional personal additions. Black Vest, Black Zipup Vest, and Black Pullover are distinct garments, confirmed by the owner; keep their labels separate.
 
 ## Follow-up maintenance
 

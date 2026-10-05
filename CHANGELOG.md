@@ -1,5 +1,13 @@
 # Change notes
 
+## 2026-10-04 — Verified data cleanup and score safeguards
+
+With approval and a fresh private database backup, repaired Madison Chocolate Company's Odana Road branch and Yaw Farm using exact Apple place IDs and coordinates. All 34 visits across 33 stable shops are now mapped. Corrected Finca's municipality to Fitchburg, cleared a leftover home opponent, repaired seven track meet labels, corrected Pike Place Coffee, and standardized order capitalization and whitespace without rewriting personal notes. Linked all 35 Vest games to exact ESPN events and corrected BYU to neutral-site using Wisconsin's official schedule. The versioned owner save retains the original games in a recovery snapshot (revision 1). Ratings, dates, photos, and internal IDs were preserved. The owner confirmed the three black garment labels describe distinct items.
+
+Score loading now derives the correct season from saved games, includes NCAA tournament events, parses ESPN's structured scores, and uses Chicago game dates. Public reads cache supplementary scores only; they cannot rewrite saved game links or change owner revisions. Cached responses exclude other seasons and unlinked events. Around-Madison Apple autocomplete now requires the metro region; road searches retain entered city context.
+
+Verification: 16 frontend and 8 isolated SQLite tests pass, frontend build and backend/shared/Pages syntax checks pass. The actual ESPN schedules produced all 35 expected scores in an isolated database; saved results agree and game records remain unchanged. Authenticated production read-back confirms the planned corrections, stable IDs, and retained snapshot. Live code verification follows deployment. Seven photos and 17 personal notes remain blank rather than invented.
+
 ## 2026-10-04 — Whole-site flows and owner editing
 
 The journal now has full shop histories, shareable URLs and browser Back, clearer sorting, sample-aware comparisons, and factual road-season summaries. Return visits start with fresh event context and ratings; track/cross country labels use events rather than head-to-head matchups. The compact warm-paper UI includes narrow-screen and dark treatments, and missing locations have an owner repair flow.

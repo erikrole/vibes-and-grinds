@@ -360,7 +360,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
               ariaDescribedBy={errors.coffee_shop_name ? `${fieldIds.coffee_shop_name}-error` : undefined}
               enterKeyHint="next"
               savedPlaces={visits}
-              city={isHomeStop ? HOME_CITY : ''}
+              city={isHomeStop ? HOME_CITY : (formData.city || initialData?.city || '')}
               onBusyChange={setLocating}
             />
           </Field>
