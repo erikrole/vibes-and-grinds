@@ -16,7 +16,8 @@
 
 - Apple Maps was enabled with approval and restricted to `coffee.erikrole.com`; verify it on that domain after each affected release.
 - Frontend and isolated SQLite API regression tests pass. Local review covers owner sign-in, return save, deletion/restoration, shop history/Back, comparison counts, current/completed seasons, narrow dark layout, Vest game save/snapshot restore, and draft retention through owner-session expiry.
-- Production release and full original-data comparison are pending for this update.
+- Production released at https://305b1af5.vibes-and-grinds.pages.dev (source `c75bb59b4cd9e7ead59c45079addf8f92d853b66`), serving https://coffee.erikrole.com. GitHub CI run `37251590037` passed. Every original field and ID matches the private backup: 34 coffee visits, 35 Vest games, no deleted original rows; all visits have stable shop IDs.
+- Live checks passed: guest mutations rejected on visit CRUD/upload/Vest/backfill; owner sign-in/backfill/export; Apple rendering and exact Williamson Street autofill; shop history/Back; factual active/completed seasons; mobile dark journal.
 - Retire or restrict old unguarded Pages deployment URLs before considering owner-write protection complete. Retirement needs separate explicit approval.
 - Native photo-picker automation is unavailable in the current in-app browser; isolated upload and image read-back passed; manual picker acceptance remains distinct.
 - Two original visits lack location coordinates. The repair flow exposes them; do not guess a business branch or fabricate pins.
