@@ -50,14 +50,14 @@ export default function ShopCard({ place: placeProp, placeId, userVisits = [], o
     : `https://maps.apple.com/?q=${encodeURIComponent(name)}`;
 
   return (
-    <article className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900">
+    <article className="rounded-2xl border border-rule bg-surface-raised p-5 shadow-sm">
       <header className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h3 className="truncate text-lg font-semibold text-stone-900 dark:text-stone-50">
+          <h3 className="truncate text-lg font-semibold text-ink">
             {name}
           </h3>
           {pointOfInterestCategory && (
-            <p className="mt-0.5 text-xs uppercase tracking-wide text-stone-500">
+            <p className="mt-0.5 text-xs uppercase tracking-wide text-ink-soft">
               {humanizeCategory(pointOfInterestCategory)}
             </p>
           )}
@@ -67,7 +67,7 @@ export default function ShopCard({ place: placeProp, placeId, userVisits = [], o
             className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
               isOpen
                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
-                : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400'
+                : 'bg-surface-muted text-ink-soft dark:text-ink-faint'
             }`}
           >
             {isOpen ? 'Open now' : 'Closed'}
@@ -76,7 +76,7 @@ export default function ShopCard({ place: placeProp, placeId, userVisits = [], o
       </header>
 
       {formattedAddress && (
-        <p className="mt-3 text-sm text-stone-600 dark:text-stone-300">
+        <p className="mt-3 text-sm text-ink-soft">
           {formattedAddress}
         </p>
       )}
@@ -84,7 +84,7 @@ export default function ShopCard({ place: placeProp, placeId, userVisits = [], o
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
         {telephone && (
           <Field label="Phone">
-            <a href={`tel:${telephone}`} className="text-amber-700 hover:underline dark:text-amber-400">
+            <a href={`tel:${telephone}`} className="text-accent hover:underline">
               {formatPhone(telephone)}
             </a>
           </Field>
@@ -95,7 +95,7 @@ export default function ShopCard({ place: placeProp, placeId, userVisits = [], o
               href={website}
               target="_blank"
               rel="noopener noreferrer"
-              className="truncate text-amber-700 hover:underline dark:text-amber-400"
+              className="truncate text-accent hover:underline"
             >
               {prettyDomain(website)}
             </a>
@@ -105,7 +105,7 @@ export default function ShopCard({ place: placeProp, placeId, userVisits = [], o
           <Field label="Your visits">
             <span className="font-medium">{visitCount}</span>
             {lastVisit && (
-              <span className="ml-1 text-stone-500">· last {relativeDate(lastVisit.date)}</span>
+              <span className="ml-1 text-ink-soft">· last {relativeDate(lastVisit.date)}</span>
             )}
           </Field>
         )}
@@ -117,7 +117,7 @@ export default function ShopCard({ place: placeProp, placeId, userVisits = [], o
         <button
           type="button"
           onClick={onAddVisit}
-          className="rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700"
+          className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
         >
           Log a visit
         </button>
@@ -125,7 +125,7 @@ export default function ShopCard({ place: placeProp, placeId, userVisits = [], o
           href={appleMapsUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-lg border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+          className="rounded-lg border border-rule px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-surface-muted"
         >
           View in Apple Maps
         </a>
@@ -137,8 +137,8 @@ export default function ShopCard({ place: placeProp, placeId, userVisits = [], o
 function Field({ label, children }) {
   return (
     <div className="min-w-0">
-      <dt className="text-xs uppercase tracking-wide text-stone-500">{label}</dt>
-      <dd className="mt-0.5 truncate text-stone-800 dark:text-stone-100">{children}</dd>
+      <dt className="text-xs uppercase tracking-wide text-ink-soft">{label}</dt>
+      <dd className="mt-0.5 truncate text-ink">{children}</dd>
     </div>
   );
 }
@@ -149,19 +149,19 @@ function HoursList({ hours }) {
   const todayHours = hours.find((h) => h.dayOfWeek === today);
 
   return (
-    <section className="mt-4 border-t border-stone-200 pt-3 dark:border-stone-800">
+    <section className="mt-4 border-t border-rule pt-3">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
         className="flex w-full items-center justify-between text-sm"
       >
-        <span className="text-stone-600 dark:text-stone-300">
+        <span className="text-ink-soft">
           {todayHours ? `Today · ${formatHourRange(todayHours)}` : 'Hours'}
         </span>
-        <span className="text-stone-400">{expanded ? '−' : '+'}</span>
+        <span className="text-ink-faint">{expanded ? '−' : '+'}</span>
       </button>
       {expanded && (
-        <ul className="mt-2 space-y-1 text-sm text-stone-600 dark:text-stone-300">
+        <ul className="mt-2 space-y-1 text-sm text-ink-soft">
           {hours.map((h) => (
             <li key={h.dayOfWeek} className="flex justify-between">
               <span>{dayName(h.dayOfWeek)}</span>
@@ -176,17 +176,17 @@ function HoursList({ hours }) {
 
 function ShopCardSkeleton() {
   return (
-    <div className="animate-pulse rounded-2xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
-      <div className="h-5 w-2/3 rounded bg-stone-200 dark:bg-stone-800" />
-      <div className="mt-3 h-4 w-1/2 rounded bg-stone-200 dark:bg-stone-800" />
-      <div className="mt-6 h-4 w-3/4 rounded bg-stone-200 dark:bg-stone-800" />
+    <div className="animate-pulse rounded-2xl border border-rule bg-surface-raised p-5">
+      <div className="h-5 w-2/3 rounded bg-surface-muted" />
+      <div className="mt-3 h-4 w-1/2 rounded bg-surface-muted" />
+      <div className="mt-6 h-4 w-3/4 rounded bg-surface-muted" />
     </div>
   );
 }
 
 function ShopCardError({ reason }) {
   return (
-    <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 text-sm text-stone-600 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300">
+    <div className="rounded-2xl border border-rule bg-surface-muted p-5 text-sm text-ink-soft dark:text-ink-faint">
       Couldn't load shop details{reason === 'mapkit-unavailable' ? ' (MapKit not initialized)' : ''}.
     </div>
   );

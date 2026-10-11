@@ -441,7 +441,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
                     <option value="Cross Country">Cross Country</option>
                     <option value="__custom__">+ Add Sport</option>
                   </select>
-                  <svg className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-300 dark:text-stone-600 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-faint pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                   </svg>
                 </>
@@ -451,12 +451,12 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
           )}
 
           {repeatContext?.personalCount > 0 && (
-            <div className="px-4 py-3 bg-amber-50/70 dark:bg-amber-900/10 text-sm text-stone-600 dark:text-stone-300">
-              <span className="font-semibold text-stone-900 dark:text-stone-100">
+            <div className="px-4 py-3 bg-accent-soft text-sm text-ink-soft">
+              <span className="font-semibold text-ink">
                 {repeatContext.visitorName}'s visit #{repeatContext.visitNumber}
               </span>
               {repeatContext.lastVisit?.coffee_order && (
-                <span className="text-stone-500 dark:text-stone-400"> · Last order: {titleCaseOrder(repeatContext.lastVisit.coffee_order)}</span>
+                <span className="text-ink-soft"> · Last order: {titleCaseOrder(repeatContext.lastVisit.coffee_order)}</span>
               )}
             </div>
           )}
@@ -511,7 +511,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
               name="coffee_shop_address"
               value={formData.coffee_shop_address}
               onChange={handleInputChange}
-              className={`${FI} text-stone-500 dark:text-stone-400`}
+              className={`${FI} text-ink-soft`}
               placeholder="Auto-fills from Places"
               enterKeyHint="next"
               autoCapitalize="words"
@@ -610,10 +610,10 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
                 </div>
               </div>
               <label htmlFor={fieldIds.photo} className="flex items-center gap-3 px-4 py-3 cursor-pointer group">
-                <svg className="w-4 h-4 text-stone-400 dark:text-stone-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-ink-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
-                <span className="text-[14px] text-stone-500 dark:text-stone-400 group-hover:text-stone-700 dark:group-hover:text-stone-300 transition-colors">
+                <span className="text-[14px] text-ink-soft group-hover:text-ink transition-colors">
                   Change photo
                 </span>
                 {errors.photo && <span className="text-xs text-red-500 ml-auto">{errors.photo}</span>}
@@ -623,22 +623,22 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
           ) : (
             <label
               htmlFor={fieldIds.photo}
-              className={`flex items-center gap-4 px-4 py-3.5 cursor-pointer group transition-colors ${dragging ? 'bg-stone-100 dark:bg-stone-700/40' : ''}`}
+              className={`flex items-center gap-4 px-4 py-3.5 cursor-pointer group transition-colors ${dragging ? 'bg-surface-muted' : ''}`}
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
             >
-              <div className={`w-14 h-14 rounded-2xl bg-stone-50 dark:bg-stone-900/40 border-2 border-dashed flex items-center justify-center flex-shrink-0 transition-colors ${dragging ? 'border-stone-400 dark:border-stone-400' : 'border-stone-200 dark:border-stone-700 group-hover:border-stone-300 dark:group-hover:border-stone-600'}`}>
-                <svg className={`w-6 h-6 transition-colors ${dragging ? 'text-stone-500 dark:text-stone-400' : 'text-stone-300 dark:text-stone-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className={`w-14 h-14 rounded-2xl bg-surface-muted border-2 border-dashed flex items-center justify-center flex-shrink-0 transition-colors ${dragging ? 'border-latte-deep' : 'border-rule group-hover:border-latte-deep'}`}>
+                <svg className={`w-6 h-6 transition-colors ${dragging ? 'text-ink-soft' : 'text-ink-faint'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[15px] font-medium text-stone-700 dark:text-stone-300">{dragging ? 'Drop photo here' : 'Add a photo'}</p>
-                <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">Drag & drop or click to browse</p>
+                <p className="text-[15px] font-medium text-ink-soft">{dragging ? 'Drop photo here' : 'Add a photo'}</p>
+                <p className="text-xs text-ink-faint mt-0.5">Drag & drop or click to browse</p>
               </div>
-              <svg className="w-4 h-4 text-stone-300 dark:text-stone-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-ink-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
               {errors.photo && <span className="text-xs text-red-500">{errors.photo}</span>}
@@ -705,29 +705,29 @@ function RepeatContextPanel({ context, isReturnVisit }) {
     : null;
 
   return (
-    <div className="rounded-2xl border border-amber-200/80 dark:border-amber-800/50 bg-amber-50/80 dark:bg-amber-900/15 px-4 py-3.5">
+    <div className="rounded-2xl border border-accent bg-accent-soft px-4 py-3.5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-accent">
             {isReturnVisit ? 'Return visit ready' : 'Repeat visit'}
           </p>
-          <p className="mt-1 text-sm font-semibold text-stone-900 dark:text-stone-50">
+          <p className="mt-1 text-sm font-semibold text-ink">
             {context.visitorName}'s visit #{context.visitNumber} here
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 text-xs text-stone-600 dark:text-stone-300">
+        <div className="flex flex-wrap gap-2 text-xs text-ink-soft">
           {lastVisitDate && (
-            <span className="rounded-full bg-white/70 dark:bg-stone-800/70 px-2.5 py-1">
+            <span className="rounded-full bg-surface-raised px-2.5 py-1">
               Last: {lastVisitDate}
             </span>
           )}
           {context.lastVisit?.coffee_order && (
-            <span className="rounded-full bg-white/70 dark:bg-stone-800/70 px-2.5 py-1">
+            <span className="rounded-full bg-surface-raised px-2.5 py-1">
               {titleCaseOrder(context.lastVisit.coffee_order)}
             </span>
           )}
           {bestScore && (
-            <span className="rounded-full bg-white/70 dark:bg-stone-800/70 px-2.5 py-1">
+            <span className="rounded-full bg-surface-raised px-2.5 py-1">
               Best: {bestScore}/20
             </span>
           )}

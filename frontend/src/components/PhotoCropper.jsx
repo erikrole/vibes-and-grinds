@@ -125,9 +125,9 @@ export default function PhotoCropper({ imageUrl, onComplete, onCancel }) {
 
       {/* Modal */}
       <div className="flex min-h-full items-end sm:items-center justify-center sm:p-4">
-        <div className="relative bg-white dark:bg-stone-800 rounded-t-2xl sm:rounded-2xl shadow-xl max-w-4xl w-full max-h-[85vh] overflow-y-auto transition-colors">
+        <div className="relative bg-surface-raised rounded-t-2xl sm:rounded-2xl shadow-xl max-w-4xl w-full max-h-[85vh] overflow-y-auto transition-colors">
           <div className="p-4 sm:p-6">
-            <h2 className="text-xl sm:text-2xl font-bold mb-4 text-stone-900 dark:text-stone-50">Crop Photo</h2>
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 text-ink">Crop Photo</h2>
 
             <div className="mb-4">
               <ReactCrop

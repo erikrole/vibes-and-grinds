@@ -6,12 +6,13 @@ import { parseLocalDate } from './dates';
 
 const TIERS = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond'];
 
+// Tier chrome stays inside the coffee token set (no raw Tailwind rainbow).
 const TIER_COLORS = {
-  Bronze:   { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-300', border: 'border-orange-200 dark:border-orange-800/50', hex: '#c2410c' },
-  Silver:   { bg: 'bg-slate-100 dark:bg-slate-800/40', text: 'text-slate-600 dark:text-slate-300', border: 'border-slate-300 dark:border-slate-600', hex: '#64748b' },
-  Gold:     { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800/50', hex: '#d97706' },
-  Platinum: { bg: 'bg-cyan-100 dark:bg-cyan-900/30', text: 'text-cyan-700 dark:text-cyan-300', border: 'border-cyan-200 dark:border-cyan-800/50', hex: '#0891b2' },
-  Diamond:  { bg: 'bg-violet-100 dark:bg-violet-900/30', text: 'text-violet-700 dark:text-violet-300', border: 'border-violet-200 dark:border-violet-800/50', hex: '#7c3aed' },
+  Bronze:   { bg: 'bg-accent-soft', text: 'text-warning', border: 'border-accent', hex: '#a54826' },
+  Silver:   { bg: 'bg-surface-muted', text: 'text-ink-soft', border: 'border-rule', hex: '#6f6356' },
+  Gold:     { bg: 'bg-accent-soft', text: 'text-accent', border: 'border-accent', hex: '#d96f2e' },
+  Platinum: { bg: 'bg-surface-muted', text: 'text-latte-deep', border: 'border-latte', hex: '#8c6e4f' },
+  Diamond:  { bg: 'bg-paper-tint', text: 'text-ink', border: 'border-latte-deep', hex: '#1d1815' },
 };
 
 export { TIERS, TIER_COLORS };

@@ -177,17 +177,17 @@ export default function PlacesAutocomplete({
       />
 
       {showSuggestions && hasSuggestions && (
-        <ul className="absolute z-[1010] mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-stone-200 bg-white py-1 shadow-xl dark:border-stone-700 dark:bg-stone-900">
+        <ul className="absolute z-[1010] mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-rule bg-surface-raised py-1 shadow-xl">
           {suggestions.map((suggestion) => (
             <li key={suggestion.placeId}>
               <button
                 type="button"
-                className="w-full px-3 py-2 text-left hover:bg-stone-100 dark:hover:bg-stone-800"
+                className="w-full px-3 py-2 text-left hover:bg-surface-muted"
                 onClick={() => handleSelectSuggestion(suggestion)}
               >
-                <p className="text-sm font-medium text-stone-800 dark:text-stone-100">{suggestion.mainText}</p>
+                <p className="text-sm font-medium text-ink">{suggestion.mainText}</p>
                 {suggestion.secondaryText && (
-                  <p className="text-xs text-stone-500 dark:text-stone-400">{suggestion.secondaryText}</p>
+                  <p className="text-xs text-ink-soft">{suggestion.secondaryText}</p>
                 )}
               </button>
             </li>
@@ -195,10 +195,10 @@ export default function PlacesAutocomplete({
         </ul>
       )}
 
-      {helperText && <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">{helperText}</p>}
+      {helperText && <p className="mt-1 text-xs text-accent">{helperText}</p>}
 
       {import.meta.env.DEV && debugInfo && (debugInfo.googleStatus || debugInfo.details || debugInfo.upstreamStatus) && (
-        <details className="mt-2 rounded-md border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-900/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+        <details className="mt-2 rounded-md border border-accent bg-accent-soft px-3 py-2 text-xs text-accent">
           <summary className="cursor-pointer font-medium">Why autocomplete failed?</summary>
           <div className="mt-2 space-y-1">
             {debugInfo.googleStatus && <p><span className="font-semibold">googleStatus:</span> {debugInfo.googleStatus}</p>}

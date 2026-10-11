@@ -396,13 +396,13 @@ export default function App() {
                   >
                     {appMode === APP_MODES.VIBES ? 'vibes & grinds' : modeLabel}
                   </h1>
-                  <svg className="w-4 h-4 text-stone-500 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <svg className="w-4 h-4 text-ink-soft shrink-0" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z" />
                   </svg>
                 </button>
 
                 {showModeMenu && (
-                  <div className="absolute left-0 mt-2 w-56 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 shadow-lg z-20 overflow-hidden" role="menu">
+                  <div className="absolute left-0 mt-2 w-56 rounded-lg border border-rule bg-surface-raised shadow-lg z-20 overflow-hidden" role="menu">
                     <button
                       onClick={() => {
                         setShowModeMenu(false);
@@ -412,8 +412,8 @@ export default function App() {
                       aria-checked={appMode === APP_MODES.VIBES}
                       className={`w-full text-left px-4 py-3.5 text-sm ${
                         appMode === APP_MODES.VIBES
-                          ? 'bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-stone-100'
-                          : 'text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700'
+                          ? 'bg-surface-muted text-ink'
+                          : 'text-ink-soft hover:bg-surface-muted'
                       }`}
                     >
                       Vibes & Grinds
@@ -427,8 +427,8 @@ export default function App() {
                       aria-checked={appMode === APP_MODES.VEST}
                       className={`w-full text-left px-4 py-3.5 text-sm ${
                         appMode === APP_MODES.VEST
-                          ? 'bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-stone-100'
-                          : 'text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700'
+                          ? 'bg-surface-muted text-ink'
+                          : 'text-ink-soft hover:bg-surface-muted'
                       }`}
                     >
                       Vest Tracker
@@ -440,7 +440,7 @@ export default function App() {
               <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                 <button
                   onClick={toggleDarkMode}
-                  className="p-2.5 rounded-xl text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+                  className="p-2.5 rounded-xl text-ink-soft hover:bg-surface-muted transition-colors"
                   aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
                 >
                   {darkMode ? (
@@ -469,12 +469,12 @@ export default function App() {
         </header>
 
         {appMode === APP_MODES.VEST ? (
-          <Suspense fallback={<div className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading...</div>}>
+          <Suspense fallback={<div className="flex items-center justify-center py-20 text-ink-faint animate-pulse">Loading...</div>}>
             <VestTrackerDashboard showToast={toastBag.show} />
           </Suspense>
         ) : loading ? (
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" aria-busy="true">
-            <div className="flex items-center justify-center py-20 text-stone-400 dark:text-stone-500 animate-pulse">Loading visits…</div>
+            <div className="flex items-center justify-center py-20 text-ink-faint animate-pulse">Loading visits…</div>
           </main>
         ) : error ? (
           <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
@@ -507,7 +507,7 @@ export default function App() {
           </section>
 
           {/* Section nav */}
-          <div className="flex items-center justify-between gap-5 mb-6 border-b border-stone-900/10 dark:border-stone-100/10">
+          <div className="flex items-center justify-between gap-5 mb-6 border-b border-rule">
             <div className="flex items-end gap-7 sm:gap-9">
             {[
               { id: 'visits', label: 'Visits' },
@@ -533,11 +533,11 @@ export default function App() {
           </div>
 
           {viewTab === 'insights' ? (
-            <Suspense fallback={<div className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading insights...</div>}>
+            <Suspense fallback={<div className="flex items-center justify-center py-20 text-ink-faint animate-pulse">Loading insights...</div>}>
               <InsightsPanel visits={visits} />
             </Suspense>
           ) : viewTab === 'map' ? (
-            <Suspense fallback={<div className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading map...</div>}>
+            <Suspense fallback={<div className="flex items-center justify-center py-20 text-ink-faint animate-pulse">Loading map...</div>}>
               <MapExplorer visits={visits} onVisitClick={setViewingVisit} />
             </Suspense>
           ) : (
@@ -552,11 +552,11 @@ export default function App() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="journal-search"
               />
-              <svg className="absolute left-3.5 top-3.5 h-5 w-5 text-stone-400 dark:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <svg className="absolute left-3.5 top-3.5 h-5 w-5 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-2 top-2 p-2 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200" aria-label="Clear search">
+                <button onClick={() => setSearchQuery('')} className="absolute right-2 top-2 p-2 text-ink-faint hover:text-ink" aria-label="Clear search">
                   <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
@@ -565,10 +565,10 @@ export default function App() {
             </div>
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
               <div>
-                <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-stone-900 dark:text-stone-50 transition-colors leading-tight">
+                <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-ink transition-colors leading-tight">
                   Visits
                 </h2>
-                <p className="text-stone-500 dark:text-stone-400 text-sm tracking-wide transition-colors mt-2">
+                <p className="text-ink-soft text-sm tracking-wide transition-colors mt-2">
                   {hasActiveFilters
                     ? `${sortedVisits.length} of ${visits.length}`
                     : `${visits.length} ${visits.length === 1 ? 'visit' : 'visits'}`}
@@ -576,11 +576,11 @@ export default function App() {
                 {hasActiveFilters && (
                   <div className="flex flex-wrap items-center gap-1.5 mt-2">
                     {scopeFilter && (
-                      <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200 border border-stone-200 dark:border-stone-600">
+                      <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-surface-muted text-ink border border-rule">
                         {scopeFilter === VISIT_TYPES.HOME ? 'Around Madison' : 'Road trips'}
                         <button
                           onClick={() => setScopeFilter('')}
-                          className="ml-0.5 p-0.5 rounded-full hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors"
+                          className="ml-0.5 p-0.5 rounded-full hover:bg-surface-muted transition-colors"
                           aria-label="Clear scope filter"
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -590,11 +590,11 @@ export default function App() {
                       </span>
                     )}
                     {sportFilter && (
-                      <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200 border border-stone-200 dark:border-stone-600">
+                      <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-surface-muted text-ink border border-rule">
                         {sportFilter}
                         <button
                           onClick={() => setSportFilter('')}
-                          className="ml-0.5 p-0.5 rounded-full hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors"
+                          className="ml-0.5 p-0.5 rounded-full hover:bg-surface-muted transition-colors"
                           aria-label={`Remove ${sportFilter} filter`}
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -604,11 +604,11 @@ export default function App() {
                       </span>
                     )}
                     {repeatFilter && (
-                      <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200 border border-stone-200 dark:border-stone-600">
+                      <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-surface-muted text-ink border border-rule">
                         {repeatFilter === 'first' ? 'First-time shops' : 'Regular spots'}
                         <button
                           onClick={() => setRepeatFilter('')}
-                          className="ml-0.5 p-0.5 rounded-full hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors"
+                          className="ml-0.5 p-0.5 rounded-full hover:bg-surface-muted transition-colors"
                           aria-label="Clear repeat filter"
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -618,11 +618,11 @@ export default function App() {
                       </span>
                     )}
                     {searchQuery && (
-                      <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200 border border-stone-200 dark:border-stone-600">
+                      <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-surface-muted text-ink border border-rule">
                         "{searchQuery}"
                         <button
                           onClick={() => setSearchQuery('')}
-                          className="ml-0.5 p-0.5 rounded-full hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors"
+                          className="ml-0.5 p-0.5 rounded-full hover:bg-surface-muted transition-colors"
                           aria-label="Clear search"
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -633,7 +633,7 @@ export default function App() {
                     )}
                     <button
                       onClick={() => { setSearchQuery(''); setSportFilter(''); setRepeatFilter(''); setScopeFilter(''); }}
-                      className="text-xs text-stone-400 dark:text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 underline underline-offset-2 transition-colors"
+                      className="text-xs text-ink-faint hover:text-ink underline underline-offset-2 transition-colors"
                     >
                       Clear all
                     </button>
@@ -664,7 +664,7 @@ export default function App() {
                     Filters{(sportFilter || repeatFilter || scopeFilter) ? ' (active)' : ''}
                   </button>
                 </div>
-                <div className="hidden sm:flex items-end gap-4 sm:gap-5 border-b border-stone-900/10 dark:border-stone-100/10 pb-0">
+                <div className="hidden sm:flex items-end gap-4 sm:gap-5 border-b border-rule pb-0">
                   <span className="eyebrow pb-2.5">Sort</span>
                   {[
                     { value: 'date', label: 'Date' },
@@ -744,11 +744,11 @@ export default function App() {
         {!loading && !error && (
         <footer className={`mt-16 py-10 text-center transition-colors ${
           appMode === APP_MODES.VEST
-            ? 'border-t border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 text-sm'
+            ? 'border-t border-rule text-ink-soft text-sm'
             : ''
         }`}>
           {appMode === APP_MODES.VIBES ? (
-            <p className="text-stone-500 dark:text-stone-400 text-sm">
+            <p className="text-ink-soft text-sm">
               Built for logging AJ Harrison's road coffee orders
             </p>
           ) : (
@@ -850,7 +850,7 @@ function EditorialStat({ label, value, suffix, index = 0 }) {
           {value}
         </span>
         {suffix && (
-          <span className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 font-medium">{suffix}</span>
+          <span className="text-xs sm:text-sm text-ink-soft font-medium">{suffix}</span>
         )}
       </div>
     </div>
