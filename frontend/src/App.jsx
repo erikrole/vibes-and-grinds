@@ -347,29 +347,29 @@ export default function App() {
           setAppMode={setAppMode}
           darkMode={darkMode}
           toggleDarkMode={toggleDarkMode}
-          showToast={toastAmp.show}
+          showToast={toastBag.show}
         />
-        {toastAmp.toast && (
+        {toastBag.toast && (
           <div
-            className={`fixed top-4 right-4 z-[1004] ${toastAmp.exiting ? 'animate-toast-out' : 'animate-toast-in'}`}
+            className={`fixed top-4 right-4 z-[1004] ${toastBag.exiting ? 'animate-toast-out' : 'animate-toast-in'}`}
             onClick={() => {
-              if (toastAmp.toast.onUndo) {
-                toastAmp.toast.onUndo();
-                toastAmp.dismiss();
+              if (toastBag.toast.onUndo) {
+                toastBag.toast.onUndo();
+                toastBag.dismiss();
               } else {
-                toastAmp.dismiss();
+                toastBag.dismiss();
               }
             }}
           >
             <div
               className={`flex items-center gap-3 px-4 py-3 rounded-2xl shadow-lg border text-sm cursor-pointer select-none transition-opacity hover:opacity-80 ${
-                toastAmp.toast.type === 'error'
+                toastBag.toast.type === 'error'
                   ? 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/30 dark:border-red-700 dark:text-red-200'
                   : 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-200'
               }`}
             >
-              <span>{toastAmp.toast.onUndo ? 'Visit deleted.' : toastAmp.toast.message}</span>
-              {toastAmp.toast.onUndo && (
+              <span>{toastBag.toast.onUndo ? 'Visit deleted.' : toastBag.toast.message}</span>
+              {toastBag.toast.onUndo && (
                 <span className="font-semibold underline underline-offset-2">Undo</span>
               )}
             </div>
@@ -395,11 +395,13 @@ export default function App() {
     >
         {loading ? (
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" aria-busy="true">
+            <h1 className="journal-inline-brand">vibes & grinds</h1>
             <div className="flex items-center justify-center py-20 text-stone-400 dark:text-stone-500 animate-pulse">Loading visits…</div>
           </main>
         ) : error ? (
           <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
             <section className="recovery-panel" role="alert">
+              <h1 className="journal-inline-brand mb-4">vibes & grinds</h1>
               <p className="eyebrow mb-3">Connection problem</p>
               <h2 className="text-2xl sm:text-3xl font-semibold mb-3">Couldn’t load the coffee journal</h2>
               <p className="text-sm mb-6" style={{ color: 'var(--ink-soft)' }}>{error}</p>
