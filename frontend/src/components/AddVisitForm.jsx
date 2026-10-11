@@ -398,7 +398,10 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
             <button
               key={option.value}
               type="button"
-              onClick={() => handleVisitTypeChange(option.value)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleVisitTypeChange(option.value);
+              }}
               aria-pressed={visitType === option.value}
               className="form-scope-option"
             >
@@ -459,7 +462,10 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
               type="button"
               className="form-disclosure-toggle"
               aria-expanded={showLocationDetails}
-              onClick={() => setShowLocationDetails((open) => !open)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowLocationDetails((open) => !open);
+              }}
             >
               <span className="form-disclosure-label">Location details</span>
               <span className="form-disclosure-meta">
@@ -507,7 +513,10 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
                 type="button"
                 className="form-disclosure-toggle"
                 aria-expanded={showTripContext}
-                onClick={() => setShowTripContext((open) => !open)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowTripContext((open) => !open);
+                }}
               >
                 <span className="form-disclosure-label">Trip context</span>
                 <span className="form-disclosure-meta">
