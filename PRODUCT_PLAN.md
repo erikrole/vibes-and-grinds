@@ -29,3 +29,4 @@
 - Keep photo uploads simple (current) vs object storage provider (Cloudflare R2/S3).
 - Google Maps API budget and restrictions.
 - Whether to keep this private or add auth for wider sharing.
+  - **Shipped (lightweight):** mutating APIs require `WRITE_KEY` / `X-Write-Key`; reads stay public. See DEPLOYMENT.md Step 9.

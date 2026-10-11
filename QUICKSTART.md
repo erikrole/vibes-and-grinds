@@ -5,6 +5,7 @@
 **Terminal 1 - Backend:**
 ```bash
 cd backend
+cp .env.example .env   # includes ALLOW_INSECURE_WRITES=true for local
 npm install
 npm start
 ```
@@ -19,6 +20,8 @@ npm run dev
 Then open: http://localhost:3000
 
 Set your Google Maps API key in `frontend/.env` before running locally.
+
+For production-like local writes, set the same `WRITE_KEY` in `backend/.env` and optionally `VITE_WRITE_KEY` in `frontend/.env` (see [DEPLOYMENT.md](./DEPLOYMENT.md) Step 9).
 
 ---
 
@@ -58,9 +61,10 @@ Set your Google Maps API key in `frontend/.env` before running locally.
    - Build settings:
      - Build command: `cd frontend && npm install && npm run build`
      - Build output: `frontend/dist`
-   - Add environment variable:
+   - Add environment variables:
      - `GOOGLE_MAPS_API_KEY` = `your_new_google_maps_api_key`
      - (Optional legacy fallback) `VITE_GOOGLE_MAPS_API_KEY` = `your_new_google_maps_api_key`
+     - `WRITE_KEY` = long random secret (required to protect POST/PUT/DELETE)
    - Click "Save and Deploy"
 
 6. **Bind Database:**

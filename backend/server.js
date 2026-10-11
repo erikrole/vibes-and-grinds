@@ -15,6 +15,40 @@ const FETCH_TIMEOUT_MS = 10000;
 app.use(cors());
 app.use(express.json());
 
+const WRITE_KEY_HEADER = 'X-Write-Key';
+const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+/**
+ * Mirror Cloudflare Pages write gate (functions/_middleware.js + _shared.js).
+ * - WRITE_KEY set → require matching X-Write-Key
+ * - WRITE_KEY unset → allow only when ALLOW_INSECURE_WRITES=true
+ */
+function requireWriteAccess(req, res, next) {
+  if (!MUTATING_METHODS.has(req.method)) return next();
+
+  const expected = `${process.env.WRITE_KEY || ''}`.trim();
+  const insecureOk = `${process.env.ALLOW_INSECURE_WRITES || ''}`.toLowerCase() === 'true';
+
+  if (!expected) {
+    if (insecureOk) return next();
+    return res.status(503).json({
+      error:
+        'Write protection is not configured. Set the WRITE_KEY secret on the server (or ALLOW_INSECURE_WRITES=true for local only).',
+    });
+  }
+
+  const provided = `${req.get(WRITE_KEY_HEADER) || ''}`.trim();
+  if (!provided || provided !== expected) {
+    return res.status(401).json({
+      error: 'Unauthorized. Provide a valid X-Write-Key header.',
+    });
+  }
+
+  return next();
+}
+
+app.use('/api', requireWriteAccess);
+
 // Initialize database then start listening — prevents requests arriving before db is ready
 let db;
 initDatabase()
@@ -22,6 +56,13 @@ initDatabase()
     db = database;
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
+      if (!process.env.WRITE_KEY) {
+        if (`${process.env.ALLOW_INSECURE_WRITES || ''}`.toLowerCase() === 'true') {
+          console.warn('WRITE_KEY unset — mutations allowed via ALLOW_INSECURE_WRITES=true');
+        } else {
+          console.warn('WRITE_KEY unset — mutating /api routes will return 503');
+        }
+      }
     });
   })
   .catch((err) => {

@@ -65,9 +65,12 @@ You should see: "Executed 3 commands in X.XXs"
    - **Build output directory**: `frontend/dist`
    - **Root directory**: `/` (leave empty)
 
-5. Add environment variable:
+5. Add environment variables:
    - **Variable name**: `GOOGLE_MAPS_API_KEY`
    - **Value**: `your-google-maps-api-key-here` (get from Google Cloud Console)
+   - **Variable name**: `WRITE_KEY` (encrypt / secret)
+   - **Value**: a long random string (mutations require this as `X-Write-Key`)
+   - Optional build var `VITE_WRITE_KEY` with the same value if you want the browser to send it without a prompt (key will be visible in the JS bundle)
 
 6. Click "Save and Deploy"
 
@@ -127,12 +130,49 @@ Once deployed, restrict your API key to only work on your domain:
    - Add: `https://coffee.erikrole.com/*`
 5. Save
 
-## Step 9: Test Your Deployment
+## Step 9: Protect writes (required)
+
+Mutating API routes (`POST` / `PUT` / `PATCH` / `DELETE`) require a shared secret:
+
+| Env | Where | Purpose |
+|-----|--------|---------|
+| `WRITE_KEY` | Cloudflare Pages **Functions** secrets (and local `backend/.env`) | Server-side expected value |
+| `ALLOW_INSECURE_WRITES=true` | Local `backend/.env` only | Allow mutations when `WRITE_KEY` is unset (never in production) |
+| `VITE_WRITE_KEY` | Optional Pages **build** variable / `frontend/.env` | Auto-send the key from the client (visible in the bundle) |
+
+The frontend sends `X-Write-Key`. If the header is missing/wrong, the UI prompts once and stores the key in `localStorage` under `vibes_write_key`.
+
+**Cloudflare Access (optional alternative):** You can also put Access in front of the whole site or admin paths. The shared-secret gate still applies to Functions; Access is complementary, not a replacement for setting `WRITE_KEY`.
+
+### Verify write protection
+
+```bash
+# Public reads should still work
+curl -sS https://coffee.erikrole.com/api/visits | head -c 200
+
+# Anonymous write should fail (401 once WRITE_KEY is set)
+curl -sS -o /tmp/write.json -w "%{http_code}\n" \
+  -X POST https://coffee.erikrole.com/api/visits \
+  -H 'Content-Type: application/json' \
+  -d '{"date":"2026-01-01","coffee_shop_name":"Test","vibe_rating":5,"coffee_rating":5}'
+# expect 401
+
+# Authorized write should succeed (use a throwaway and delete it afterward)
+curl -sS -X POST https://coffee.erikrole.com/api/visits \
+  -H 'Content-Type: application/json' \
+  -H "X-Write-Key: $WRITE_KEY" \
+  -d '{"date":"2026-01-01","coffee_shop_name":"Auth Check","vibe_rating":5,"coffee_rating":5}'
+```
+
+In the browser: open the site, add/edit/delete a visit. If `VITE_WRITE_KEY` was not baked in, enter the write key when prompted; subsequent saves should work without re-prompting.
+
+## Step 10: Test Your Deployment
 
 Visit `https://coffee.erikrole.com` and:
-1. Try adding a coffee shop visit
-2. Check that autocomplete works
-3. Verify ratings display correctly
+1. Confirm anonymous `POST /api/visits` returns 401 (Step 9)
+2. Try adding a coffee shop visit (with write key)
+3. Check that autocomplete works
+4. Verify ratings display correctly
 
 ## Updating the App
 

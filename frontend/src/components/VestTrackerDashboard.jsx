@@ -90,10 +90,16 @@ export default function VestTrackerDashboard({ showToast }) {
     return () => { cancelled = true; };
   }, []);
 
-  // Push changes upstream once initial sync resolves.
+  // Push local edits upstream after the initial server pull. Skip the first
+  // run so anonymous viewers do not trigger a write (or a write-key prompt).
+  const skipNextVestPushRef = useRef(true);
   useEffect(() => {
     if (!syncReady) return;
-    syncVestGames(games).catch(() => { /* offline/dev — ignore */ });
+    if (skipNextVestPushRef.current) {
+      skipNextVestPushRef.current = false;
+      return;
+    }
+    syncVestGames(games).catch(() => { /* offline/unauthorized — ignore */ });
   }, [games, syncReady]);
 
   // Fetch NET rankings from any of the supported worker shapes.
