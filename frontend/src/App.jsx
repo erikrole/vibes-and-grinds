@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import AddVisitForm from './components/AddVisitForm';
+import CoffeeJournalHero from './components/CoffeeJournalHero';
 import VisitList from './components/VisitList';
 import FormModal from './components/FormModal';
 
@@ -368,38 +369,46 @@ export default function App() {
         <header className={`safe-top transition-colors duration-200 ${
           appMode === APP_MODES.VEST
             ? 'vest-tracker-header'
-            : ''
+            : 'journal-chrome'
         }`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+          <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${
+            appMode === APP_MODES.VEST ? 'py-4 sm:py-6 lg:py-8' : 'py-3 sm:py-4'
+          }`}>
             <div className="flex items-center justify-between gap-3 min-w-0">
               <div className="relative flex-1 min-w-0" ref={modeMenuRef}>
-                <button
-                  ref={modeTriggerRef}
-                  onClick={() => setShowModeMenu((prev) => !prev)}
-                  className="flex max-w-full items-center gap-2 sm:gap-4 text-left hover:opacity-80 transition-opacity min-w-0"
-                  aria-label={`${appMode === APP_MODES.VIBES ? 'vibes & grinds' : modeLabel} — toggle app mode`}
-                  aria-expanded={showModeMenu}
-                  aria-haspopup="menu"
-                >
-                  {appMode === APP_MODES.VEST && <span className="brand-mark" aria-hidden="true">VT</span>}
-                  <h1 className={`text-xl sm:text-3xl leading-none ${
-                    appMode === APP_MODES.VEST
-                      ? 'coffee-shop-name font-black tracking-tight'
-                      : ''
-                  }`}
-                    style={appMode === APP_MODES.VIBES ? {
-                      fontFamily: 'Fraunces, Georgia, serif',
-                      fontWeight: 600,
-                      letterSpacing: '0',
-                      color: 'var(--ink)',
-                    } : undefined}
+                {appMode === APP_MODES.VEST ? (
+                  <button
+                    ref={modeTriggerRef}
+                    onClick={() => setShowModeMenu((prev) => !prev)}
+                    className="flex max-w-full items-center gap-2 sm:gap-4 text-left hover:opacity-80 transition-opacity min-w-0"
+                    aria-label={`${modeLabel} — toggle app mode`}
+                    aria-expanded={showModeMenu}
+                    aria-haspopup="menu"
                   >
-                    {appMode === APP_MODES.VIBES ? 'vibes & grinds' : modeLabel}
-                  </h1>
-                  <svg className="w-4 h-4 text-stone-500 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z" />
-                  </svg>
-                </button>
+                    <span className="brand-mark" aria-hidden="true">VT</span>
+                    <h1 className="text-xl sm:text-3xl leading-none coffee-shop-name font-black tracking-tight">
+                      {modeLabel}
+                    </h1>
+                    <svg className="w-4 h-4 text-stone-500 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z" />
+                    </svg>
+                  </button>
+                ) : (
+                  <button
+                    ref={modeTriggerRef}
+                    type="button"
+                    onClick={() => setShowModeMenu((prev) => !prev)}
+                    className="mode-control"
+                    aria-label="Switch mode — open Vest Tracker or stay in coffee journal"
+                    aria-expanded={showModeMenu}
+                    aria-haspopup="menu"
+                  >
+                    <span className="mode-control__label">Modes</span>
+                    <svg className="mode-control__chevron" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z" />
+                    </svg>
+                  </button>
+                )}
 
                 {showModeMenu && (
                   <div className="absolute left-0 mt-2 w-56 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 shadow-lg z-20 overflow-hidden" role="menu">
@@ -453,16 +462,6 @@ export default function App() {
                     </svg>
                   )}
                 </button>
-                {appMode === APP_MODES.VIBES && !showForm && !editingVisit && (
-                  <>
-                    <button onClick={handleOpenNewVisit} className="btn-primary hidden sm:block">Add Visit</button>
-                    <button onClick={handleOpenNewVisit} className="header-icon-button sm:hidden" aria-label="Add Visit">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.25} d="M12 5v14M5 12h14" />
-                      </svg>
-                    </button>
-                  </>
-                )}
               </div>
             </div>
           </div>
@@ -473,8 +472,15 @@ export default function App() {
             <VestTrackerDashboard showToast={toastBag.show} />
           </Suspense>
         ) : loading ? (
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" aria-busy="true">
-            <div className="flex items-center justify-center py-20 text-stone-400 dark:text-stone-500 animate-pulse">Loading visits…</div>
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-1 sm:pt-2 pb-8" aria-busy="true">
+            <CoffeeJournalHero
+              visitCount={0}
+              avgVibe="—"
+              avgCoffee="—"
+              avgComposite="—"
+              showAddVisit={false}
+            />
+            <div className="flex items-center justify-center py-16 text-stone-400 dark:text-stone-500 animate-pulse">Loading visits…</div>
           </main>
         ) : error ? (
           <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
@@ -486,25 +492,15 @@ export default function App() {
             </section>
           </main>
         ) : (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-5 pb-8">
-          <section className="journal-summary mb-8">
-            <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1px_1fr] gap-6 lg:gap-10 items-end">
-              <div>
-                <p className="eyebrow mb-3">Coffee journal</p>
-                <div className="flex items-end gap-3">
-                  <p className="hero-numeral text-6xl sm:text-7xl">{visits.length}</p>
-                  <p className="text-sm sm:text-base mb-1.5" style={{ color: 'var(--ink-soft)' }}>stops logged on the road and around Madison</p>
-                </div>
-              </div>
-              <div className="rule-v hidden lg:block" />
-              <div className="rule-h lg:hidden" />
-              <div className="grid grid-cols-3 gap-4 sm:gap-6">
-                <EditorialStat label="Vibe" value={avgVibe} index={0} />
-                <EditorialStat label="Coffee" value={avgCoffee} index={1} />
-                <EditorialStat label="Overall" value={avgComposite} suffix="/ 20" index={2} />
-              </div>
-            </div>
-          </section>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-1 sm:pt-2 pb-8">
+          <CoffeeJournalHero
+            visitCount={visits.length}
+            avgVibe={avgVibe}
+            avgCoffee={avgCoffee}
+            avgComposite={avgComposite}
+            onAddVisit={handleOpenNewVisit}
+            showAddVisit={!showForm && !editingVisit}
+          />
 
           {/* Section nav */}
           <div className="flex items-center justify-between gap-5 mb-6 border-b border-stone-900/10 dark:border-stone-100/10">
@@ -831,28 +827,3 @@ export default function App() {
   );
 }
 
-function EditorialStat({ label, value, suffix, index = 0 }) {
-  return (
-    <div className="flex flex-col min-w-0">
-      <div className="flex items-center gap-1.5 mb-2">
-        <p className="eyebrow truncate">{label}</p>
-      </div>
-      <div className="flex items-baseline gap-1.5 min-w-0">
-        <span
-          className="text-3xl sm:text-4xl lg:text-5xl animate-stat-pop tracking-tight font-semibold tabular-nums"
-          style={{
-            animationDelay: `${index * 80}ms`,
-            color: 'var(--ink)',
-            fontFamily: 'Fraunces, Georgia, serif',
-            fontWeight: 600,
-          }}
-        >
-          {value}
-        </span>
-        {suffix && (
-          <span className="text-xs sm:text-sm text-stone-500 dark:text-stone-400 font-medium">{suffix}</span>
-        )}
-      </div>
-    </div>
-  );
-}

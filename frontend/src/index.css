@@ -482,6 +482,251 @@
   border-bottom: 1px solid var(--rule);
 }
 
+/* P1 first viewport — brand + summary as one coffee composition */
+.journal-chrome {
+  border-bottom: 1px solid color-mix(in srgb, var(--rule) 70%, transparent);
+}
+
+.mode-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.55rem 0.35rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  color: var(--ink-soft);
+  background: transparent;
+  transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.mode-control:hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--paper-tint) 55%, transparent);
+  border-color: color-mix(in srgb, var(--rule) 80%, transparent);
+}
+
+.mode-control__label {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.mode-control__chevron {
+  width: 0.95rem;
+  height: 0.95rem;
+  opacity: 0.7;
+}
+
+.journal-hero {
+  display: grid;
+  gap: 1.75rem;
+  padding: 1.25rem 0 1.85rem;
+  margin-bottom: 1.75rem;
+  border-bottom: 1px solid var(--rule);
+  animation: journal-hero-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.journal-hero__brand {
+  display: grid;
+  gap: 0.65rem;
+  max-width: 38rem;
+}
+
+.journal-hero__title {
+  margin: 0;
+  color: var(--ink);
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: clamp(2.4rem, 7vw, 3.75rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  animation: journal-brand-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.journal-hero__lede {
+  margin: 0;
+  max-width: 28rem;
+  color: var(--ink-soft);
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
+.journal-hero__cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem 1.1rem;
+  margin-top: 0.35rem;
+}
+
+.journal-hero__cta-hint {
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: 0.78rem;
+}
+
+.journal-hero__cta-hint kbd {
+  display: inline-block;
+  min-width: 1.25rem;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.3rem;
+  background: var(--paper-2);
+  color: var(--ink-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.journal-hero__summary {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: end;
+}
+
+.journal-hero__count {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.journal-hero__numeral {
+  font-size: clamp(3.5rem, 12vw, 4.75rem);
+}
+
+.journal-hero__count-label {
+  margin: 0 0 0.35rem;
+  max-width: 9rem;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  line-height: 1.3;
+}
+
+.journal-hero__rule-v {
+  display: none;
+}
+
+.journal-hero__rule-h {
+  display: block;
+}
+
+.journal-hero__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem 1rem;
+}
+
+.journal-hero__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.journal-hero__stat-value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.journal-hero__stat-num {
+  color: var(--ink);
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: clamp(1.85rem, 5vw, 2.75rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.journal-hero__stat-suffix {
+  color: var(--ink-faint);
+  font-size: 0.75rem;
+  font-weight: 550;
+}
+
+@keyframes journal-hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.55rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes journal-brand-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 639px) {
+  .journal-hero {
+    gap: 1.35rem;
+    padding: 0.85rem 0 1.45rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .journal-hero__cta-hint {
+    display: none;
+  }
+
+  .journal-hero__lede {
+    font-size: 0.9rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .journal-hero {
+    gap: 2rem;
+    padding: 1.5rem 0 2.15rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .journal-hero__summary {
+    grid-template-columns: 1.15fr auto 1fr;
+    gap: 1.75rem 2.25rem;
+  }
+
+  .journal-hero__rule-v {
+    display: block;
+    align-self: stretch;
+    min-height: 4.5rem;
+  }
+
+  .journal-hero__rule-h {
+    display: none;
+  }
+
+  .journal-hero__count-label {
+    max-width: 11rem;
+    font-size: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .journal-hero,
+  .journal-hero__title,
+  .journal-hero__stat-num {
+    animation: none !important;
+  }
+}
+
 .season-link {
   align-items: center;
   gap: 0.45rem;
