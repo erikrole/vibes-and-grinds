@@ -13,13 +13,15 @@ export default function CoffeeJournalHero({
 }) {
   return (
     <section className="journal-hero" aria-labelledby="journal-brand">
-      <div className="journal-hero__brand">
-        <h1 id="journal-brand" className="journal-hero__title">
-          vibes & grinds
-        </h1>
-        <p className="journal-hero__lede">
-          Road-trip coffee journal — Madison home stops and away days.
-        </p>
+      <div className="journal-hero__brand-row">
+        <div className="journal-hero__brand">
+          <h1 id="journal-brand" className="journal-hero__title">
+            vibes & grinds
+          </h1>
+          <p className="journal-hero__lede">
+            Road-trip coffee journal — Madison home stops and away days.
+          </p>
+        </div>
         {showAddVisit && onAddVisit && (
           <div className="journal-hero__cta">
             <button type="button" onClick={onAddVisit} className="btn-primary">
