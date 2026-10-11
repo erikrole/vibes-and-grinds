@@ -1,6 +1,8 @@
 # Deploying to coffee.erikrole.com
 
-This guide will walk you through deploying Vibes & Grinds to Cloudflare Pages at `coffee.erikrole.com`.
+Production for Vibes & Grinds (coffee journal + Vest Tracker) is **Cloudflare Pages + D1 + Pages Functions** at `coffee.erikrole.com`. Vest mode also works via a `vests.*` hostname pointing at the same Pages project.
+
+This is not a Vercel/Railway deploy.
 
 ## Prerequisites
 
@@ -35,23 +37,25 @@ Created database vibes-and-grinds-db
 Database ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
-**Copy the database ID** and update `wrangler.toml`:
+**Copy the database ID.** Bind it as `DB` in the Pages project (Step 6). If you use a local `wrangler.toml` for CLI deploys, add:
 
 ```toml
 [[d1_databases]]
 binding = "DB"
 database_name = "vibes-and-grinds-db"
-database_id = "paste-your-database-id-here"  # <-- Update this
+database_id = "paste-your-database-id-here"
 ```
+
+(The repo may rely on the dashboard binding alone; either path works.)
 
 ## Step 4: Initialize Database Schema
 
 ```bash
-# Apply the schema to your D1 database
-wrangler d1 execute vibes-and-grinds-db --file=./schema.sql
+# Apply the schema to your D1 database (visits + vest tables)
+wrangler d1 execute vibes-and-grinds-db --remote --file=./schema.sql
 ```
 
-You should see: "Executed 3 commands in X.XXs"
+Older D1 databases may need one-off `ALTER`s (e.g. `visit_type`) — see README → Madison Coffee Shops.
 
 ## Step 5: Deploy to Cloudflare Pages
 
@@ -99,13 +103,7 @@ After deploying, bind the D1 database:
    - **D1 database**: Select `vibes-and-grinds-db`
 5. Save
 
-**OR** via CLI:
-
-```bash
-wrangler pages project create vibes-and-grinds
-```
-
-Then add this to `wrangler.toml` and redeploy.
+Prefer the dashboard binding if you are not using a checked-in `wrangler.toml`. Optionally add a `vests.*` custom domain on the same project for Vest-first entry.
 
 ## Step 7: Set Custom Domain
 
@@ -115,7 +113,7 @@ Then add this to `wrangler.toml` and redeploy.
 4. Enter: `coffee.erikrole.com`
 5. Click "Continue"
 
-Cloudflare will automatically configure DNS for you since erikrole.com is already on Cloudflare.
+Cloudflare will automatically configure DNS for you since erikrole.com is already on Cloudflare. Add `vests.<your-domain>` the same way if you use hostname-based Vest mode.
 
 ## Step 8: Secure Your Google Maps API Key
 
@@ -154,12 +152,11 @@ Until `WRITE_KEY` is set on the Pages project, mutations return **503** (fail cl
 # Public reads should still work
 curl -sS https://coffee.erikrole.com/api/visits | head -c 200
 
-# Anonymous write should fail (401 once WRITE_KEY is set)
+# Anonymous write should fail (401 once WRITE_KEY is set, 503 while it is unset)
 curl -sS -o /tmp/write.json -w "%{http_code}\n" \
   -X POST https://coffee.erikrole.com/api/visits \
   -H 'Content-Type: application/json' \
   -d '{"date":"2026-01-01","coffee_shop_name":"Test","vibe_rating":5,"coffee_rating":5}'
-# expect 401
 
 # Authorized write should succeed (use a throwaway and delete it afterward)
 curl -sS -X POST https://coffee.erikrole.com/api/visits \
@@ -173,10 +170,11 @@ In the browser: open the site, add/edit/delete a visit. If `VITE_WRITE_KEY` was 
 ## Step 10: Test Your Deployment
 
 Visit `https://coffee.erikrole.com` and:
-1. Confirm anonymous `POST /api/visits` returns 401 (Step 9)
-2. Try adding a coffee shop visit (with write key)
+1. Confirm anonymous `POST /api/visits` returns 401 once `WRITE_KEY` is set (503 until then)
+2. Try adding a coffee shop visit (with the write key)
 3. Check that autocomplete works
 4. Verify ratings display correctly
+5. Flip to Vest mode (or `vests.*`) and confirm games load
 
 ## Updating the App
 
@@ -217,8 +215,8 @@ wrangler d1 execute vibes-and-grinds-db --command="SELECT COUNT(*) as total FROM
 - If you see “This page can't load Google Maps correctly”, check API key + billing errors in Google's docs
 
 **Database not found?**
-- Verify database ID in `wrangler.toml` matches your D1 database
-- Check D1 binding in Cloudflare Pages settings
+- Verify the Pages Functions D1 binding `DB` points at `vibes-and-grinds-db`
+- If you use CLI/`wrangler.toml`, confirm `database_id` matches
 
 **Build failing?**
 - Make sure build command includes `cd frontend &&`
@@ -241,9 +239,6 @@ npm run dev  # Runs on port 3000
 
 The local backend uses SQLite (`backend/vibes-and-grinds.db`), which is compatible with D1.
 
-## Success! 🎉
+## Success
 
-Your coffee tracker should now be live at:
-**https://coffee.erikrole.com**
-
-Start tracking those basketball road trip coffee adventures!
+App should be live at **https://coffee.erikrole.com** (coffee journal default; Vest via switch or `vests.*`).

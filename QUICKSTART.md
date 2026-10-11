@@ -1,5 +1,7 @@
 # Quick Start Guide
 
+Coffee journal + Vest Tracker. **Production = Cloudflare Pages + D1 + Functions** ([DEPLOYMENT.md](./DEPLOYMENT.md)). Local = Express + SQLite.
+
 ## Running Locally Right Now
 
 **Terminal 1 - Backend:**
@@ -19,15 +21,15 @@ npm run dev
 
 Then open: http://localhost:3000
 
-Set your Google Maps API key in `frontend/.env` before running locally.
+Set your Google Maps API key (backend/root `GOOGLE_MAPS_API_KEY` and/or frontend `.env`) before relying on autocomplete. `VITE_API_URL=http://localhost:3001` for local API.
 
-For production-like local writes, set the same `WRITE_KEY` in `backend/.env` and optionally `VITE_WRITE_KEY` in `frontend/.env` (see [DEPLOYMENT.md](./DEPLOYMENT.md) Step 9).
+Local writes work after `cp .env.example .env` because that file sets `ALLOW_INSECURE_WRITES=true` and leaves `WRITE_KEY` unset. For production-like local writes, set the same long random `WRITE_KEY` in `backend/.env` and optionally `VITE_WRITE_KEY` in `frontend/.env` (see [DEPLOYMENT.md](./DEPLOYMENT.md) Step 9). Never commit the real key.
 
 ---
 
 ## Deploy to coffee.erikrole.com
 
-### The Fast Way (5 minutes)
+### The Fast Way
 
 1. **Install Wrangler CLI:**
    ```bash
@@ -42,16 +44,11 @@ For production-like local writes, set the same `WRITE_KEY` in `backend/.env` and
 
    Copy the database ID it gives you.
 
-3. **Update wrangler.toml:**
-
-   Open `wrangler.toml` and paste your database ID:
-   ```toml
-   database_id = "paste-the-id-here"
-   ```
+3. **Remember the database ID** for the Pages `DB` binding (Step 6). Optional: put it in a local `wrangler.toml` if you deploy via CLI.
 
 4. **Initialize Database:**
    ```bash
-   wrangler d1 execute vibes-and-grinds-db --file=./schema.sql
+   wrangler d1 execute vibes-and-grinds-db --remote --file=./schema.sql
    ```
 
 5. **Deploy via GitHub:**
@@ -64,7 +61,7 @@ For production-like local writes, set the same `WRITE_KEY` in `backend/.env` and
    - Add environment variables:
      - `GOOGLE_MAPS_API_KEY` = `your_new_google_maps_api_key`
      - (Optional legacy fallback) `VITE_GOOGLE_MAPS_API_KEY` = `your_new_google_maps_api_key`
-     - `WRITE_KEY` = long random secret (required to protect POST/PUT/DELETE)
+     - `WRITE_KEY` = long random secret (`openssl rand -hex 32`) as a Functions secret. Required. Do not set `VITE_WRITE_KEY` unless the key may live in the JS bundle.
    - Click "Save and Deploy"
 
 6. **Bind Database:**

@@ -1,32 +1,49 @@
 # Vibes & Grinds — Product Plan
 
-## Version 1 (built now)
+Personal dual-mode app: **coffee journal** (default) + **Vest Tracker**, live at [coffee.erikrole.com](https://coffee.erikrole.com) on **Cloudflare Pages + D1 + Functions**. Local: Express + SQLite.
 
-### Must-have now
-- Add and edit coffee visits with vibe + coffee ratings.
-- Automatic composite score.
-- Main feed with sorting and search/filter.
-- Visit detail modal with extra notes + photo section.
-- Simple dashboard snapshot (visit count + average scores).
+## Shipped (treat as current product)
 
-### Add later (Version 2)
-- Google Maps place auto-fill hardening (better validation and graceful fallback).
-- Map view of all shops.
-- Shared trip links and export.
-- Year-end recap visuals.
+### Coffee journal
+- Visit CRUD with vibe + coffee ratings and composite score
+- Places autocomplete, order/notes/photo
+- Road vs Madison (`visit_type`), filters/search/sort, return visits
+- Map explorer, insights, badges, season-in-review (road only)
+- Share cards, dark mode, keyboard shortcuts
+- Journal hero snapshot (counts + averages)
 
-## Technical approach (plain language)
-- **Frontend:** React + Tailwind for a polished, fast UI.
-- **API:** Works in both local Express and Cloudflare Functions.
-- **Data:** SQLite/D1 schema aligned so local and cloud behave the same.
-- **Modernization:** close feature gaps between local backend and cloud API, improve UX states, and add lightweight analytics cards.
+### Vest Tracker
+- Mode switch + `vests.*` hostname entry
+- DB-backed vest games (`/api/vest/games`), scoreboard UI, leaderboards
+- NET rankings + game stats wiring
 
-## Complexity
-- Overall: **Medium**.
-- Biggest risk area: API/schema drift between local development and deployed environment.
+### Platform
+- Dual API: Express (local) and Pages Functions (prod) over aligned SQLite/D1 schema
+- Workers for basketball/NET-related feeds where used
+- Mutating APIs require `WRITE_KEY` / `X-Write-Key`; reads stay public. See DEPLOYMENT.md Step 9.
 
-## Decisions you'll eventually need to make
-- Keep photo uploads simple (current) vs object storage provider (Cloudflare R2/S3).
-- Google Maps API budget and restrictions.
-- Whether to keep this private or add auth for wider sharing.
-  - **Shipped (lightweight):** mutating APIs require `WRITE_KEY` / `X-Write-Key`; reads stay public. See DEPLOYMENT.md Step 9.
+## Next (in flight or decided backlog)
+
+| Item | Status |
+|------|--------|
+| Rebuild Add Visit around where → order → ratings | PR #45 |
+| Finish coffee design tokens (purge mixed utilities) | PR #46 |
+| Split `App.jsx` into coffee / Vest shells | PR #47 |
+| Photo object storage (R2 vs keep simple uploads) | Decision |
+| API parity checklist + smoke tests (Express ↔ Functions) | Backlog |
+| Canonical place IDs / honest Maps deep-links | Backlog |
+
+## Not “v2 wishlist” anymore
+
+These were listed as future in older docs; they **already shipped**: interactive map, dashboard/insights stats, season/year review, filtering & sorting, trip/journal snapshot. Do not re-plan them as greenfield.
+
+## Technical approach
+- **Frontend:** React + Vite + Tailwind
+- **Prod API/data:** Cloudflare Pages Functions + D1
+- **Local API/data:** Express + SQLite (`schema.sql` as source of truth)
+- **Main structural risk:** schema/behavior drift between local and cloud; dual-mode growth inside one shell
+
+## Open decisions
+- Photos: keep current upload path vs Cloudflare R2 (or similar)
+- Google Maps budget / key restrictions
+- Privacy: the shared write key is the lightweight gate; Cloudflare Access or fuller auth only if sharing widens
