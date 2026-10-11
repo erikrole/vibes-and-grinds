@@ -483,8 +483,15 @@ export default function App() {
             <div className="flex items-center justify-center py-16 text-stone-400 dark:text-stone-500 animate-pulse">Loading visits…</div>
           </main>
         ) : error ? (
-          <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
-            <section className="recovery-panel" role="alert">
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-1 sm:pt-2 pb-8">
+            <CoffeeJournalHero
+              visitCount={0}
+              avgVibe="—"
+              avgCoffee="—"
+              avgComposite="—"
+              showAddVisit={false}
+            />
+            <section className="recovery-panel max-w-2xl" role="alert">
               <p className="eyebrow mb-3">Connection problem</p>
               <h2 className="text-2xl sm:text-3xl font-semibold mb-3">Couldn’t load the coffee journal</h2>
               <p className="text-sm mb-6" style={{ color: 'var(--ink-soft)' }}>{error}</p>
