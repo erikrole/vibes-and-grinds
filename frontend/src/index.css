@@ -36,6 +36,16 @@
     --border-strong: #c6b8a2;
     --focus: #b7501d;
     --danger: #b74235;
+    --success: #16803b;
+    --warning: #a54826;
+    --score-low: #b25844;
+    --score-low-mid: #c4825a;
+    --score-mid: #d4a555;
+    --score-good: #92a862;
+    --score-high: #6e9458;
+    --score-peak: #58844e;
+    --score-up: var(--success);
+    --score-down: #c43b31;
     --radius-sm: .5rem;
     --radius-md: .75rem;
     --radius-lg: 1rem;
@@ -66,6 +76,16 @@
     --border-strong: #54473c;
     --focus: #f09a66;
     --danger: #ed8176;
+    --success: #6fbf84;
+    --warning: #e0a070;
+    --score-low: #d47868;
+    --score-low-mid: #d49a6e;
+    --score-mid: #e0b86a;
+    --score-good: #a8c078;
+    --score-high: #84b070;
+    --score-peak: #6a9e66;
+    --score-up: var(--success);
+    --score-down: #ed8176;
     --shadow-raised: 0 24px 70px rgba(0, 0, 0, .42);
   }
 
@@ -217,7 +237,7 @@
 .visit-photo-stage {
   aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: #15110f;
+  background: var(--ink);
 }
 
 .visit-photo-image {
@@ -327,15 +347,20 @@
   .btn-secondary:hover { background: var(--rule); }
 
   .input-field {
-    @apply w-full px-4 py-2.5 rounded-2xl bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-50 border border-stone-300 dark:border-stone-600 focus:outline-none transition-all;
+    @apply w-full px-4 py-2.5 rounded-2xl focus:outline-none transition-all;
+    background: var(--field);
+    color: var(--ink);
+    border: 1px solid var(--border-strong);
   }
   .input-field:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(217, 111, 46, 0.12);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
   }
 
   .card {
-    @apply bg-white dark:bg-stone-800 rounded-2xl border border-stone-200/80 dark:border-stone-600/60 p-6 sm:p-8 transition-all;
+    @apply rounded-2xl p-6 sm:p-8 transition-all;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   }
 
@@ -788,11 +813,11 @@ input[type="number"] { -moz-appearance: textfield; }
 
 /* Modal map shop name tooltip */
 .map-shop-label {
-  background: white;
+  background: var(--surface-raised);
   border: none;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-  color: #1c1917;
+  color: var(--ink);
   font-family: 'Fraunces', 'Georgia', serif;
   font-weight: 700;
   font-size: 13px;
@@ -849,7 +874,7 @@ input[type="number"] { -moz-appearance: textfield; }
 button:focus-visible,
 a:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid #78716c;
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
   border-radius: 8px;
 }
@@ -889,12 +914,12 @@ a:focus-visible,
 
 /* Vest mode pages adopt the scoreboard ground end-to-end. */
 .vest-tracker-page {
-  background-color: #0a0a0b !important;
-  color: #ffffff;
+  background-color: var(--vt-bg) !important;
+  color: var(--vt-ink);
 }
 .vest-tracker-header {
-  background-color: #0a0a0b !important;
-  border-bottom: 1px solid #26262c;
+  background-color: var(--vt-bg) !important;
+  border-bottom: 1px solid var(--vt-rule);
   position: relative;
 }
 .vest-tracker-header::after {
@@ -902,14 +927,14 @@ a:focus-visible,
   position: absolute;
   inset: auto 0 0 0;
   height: 2px;
-  background: #c5050c;
+  background: var(--vt-red);
 }
 .vest-tracker-header h1,
 .vest-tracker-header button {
-  color: #ffffff;
+  color: var(--vt-ink);
 }
 .vest-tracker-header .coffee-shop-name {
-  color: #ffffff;
+  color: var(--vt-ink);
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -1229,8 +1254,8 @@ a:focus-visible,
 .repeat-comparison { margin-top: 1rem; border-top: 1px solid var(--rule); font-size: .82rem; font-variant-numeric: tabular-nums; }
 .repeat-comparison > div { display: grid; grid-template-columns: 1.3fr repeat(3, .7fr); gap: .5rem; padding: .65rem .2rem; border-bottom: 1px solid var(--rule); }
 .repeat-comparison > div:first-child { color: var(--ink-soft); font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; }
-.repeat-comparison [data-direction="up"] { color: #16803b; }
-.repeat-comparison [data-direction="down"] { color: #c43b31; }
+.repeat-comparison [data-direction="up"] { color: var(--score-up); }
+.repeat-comparison [data-direction="down"] { color: var(--score-down); }
 
 @media (max-width: 800px) {
   .insight-highlight-grid { grid-template-columns: 1fr 1fr; }

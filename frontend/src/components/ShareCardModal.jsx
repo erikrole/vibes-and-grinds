@@ -62,7 +62,7 @@ export default function ShareCardModal({ visit, onClose }) {
     >
       <div
         ref={modalRef}
-        className="relative w-full max-w-sm rounded-xl shadow-xl border border-stone-200 dark:border-stone-700 p-6 sm:p-7"
+        className="relative w-full max-w-sm rounded-xl shadow-xl border border-rule p-6 sm:p-7"
         style={{ backgroundColor: 'var(--paper-2)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -75,7 +75,7 @@ export default function ShareCardModal({ visit, onClose }) {
           </h3>
           <button
             onClick={onClose}
-            className="text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 p-2 -m-2 rounded-xl transition-colors"
+            className="text-ink-faint hover:text-ink p-2 -m-2 rounded-xl transition-colors"
             aria-label="Close"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,13 +94,13 @@ export default function ShareCardModal({ visit, onClose }) {
           )}
           {status === 'loading' && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <div className="w-6 h-6 border-2 border-stone-300 dark:border-stone-600 border-t-stone-600 dark:border-t-stone-300 rounded-full animate-spin" />
-              <span className="text-sm text-stone-500 dark:text-stone-400">Generating card…</span>
+              <div className="w-6 h-6 border-2 border-rule border-t-ink-soft rounded-full animate-spin" />
+              <span className="text-sm text-ink-soft">Generating card…</span>
             </div>
           )}
           {status === 'error' && (
             <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
-              <span className="text-sm text-stone-500 dark:text-stone-400">Couldn’t generate the card. Please try again.</span>
+              <span className="text-sm text-ink-soft">Couldn’t generate the card. Please try again.</span>
             </div>
           )}
         </div>
@@ -131,7 +131,7 @@ export default function ShareCardModal({ visit, onClose }) {
           </button>
           <button
             onClick={onClose}
-            className="w-full py-3 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 font-medium text-sm transition-colors"
+            className="w-full py-3 text-ink-faint hover:text-ink font-medium text-sm transition-colors"
           >
             Cancel
           </button>

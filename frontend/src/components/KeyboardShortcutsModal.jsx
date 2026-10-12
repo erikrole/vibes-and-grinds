@@ -37,14 +37,14 @@ export default function KeyboardShortcutsModal({ onClose }) {
         aria-modal="true"
         aria-labelledby="shortcuts-title"
         tabIndex={-1}
-        className="animate-modal-in bg-white dark:bg-stone-800 rounded-xl shadow-xl max-w-sm w-full border border-stone-200/60 dark:border-stone-600/60 overflow-hidden outline-none"
+        className="animate-modal-in bg-surface-raised rounded-xl shadow-xl max-w-sm w-full border border-rule overflow-hidden outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 pt-6 pb-4 flex items-center justify-between">
-          <h3 id="shortcuts-title" className="text-lg font-bold text-stone-900 dark:text-stone-50">Keyboard Shortcuts</h3>
+          <h3 id="shortcuts-title" className="text-lg font-bold text-ink">Keyboard Shortcuts</h3>
           <button
             onClick={onClose}
-            className="text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors p-1"
+            className="text-ink-faint hover:text-ink transition-colors p-1"
             aria-label="Close"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,12 +55,12 @@ export default function KeyboardShortcutsModal({ onClose }) {
         <div className="px-6 pb-6 space-y-3">
           {SHORTCUTS.map((shortcut) => (
             <div key={shortcut.label} className="flex items-center justify-between gap-4">
-              <span className="text-sm text-stone-600 dark:text-stone-300">{shortcut.label}</span>
+              <span className="text-sm text-ink-soft">{shortcut.label}</span>
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 {shortcut.keys.map((key) => (
                   <kbd
                     key={key}
-                    className="inline-flex items-center px-2 py-1 text-xs font-medium text-stone-500 dark:text-stone-400 bg-stone-100 dark:bg-stone-700 border border-stone-200 dark:border-stone-600 rounded-md min-w-[28px] justify-center"
+                    className="inline-flex items-center px-2 py-1 text-xs font-medium text-ink-soft bg-surface-muted border border-rule rounded-md min-w-[28px] justify-center"
                   >
                     {key}
                   </kbd>
