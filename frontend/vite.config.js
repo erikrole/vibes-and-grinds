@@ -8,6 +8,14 @@ export default defineConfig({
       name: 'read-only-production-data',
       configureServer(server) {
         if (process.env.VITE_PROXY_READ_ONLY !== 'true') return;
+        server.middlewares.use('/api/vest/schedule', async (request, response, next) => {
+          if (!['GET', 'HEAD'].includes(request.method || 'GET')) return next();
+          const { vestScheduleRoute } = await import('../shared/vest-schedule.mjs');
+          const upstream = await vestScheduleRoute(new Request(`http://127.0.0.1${request.originalUrl || request.url}`));
+          response.statusCode = upstream.status;
+          response.setHeader('Content-Type', 'application/json');
+          response.end(await upstream.text());
+        });
         server.middlewares.use('/api', (request, response, next) => {
           if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return next();
           response.statusCode = 403;
