@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { JOURNAL_FILTER_PARAMS } from '../utils/journalFilters.js';
 
 export function readRoute(search = window.location.search) {
   const params = new URLSearchParams(search);
@@ -11,12 +12,18 @@ export function readRoute(search = window.location.search) {
   };
 }
 
-export function routeSearch(route) {
+export function routeSearch(route, currentSearch = '') {
   const params = new URLSearchParams();
+  const current = new URLSearchParams(currentSearch.startsWith('?') ? currentSearch.slice(1) : currentSearch);
   if (route.view && route.view !== 'visits') params.set('view', route.view);
   for (const key of ['shop', 'visit', 'season']) if (route[key]) params.set(key, route[key]);
   if (route.app === 'vest') params.set('app', 'vest');
-  return params.size ? `?${params}` : '';
+  for (const key of JOURNAL_FILTER_PARAMS) {
+    const value = current.get(key);
+    if (value) params.set(key, value);
+  }
+  const query = params.toString();
+  return query ? `?${query}` : '';
 }
 
 export default function useJournalRoute() {
@@ -29,7 +36,7 @@ export default function useJournalRoute() {
   const navigate = (updates, { replace = false, layer = false } = {}) => {
     const next = { ...readRoute(), ...updates };
     const state = replace ? window.history.state : { vgLayer: layer };
-    window.history[replace ? 'replaceState' : 'pushState'](state, '', `${window.location.pathname}${routeSearch(next)}`);
+    window.history[replace ? 'replaceState' : 'pushState'](state, '', `${window.location.pathname}${routeSearch(next, window.location.search)}`);
     setRoute(next);
   };
   const closeLayer = (key) => {
