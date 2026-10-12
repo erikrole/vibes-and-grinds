@@ -1905,17 +1905,20 @@ button.insight-highlight:hover { background: var(--surface-muted); }
   line-height: 0.95;
 }
 
-.outfit-rate { width: 5.25rem; }
+.outfit-rate { width: auto; }
 .outfit-rate-track {
   display: block;
-  height: 3px;
-  margin-top: 0.35rem;
+  height: 8px;
+  margin-top: 0.7rem;
   background: var(--vt-rule);
+  border-radius: 999px;
+  overflow: hidden;
 }
 .outfit-rate-fill {
   display: block;
   height: 100%;
   background: var(--vt-red);
+  border-radius: 999px;
 }
 .outfit-rate-fill.is-small { opacity: 0.4; }
 .outfit-sample-note {
@@ -1943,3 +1946,145 @@ button.insight-highlight:hover { background: var(--surface-muted); }
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
+
+.vt-tabs {
+  display: flex;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--vt-rule);
+  scrollbar-width: none;
+}
+.vt-tabs::-webkit-scrollbar { display: none; }
+.vt-tabs .vt-tab {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: 0.7rem 0.85rem;
+}
+@media (min-width: 640px) {
+  .vt-tabs .vt-tab { padding: 0.75rem 1.25rem; }
+}
+
+.vt-score-num { font-size: clamp(3rem, 16vw, 4.5rem); }
+.vt-score-dash { font-size: clamp(2rem, 9vw, 3rem); margin: 0 0.06em; align-self: center; }
+.vt-score-line { letter-spacing: -0.04em; }
+
+.vt-preseason-title {
+  font-size: clamp(2.6rem, 12vw, 4.25rem);
+  color: var(--vt-ink);
+}
+
+.vt-storyline {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+.vt-storyline-item + .vt-storyline-item {
+  border-top: 1px solid var(--vt-rule);
+  padding-top: 0.75rem;
+}
+@media (min-width: 640px) {
+  .vt-storyline { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
+  .vt-storyline-item + .vt-storyline-item {
+    border-top: 0;
+    padding-top: 0;
+    border-left: 1px solid var(--vt-rule);
+    padding-left: 1rem;
+  }
+}
+
+.vt-game-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+.vt-game-row { display: flex; align-items: stretch; gap: 0.5rem; }
+.vt-game-card {
+  display: grid;
+  grid-template-columns: 2.6rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 0.85rem 0.9rem;
+  background: var(--vt-surface-2);
+  border: 1px solid var(--vt-rule);
+  border-radius: 6px;
+}
+.vt-game-card:hover,
+.vt-game-card:focus-visible { border-color: var(--vt-rule-strong); }
+.vt-result-pill {
+  display: grid;
+  place-items: center;
+  min-width: 2.4rem;
+  min-height: 2.4rem;
+  border-radius: 4px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+.vt-result-pill.is-w { background: var(--vt-red); color: #fff; }
+.vt-result-pill.is-l {
+  background: transparent;
+  color: var(--vt-ink-dim);
+  border: 1px solid var(--vt-rule-strong);
+}
+.vt-result-pill.is-tbd {
+  color: var(--vt-ink-faint);
+  border: 1px dashed var(--vt-rule-strong);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+}
+.vt-game-opponent {
+  display: block;
+  font-size: clamp(1.15rem, 4.2vw, 1.45rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+.vt-game-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.75rem;
+  margin-top: 0.4rem;
+  font-size: 11px;
+  color: var(--vt-ink-mute);
+}
+.vt-game-outfit { color: var(--vt-ink-dim); }
+.vt-game-log {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--vt-rule);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.vt-game-log button { padding: 0 0.8rem; }
+.vt-game-log button + button { border-top: 1px solid var(--vt-rule); }
+
+.vt-outfit-row {
+  width: 100%;
+  text-align: left;
+  padding: 1rem 1rem 0.95rem;
+  border-top: 1px solid var(--vt-rule);
+}
+@media (min-width: 640px) {
+  .vt-outfit-row { padding: 1.05rem 1.25rem 1rem; }
+}
+
+.vt-net-table th,
+.vt-net-table td {
+  padding: 0.7rem 0.75rem;
+  text-align: left;
+}
+.vt-net-table th {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 12px;
+  color: var(--vt-ink-mute);
+  cursor: pointer;
+}
+.vt-net-table tbody tr { border-top: 1px solid var(--vt-rule); }
+.vt-net-table tbody tr:nth-child(even) { background: var(--vt-surface-2); }
+.vt-net-wisconsin { color: var(--vt-red-hot); }
