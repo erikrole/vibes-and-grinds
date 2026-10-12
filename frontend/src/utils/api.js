@@ -34,9 +34,7 @@ function promptForWriteKey(message) {
   if (typeof window === 'undefined' || typeof window.prompt !== 'function') return '';
   const entered = window.prompt(message);
   if (entered == null) return '';
-  const trimmed = entered.trim();
-  if (trimmed) setWriteKey(trimmed);
-  return trimmed;
+  return entered.trim();
 }
 
 async function parseErrorResponse(response, fallbackMessage) {
@@ -58,12 +56,15 @@ async function fetchWithWriteAuth(url, options = {}, { interactive = true } = {}
   let response = await fetch(url, { ...options, headers });
 
   if (interactive && response.status === 401) {
+    // Drop a previously saved miss so the next attempt does not keep sending it.
+    setWriteKey('');
     const prompted = promptForWriteKey(
       'Write key missing or incorrect. Enter the site write key to continue:'
     );
     if (prompted) {
       headers.set(WRITE_KEY_HEADER, prompted);
       response = await fetch(url, { ...options, headers });
+      if (response.ok) setWriteKey(prompted);
     }
   }
 

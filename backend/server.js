@@ -11,56 +11,52 @@ const ESPN_SCHEDULE_BASE = 'https://site.api.espn.com/apis/site/v2/sports/basket
 const ESPN_SUMMARY_BASE = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/summary';
 const FETCH_TIMEOUT_MS = 10000;
 
-// Middleware
+// Middleware. Reject unauthenticated mutations before parsing a body.
 app.use(cors());
-app.use(express.json());
 
 const WRITE_KEY_HEADER = 'X-Write-Key';
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+let authorizeWrite = null;
+let acceptedWriteKey = () => '';
 
 /**
- * Mirror Cloudflare Pages write gate (functions/_middleware.js + _shared.js).
- * - WRITE_KEY set → require matching X-Write-Key
- * - WRITE_KEY unset → allow only when ALLOW_INSECURE_WRITES=true
+ * Mirror Cloudflare Pages write gate (functions/_middleware.js + shared/write-gate.mjs).
+ * - Usable WRITE_KEY → require matching X-Write-Key
+ * - Missing/weak WRITE_KEY → allow only when ALLOW_INSECURE_WRITES=true
  */
 function requireWriteAccess(req, res, next) {
   if (!MUTATING_METHODS.has(req.method)) return next();
-
-  const expected = `${process.env.WRITE_KEY || ''}`.trim();
-  const insecureOk = `${process.env.ALLOW_INSECURE_WRITES || ''}`.toLowerCase() === 'true';
-
-  if (!expected) {
-    if (insecureOk) return next();
-    return res.status(503).json({
-      error:
-        'Write protection is not configured. Set the WRITE_KEY secret on the server (or ALLOW_INSECURE_WRITES=true for local only).',
-    });
+  if (typeof authorizeWrite !== 'function') {
+    return res.status(503).json({ error: 'Write protection is not ready.' });
   }
 
-  const provided = `${req.get(WRITE_KEY_HEADER) || ''}`.trim();
-  if (!provided || provided !== expected) {
-    return res.status(401).json({
-      error: 'Unauthorized. Provide a valid X-Write-Key header.',
-    });
-  }
-
-  return next();
+  const decision = authorizeWrite({
+    writeKey: process.env.WRITE_KEY,
+    allowInsecure: process.env.ALLOW_INSECURE_WRITES,
+    providedKey: req.get(WRITE_KEY_HEADER),
+  });
+  if (decision.ok) return next();
+  return res.status(decision.status).json({ error: decision.error });
 }
 
 app.use('/api', requireWriteAccess);
+app.use(express.json());
 
 // Initialize database then start listening — prevents requests arriving before db is ready
 let db;
 initDatabase()
-  .then((database) => {
+  .then(async (database) => {
+    const gate = await import('../shared/write-gate.mjs');
+    authorizeWrite = gate.authorizeWrite;
+    acceptedWriteKey = gate.acceptedWriteKey;
     db = database;
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
-      if (!process.env.WRITE_KEY) {
+      if (!acceptedWriteKey(process.env.WRITE_KEY)) {
         if (`${process.env.ALLOW_INSECURE_WRITES || ''}`.toLowerCase() === 'true') {
-          console.warn('WRITE_KEY unset — mutations allowed via ALLOW_INSECURE_WRITES=true');
+          console.warn('WRITE_KEY unset or too weak — mutations allowed via ALLOW_INSECURE_WRITES=true');
         } else {
-          console.warn('WRITE_KEY unset — mutating /api routes will return 503');
+          console.warn('WRITE_KEY unset or too weak — mutating /api routes will return 503');
         }
       }
     });

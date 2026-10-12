@@ -1,4 +1,6 @@
-// Gate all mutating Pages Function requests behind a shared write key.
+// Gate every mutating Pages request behind a shared write key.
+// Covers POST /api/visits, PUT/DELETE /api/visits/:id, POST /api/upload,
+// PUT /api/vest/games, and POST /api/vest/blurb (plus any future mutation).
 // GET/HEAD/OPTIONS stay public so the personal journal remains viewable.
 
 import {

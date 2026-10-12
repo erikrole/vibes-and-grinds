@@ -136,11 +136,15 @@ Mutating API routes (`POST` / `PUT` / `PATCH` / `DELETE`) require a shared secre
 
 | Env | Where | Purpose |
 |-----|--------|---------|
-| `WRITE_KEY` | Cloudflare Pages **Functions** secrets (and local `backend/.env`) | Server-side expected value |
+| `WRITE_KEY` | Cloudflare Pages **Functions** secrets (and local `backend/.env`) | Server-side expected value. At least 16 characters from `openssl rand -hex 32`. Example placeholders are rejected. |
 | `ALLOW_INSECURE_WRITES=true` | Local `backend/.env` only | Allow mutations when `WRITE_KEY` is unset (never in production) |
-| `VITE_WRITE_KEY` | Optional Pages **build** variable / `frontend/.env` | Auto-send the key from the client (visible in the bundle) |
+| `VITE_WRITE_KEY` | Optional Pages **build** variable / `frontend/.env` | Auto-send the key from the client (visible in the bundle). Prefer leaving this unset. |
 
-The frontend sends `X-Write-Key`. If the header is missing/wrong, the UI prompts once and stores the key in `localStorage` under `vibes_write_key`.
+Do not commit `WRITE_KEY`. `backend/.env.example` leaves it commented and sets `ALLOW_INSECURE_WRITES=true` for local development only.
+
+The frontend sends `X-Write-Key` on every mutating call (`POST`/`PUT`/`PATCH`/`DELETE` for visits, photo upload, vest game sync, and vest blurb). If the header is missing or wrong, the UI prompts once and stores the key in `localStorage` under `vibes_write_key` only after the write succeeds.
+
+Until `WRITE_KEY` is set on the Pages project, mutations return **503** (fail closed), not an open write.
 
 **Cloudflare Access (optional alternative):** You can also put Access in front of the whole site or admin paths. The shared-secret gate still applies to Functions; Access is complementary, not a replacement for setting `WRITE_KEY`.
 

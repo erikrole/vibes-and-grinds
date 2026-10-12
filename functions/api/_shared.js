@@ -21,44 +21,33 @@ export function jsonResponse(body, status = 200) {
   });
 }
 
+import { authorizeWrite, WRITE_KEY_HEADER as SHARED_WRITE_KEY_HEADER } from '../../shared/write-gate.mjs';
+
 /** Header the client must send on POST/PUT/PATCH/DELETE. */
-export const WRITE_KEY_HEADER = 'X-Write-Key';
+export const WRITE_KEY_HEADER = SHARED_WRITE_KEY_HEADER;
 
 /**
  * Shared write-gate for mutating API requests.
  *
- * - If WRITE_KEY is set: require a matching X-Write-Key header.
- * - If WRITE_KEY is unset: allow only when ALLOW_INSECURE_WRITES=true (local/dev).
- *   Production should always set WRITE_KEY so anonymous writes are rejected.
+ * - Usable WRITE_KEY (16+ chars, not a placeholder): require a matching header.
+ * - Missing or placeholder WRITE_KEY: allow only when ALLOW_INSECURE_WRITES=true.
+ *   Production must set a real WRITE_KEY so anonymous writes are rejected.
  */
 export function isWriteAuthorized(request, env = {}) {
-  const expected = `${env.WRITE_KEY || ''}`.trim();
-  const insecureOk =
-    env.ALLOW_INSECURE_WRITES === true ||
-    `${env.ALLOW_INSECURE_WRITES || ''}`.toLowerCase() === 'true';
-
-  if (!expected) return insecureOk;
-
-  const provided = `${request.headers.get(WRITE_KEY_HEADER) || ''}`.trim();
-  return provided.length > 0 && provided === expected;
+  return authorizeWrite({
+    writeKey: env.WRITE_KEY,
+    allowInsecure: env.ALLOW_INSECURE_WRITES,
+    providedKey: request?.headers?.get?.(WRITE_KEY_HEADER),
+  }).ok;
 }
 
 export function unauthorizedWriteResponse(env = {}) {
-  const expected = `${env.WRITE_KEY || ''}`.trim();
-  if (!expected) {
-    return jsonResponse(
-      {
-        error:
-          'Write protection is not configured. Set the WRITE_KEY secret on the server (or ALLOW_INSECURE_WRITES=true for local only).',
-      },
-      503
-    );
-  }
-
-  return jsonResponse(
-    { error: 'Unauthorized. Provide a valid X-Write-Key header.' },
-    401
-  );
+  const decision = authorizeWrite({
+    writeKey: env.WRITE_KEY,
+    allowInsecure: false,
+    providedKey: '',
+  });
+  return jsonResponse({ error: decision.error }, decision.status);
 }
 
 /**

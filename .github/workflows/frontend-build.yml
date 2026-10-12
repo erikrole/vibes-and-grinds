@@ -33,6 +33,9 @@ jobs:
       - name: Validate backend/function syntax
         run: |
           node --check backend/server.js
+          node --check functions/_middleware.js
+          node --check functions/api/_shared.js
+          node --check shared/write-gate.mjs
           node --check functions/api/places-autocomplete.js
           node --check functions/api/places-details.js
           node --check functions/api/stats.js
@@ -44,3 +47,4 @@ jobs:
           node --check functions/api/vest/net-rankings.js
           node --check functions/api/vest/scores.js
           node --check "functions/api/vest/game-stats/[eventId].js"
+          node --test shared/write-gate.test.mjs
