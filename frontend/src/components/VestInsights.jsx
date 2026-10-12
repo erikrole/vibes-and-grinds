@@ -17,7 +17,7 @@ function splitText(record) {
   return `${record.wins}–${record.losses}`;
 }
 
-function VestInsights({ games, briefs, lucky, halftime, maxMargin }) {
+function VestInsights({ games, briefs, lucky, halftime, maxMargin, coffeeTieIn = null }) {
   const done = (games || []).filter((game) => game.result === 'W' || game.result === 'L');
   if (!done.length) return null;
   const wins = done.filter((game) => game.result === 'W').length;
@@ -46,6 +46,8 @@ function VestInsights({ games, briefs, lucky, halftime, maxMargin }) {
           ))}
         </div>
       </section>
+
+      {coffeeTieIn}
 
       {lucky && (
         <p className="vp-callout">

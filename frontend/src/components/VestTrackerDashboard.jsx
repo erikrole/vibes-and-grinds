@@ -546,14 +546,24 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
         lucky={selectedOutfit ? null : lucky}
         halftime={selectedOutfit ? null : halftime}
         maxMargin={maxMargin}
+        coffeeTieIn={completedGames.length > 0 ? (
+          <CoffeeTieIn
+            coffee={coffeeBrief}
+            status={coffeeStatus}
+            hasGames
+            outfitFiltered={Boolean(selectedOutfit)}
+          />
+        ) : null}
       />
 
-      <CoffeeTieIn
-        coffee={coffeeBrief}
-        status={coffeeStatus}
-        hasGames={completedGames.length > 0}
-        outfitFiltered={Boolean(selectedOutfit)}
-      />
+      {completedGames.length === 0 && (
+        <CoffeeTieIn
+          coffee={coffeeBrief}
+          status={coffeeStatus}
+          hasGames={false}
+          outfitFiltered={Boolean(selectedOutfit)}
+        />
+      )}
 
       <NetDegradedBanner netStatus={netStatus} seasonTitle={seasonTitle(seasonEndYearNow)} />
 
