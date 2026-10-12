@@ -9,6 +9,8 @@
  * Also fetches AP Poll from NCAA.com.
  */
 
+import { collectNetRankings } from '../shared/net-rankings.mjs';
+
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
 export default {
@@ -29,7 +31,16 @@ export default {
         headers: { 'User-Agent': UA },
       }).then(r => r.ok ? r.text() : '').catch(() => '');
 
-      const netResult = await fetchAllNetRankings();
+      const netResult = await collectNetRankings(fetch);
+      if (netResult.status === 'unreleased') {
+        return new Response(JSON.stringify(netResult), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=3600',
+          },
+        });
+      }
       if (netResult.rankings.length === 0) {
         throw new Error('All NET ranking sources failed');
       }

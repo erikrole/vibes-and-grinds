@@ -126,6 +126,13 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
           const response = await fetch(url);
           if (!response.ok) continue;
           const payload = await response.json();
+          if (payload?.status === 'unreleased') {
+            if (!cancelled) {
+              setNetRankings([]);
+              setNetStatus('unreleased');
+            }
+            return;
+          }
           const rows = toRows(payload);
           if (!rows.length) continue;
           if (!cancelled) {
@@ -460,6 +467,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
       <NetRankingsPage
         netRankings={netRankings}
         netStatus={netStatus}
+        seasonTitle={seasonTitle(currentSeasonEndYear())}
         onBack={() => setVestTab('dashboard')}
       />
     );
@@ -519,7 +527,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
 
       <StorylineStrip milestones={milestones} />
 
-      <NetDegradedBanner netStatus={netStatus} />
+      <NetDegradedBanner netStatus={netStatus} seasonTitle={seasonTitle(seasonEndYearNow)} />
 
       {canEdit && syncReady && upcomingGame && (
         showPostGame ? (
@@ -601,13 +609,15 @@ function StorylineStrip({ milestones }) {
   );
 }
 
-function NetDegradedBanner({ netStatus }) {
+function NetDegradedBanner({ netStatus, seasonTitle: title }) {
   if (netStatus === 'loaded') return null;
 
   const message =
     netStatus === 'loading'
       ? { label: 'Loading NET feed', detail: 'Quadrant breakdowns will appear once available.' }
-      : { label: 'NET feed offline', detail: 'Opponent rankings and quadrant records are unavailable. Saved game results and outfit records are still shown.' };
+      : netStatus === 'unreleased'
+        ? { label: 'NET not released', detail: `The ${title} NET is not out yet. Rankings usually arrive early in the new year.` }
+        : { label: 'NET feed offline', detail: 'Opponent rankings and quadrant records are unavailable. Saved game results and outfit records are still shown.' };
 
   return (
     <div
@@ -683,6 +693,13 @@ function NetStatusFooter({ netStatus, count }) {
       <p className="vt-label mb-6 -mt-1 px-1">
         <span className="inline-block w-3 h-3 border-2 border-[color:var(--vt-ink-mute)] border-t-transparent rounded-full animate-spin mr-1.5 align-middle" />
         Loading NET feed
+      </p>
+    );
+  }
+  if (netStatus === 'unreleased') {
+    return (
+      <p className="vt-label mb-6 -mt-1 px-1">
+        NET not released · Quadrant stats wait for the new rankings
       </p>
     );
   }

@@ -12,7 +12,7 @@ const parseRecord = (record) => {
   return { wins: Number.isFinite(w) ? w : -1, losses: Number.isFinite(l) ? l : -1 };
 };
 
-export default function NetRankingsPage({ netRankings, netStatus, onBack }) {
+export default function NetRankingsPage({ netRankings, netStatus, seasonTitle: title = '2026–27', onBack }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState(SORT_FIELDS.RANK);
   const [sortAsc, setSortAsc] = useState(true);
@@ -67,6 +67,16 @@ export default function NetRankingsPage({ netRankings, netStatus, onBack }) {
 
       {netStatus === 'loading' && (
         <p className="vt-mono text-sm text-[color:var(--vt-ink-mute)]">Loading NET rankings…</p>
+      )}
+
+      {netStatus === 'unreleased' && (
+        <section className="vt-card vt-rail-top p-6 sm:p-8" aria-labelledby="net-unreleased-heading">
+          <p className="vt-label vt-label-red">Not yet released</p>
+          <h2 id="net-unreleased-heading" className="vt-display-tight text-4xl sm:text-5xl mt-3">{title} NET</h2>
+          <p className="vt-mono text-sm sm:text-base mt-4 max-w-xl text-[color:var(--vt-ink-dim)] leading-relaxed">
+            The NCAA has not posted this season&apos;s NET yet. Rankings usually arrive early in the new year.
+          </p>
+        </section>
       )}
 
       {netStatus === 'error' && (

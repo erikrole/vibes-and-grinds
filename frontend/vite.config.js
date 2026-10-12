@@ -8,6 +8,15 @@ export default defineConfig({
       name: 'read-only-production-data',
       configureServer(server) {
         if (process.env.VITE_PROXY_READ_ONLY !== 'true') return;
+        server.middlewares.use('/api/vest/net-rankings', async (request, response, next) => {
+          if (!['GET', 'HEAD'].includes(request.method || 'GET')) return next();
+          const { netRankingsRoute } = await import('../shared/net-rankings.mjs');
+          const upstream = await netRankingsRoute(new Request(`http://127.0.0.1${request.originalUrl || request.url}`));
+          response.statusCode = upstream.status;
+          response.setHeader('Content-Type', 'application/json');
+          response.setHeader('Cache-Control', upstream.headers.get('Cache-Control') || 'no-store');
+          response.end(await upstream.text());
+        });
         server.middlewares.use('/api/vest/schedule', async (request, response, next) => {
           if (!['GET', 'HEAD'].includes(request.method || 'GET')) return next();
           const { vestScheduleRoute } = await import('../shared/vest-schedule.mjs');
