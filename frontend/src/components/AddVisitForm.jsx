@@ -11,6 +11,14 @@ import { HOME_CITY, VISIT_TYPES, getVisitType, isMadisonArea } from '../utils/vi
 const FI = 'form-control';
 const FS = 'form-control appearance-none cursor-pointer';
 
+function tripContextSummary({ sport, opponent }) {
+  return [sport, opponent].filter(Boolean).join(' · ');
+}
+
+function locationSummary({ city, coffee_shop_address: address }) {
+  return [city, address].filter(Boolean).join(' · ');
+}
+
 function getDefaultVisitData() {
   return {
     date: getTodayDateString(),
@@ -47,7 +55,12 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
 
   const [errors, setErrors] = useState({});
   const [locating, setLocating] = useState(false);
-  const [editingLocation, setEditingLocation] = useState(false);
+  const [showLocationDetails, setShowLocationDetails] = useState(
+    () => Boolean(initialData?.city || initialData?.coffee_shop_address)
+  );
+  const [showTripContext, setShowTripContext] = useState(
+    () => Boolean(initialData?.sport || initialData?.opponent)
+  );
   const [showCustomSport, setShowCustomSport] = useState(false);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(initialData?.photo_url || null);
@@ -310,7 +323,13 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
         <h2 className="type-title">
           {isEditing ? 'Edit visit' : isReturnVisit ? 'Return visit' : 'Add visit'}
         </h2>
-        {isReturnVisit && <p className="type-meta">The shop is filled in. Add your order and today’s ratings.</p>}
+        <p className="type-meta">
+          {isReturnVisit
+            ? 'The shop is filled in. Add your order and today’s ratings.'
+            : isHomeStop
+              ? 'Shop, order, score — then save. Trip fields stay out of the way.'
+              : 'Where, what you ordered, how it was. Sport and opponent stay optional.'}
+        </p>
       </div>
 
       <form ref={formRef} onSubmit={handleSubmit} className="visit-form" noValidate>
@@ -322,7 +341,10 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
             <button
               key={option.value}
               type="button"
-              onClick={() => handleVisitTypeChange(option.value)}
+              onClick={(event) => {
+                event.stopPropagation();
+                handleVisitTypeChange(option.value);
+              }}
               aria-pressed={visitType === option.value}
               className="form-scope-option"
             >
@@ -335,8 +357,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
           <RepeatContextPanel context={repeatContext} />
         )}
 
-        {/* ── WHEN & WHERE ─────────────────────────────── */}
-        <FormSection title="Location" description="Choose a shop to fill in its city and address.">
+        <FormSection title="Where did you stop?" description="Search the shop first. City and address fill in from the place.">
           <Field label="Coffee shop" htmlFor={fieldIds.coffee_shop_name} required error={errors.coffee_shop_name}>
             <PlacesAutocomplete
               id={fieldIds.coffee_shop_name}
@@ -382,28 +403,60 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
             </Field>
           </FieldRow>
 
-          <div className="location-summary">
-            <span className="location-pin" aria-hidden="true">↗</span>
-            <div><strong>{formData.city || 'Add a location'}</strong><p>{formData.coffee_shop_address || 'Select a shop, or edit the location manually.'}</p></div>
-            <button type="button" className="text-action" onClick={() => setEditingLocation((value) => !value)} aria-expanded={editingLocation} aria-controls={`${reactId}-location-fields`}>{editingLocation ? 'Done' : 'Edit'}</button>
+          <div className="form-disclosure">
+            <button
+              type="button"
+              className="form-disclosure-toggle"
+              aria-expanded={showLocationDetails}
+              onClick={(event) => {
+                event.stopPropagation();
+                setShowLocationDetails((open) => !open);
+              }}
+            >
+              <span className="form-disclosure-label">Location details</span>
+              <span className="form-disclosure-meta">
+                {locationSummary(formData) || (showLocationDetails ? 'City and address' : 'Usually filled by the place')}
+              </span>
+              <svg className={`form-disclosure-chevron ${showLocationDetails ? 'is-open' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showLocationDetails && (
+              <div className="form-disclosure-body" id={`${reactId}-location-fields`}>
+                <Field label="City" htmlFor={fieldIds.city}>
+                  <AutocompleteInput id={fieldIds.city} name="city" value={formData.city} onChange={handleInputChange} suggestions={suggestions.cities} className={FI} placeholder="City, state" />
+                </Field>
+                <Field label="Address" htmlFor={fieldIds.coffee_shop_address}>
+                  <input id={fieldIds.coffee_shop_address} name="coffee_shop_address" value={formData.coffee_shop_address} onChange={(event) => {
+                    handleInputChange(event);
+                    setFormData((prev) => ({ ...prev, shop_id: null, coffee_shop_place_id: '', coffee_shop_lat: '', coffee_shop_lng: '' }));
+                  }} className={FI} placeholder="Street address" />
+                </Field>
+              </div>
+            )}
           </div>
-          {editingLocation && <div id={`${reactId}-location-fields`}>
-            <Field label="City" htmlFor={fieldIds.city}>
-              <AutocompleteInput id={fieldIds.city} name="city" value={formData.city} onChange={handleInputChange} suggestions={suggestions.cities} className={FI} placeholder="City, state" />
-            </Field>
-            <Field label="Address" htmlFor={fieldIds.coffee_shop_address}>
-              <input id={fieldIds.coffee_shop_address} name="coffee_shop_address" value={formData.coffee_shop_address} onChange={(event) => {
-                handleInputChange(event);
-                setFormData((prev) => ({ ...prev, shop_id: null, coffee_shop_place_id: '', coffee_shop_lat: '', coffee_shop_lng: '' }));
-              }} className={FI} placeholder="Street address" />
-            </Field>
-          </div>}
-        </FormSection>
 
-
-        {!isHomeStop && <details className="form-disclosure" open={formData.sport || formData.opponent || showCustomSport ? true : undefined}>
-          <summary>Trip details <span>Optional</span></summary>
-          <div className="form-surface">
+          {!isHomeStop && (
+            <div className="form-disclosure">
+              <button
+                type="button"
+                className="form-disclosure-toggle"
+                aria-expanded={showTripContext}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setShowTripContext((open) => !open);
+                }}
+              >
+                <span className="form-disclosure-label">Trip context</span>
+                <span className="form-disclosure-meta">
+                  {tripContextSummary(formData) || (showTripContext ? 'Sport and opponent' : 'Optional')}
+                </span>
+                <svg className={`form-disclosure-chevron ${showTripContext ? 'is-open' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showTripContext && (
+                <div className="form-disclosure-body">
             <FieldRow>
           <Field label="Sport" htmlFor={showCustomSport ? fieldIds.customSport : fieldIds.sport}>
             <div className="relative">
@@ -448,11 +501,13 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
                 <AutocompleteInput id={fieldIds.opponent} name="opponent" value={formData.opponent} onChange={handleInputChange} suggestions={suggestions.opponents} className={FI} placeholder={/Cross Country|Track/.test(formData.sport) ? "Meet or event name" : "Event or opponent (optional)"} />
               </Field>
             </FieldRow>
-          </div>
-        </details>}
+                </div>
+              )}
+            </div>
+          )}
+        </FormSection>
 
-        {/* ── ORDER & RATINGS ───────────────────────────── */}
-        <FormSection title="Order and ratings">
+        <FormSection title="What did you order?" description="Name the drink. Suggestions come from past visits.">
           <Field label="Order" htmlFor={fieldIds.coffee_order}>
             <AutocompleteInput
               id={fieldIds.coffee_order}
@@ -465,7 +520,9 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
               autoCapitalize="words"
             />
           </Field>
+        </FormSection>
 
+        <FormSection title="How was it?" description="Score the room and the cup. Both are required.">
           <FieldRow>
             <Field label="Vibe" htmlFor={fieldIds.vibe_rating} required error={errors.vibe_rating}>
               <div className="form-rating-control">
@@ -521,10 +578,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
           </FieldRow>
         </FormSection>
 
-        {/* ── MEMORIES ─────────────────────────────────── */}
-        <details className="form-disclosure memory-disclosure" open={formData.notes || photoPreview ? true : undefined}>
-          <summary>Photo and notes <span>Optional</span></summary>
-          <FormSection>
+        <FormSection title="Save the memory" description="Optional. A photo and a note.">
           {/* Photo */}
           {photoPreview ? (
             <>
@@ -598,8 +652,6 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
             />
           </Field>
         </FormSection>
-
-        </details>
 
         {/* ── ACTIONS ──────────────────────────────────── */}
         <div className="form-actions safe-bottom">
