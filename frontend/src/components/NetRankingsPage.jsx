@@ -37,9 +37,7 @@ export default function NetRankingsPage({ netRankings, netStatus, seasonTitle: t
 
   return (
     <section aria-labelledby="net-rankings-heading">
-      <div className="vp-section-head">
-        <h2 id="net-rankings-heading">NET rankings</h2>
-      </div>
+      <h2 id="net-rankings-heading" className="sr-only">NET rankings for {title}</h2>
 
       {netStatus === 'loading' && (
         <p className="vp-note">Loading NET rankings…</p>
