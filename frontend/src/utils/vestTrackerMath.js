@@ -204,6 +204,13 @@ export const sampleTier = (games) => {
   return 'solid';
 };
 
+/** One- and two-game win rates need a visible caveat. Three games is still a small sample. */
+export function outfitSampleNote(games) {
+  if (!games) return 'No games yet';
+  if (games <= 3) return 'Small sample';
+  return '';
+}
+
 // Group games by outfit and compute aggregate stats with:
 //   - per-quadrant W/L
 //   - expected wins (sum of P(W)) from opponent strength
