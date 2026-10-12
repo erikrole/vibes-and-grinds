@@ -33,6 +33,17 @@ export function sameOrigin(request) {
   return request.headers.get('Origin') === new URL(request.url).origin;
 }
 
+const PUBLIC_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+/**
+ * Pages and Express gates call authorizeWrite for these requests.
+ * Reads stay public. Owner sign-in is the only mutation that proceeds without a session.
+ */
+export function mutationRequiresOwner(method, pathname) {
+  if (PUBLIC_METHODS.has(method)) return false;
+  return pathname !== '/api/owner/session';
+}
+
 export async function isOwner(request, env) {
   if (!env.OWNER_KEY_HASH || !env.DB) return false;
   const token = sessionToken(request);

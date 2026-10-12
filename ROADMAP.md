@@ -28,4 +28,4 @@
 ## Follow-up maintenance
 
 - Review existing dependency audit findings separately.
-- Consider changing the Cloudflare production branch to main only with explicit infrastructure approval. Releases target the existing production branch.
+- Releases land on `main`. If the Pages production branch is still pinned to `claude/coffee-shop-tracker-iIWcb`, switch it to `main` only with explicit infrastructure approval. Do not deploy that older branch; it has no owner-session gate.

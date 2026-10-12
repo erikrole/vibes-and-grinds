@@ -1,8 +1,8 @@
 # Deploying Vibes & Grinds
 
-The existing Cloudflare Pages project is `vibes-and-grinds`, serving [coffee.erikrole.com](https://coffee.erikrole.com) and `vibes-and-grinds.pages.dev`. It already has the production D1 `DB` binding. Do not recreate the project or database.
+The existing Cloudflare Pages project is `vibes-and-grinds`, serving [coffee.erikrole.com](https://coffee.erikrole.com) and `vibes-and-grinds.pages.dev`. It already has the production D1 `DB` binding and `OWNER_KEY_HASH`. Do not recreate the project, database, or owner key.
 
-As verified on 2026-10-04, production tracks `claude/coffee-shop-tracker-iIWcb`; pushes to main produce previews. Verify this in the current deployment list before releasing. Changing that branch is an infrastructure change requiring approval.
+Production code is `main`. The live site answers `GET /api/owner/session` (`configured: true`), which the stale `claude/coffee-shop-tracker-iIWcb` branch does not include. A 2026-10-04 note said Pages production still tracked that older branch. Before a release, confirm in the Pages deployment list that the production branch is `main`. Switching it, if it is still pinned elsewhere, needs infrastructure approval. Do not deploy the tracker branch over production: it has no owner-session gate.
 
 ## Release an update
 
@@ -12,7 +12,7 @@ From the repository root, an authorized direct release can target the existing p
 
 ```sh
 npx wrangler pages deployment list --project-name=vibes-and-grinds
-npx wrangler pages deploy frontend/dist --project-name=vibes-and-grinds --branch=claude/coffee-shop-tracker-iIWcb
+npx wrangler pages deploy frontend/dist --project-name=vibes-and-grinds --branch=main
 ```
 
 Running from the repository root includes `functions/`. Record the returned deployment URL and source SHA. Verify the actual custom domain, journal data, map, and changed entry flows; a successful upload alone is not acceptance.

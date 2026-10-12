@@ -1,9 +1,9 @@
-import { authorizeWrite, json } from '../../shared/auth.mjs';
+import { authorizeWrite, json, mutationRequiresOwner } from '../../shared/auth.mjs';
 
 export async function onRequest({ request, env, next }) {
   try {
     const path = new URL(request.url).pathname;
-    if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method) && path !== '/api/owner/session') {
+    if (mutationRequiresOwner(request.method, path)) {
       const denied = await authorizeWrite(request, env);
       if (denied) return denied;
     }
