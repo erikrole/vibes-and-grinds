@@ -2,14 +2,13 @@ import { memo, useState } from 'react';
 
 // Auxiliary tabs: storylines, head-to-head matchup, game-day coffee.
 // Plain broadcast tab strip, no decoration.
-function VestExtras({ milestones, outfitStats, outfitBadges, coffeeCrossover, netStatus }) {
+function VestExtras({ milestones, outfitStats, outfitBadges, netStatus }) {
   const [openTab, setOpenTab] = useState(null);
   const [compareOutfits, setCompareOutfits] = useState([null, null]);
 
   const tabs = [
     { value: 'storylines', label: 'Storylines', count: milestones.length, available: milestones.length > 0 },
     { value: 'compare', label: 'Compare outfits', count: null, available: outfitStats.length >= 2 },
-    { value: 'coffee', label: 'Game-day orders', count: coffeeCrossover.length, available: coffeeCrossover.length > 0 },
   ].filter((t) => t.available);
 
   if (!tabs.length) return null;
@@ -109,29 +108,6 @@ function VestExtras({ milestones, outfitStats, outfitBadges, coffeeCrossover, ne
         </div>
       )}
 
-      {openTab === 'coffee' && (
-        <div className="px-5 py-4">
-          <p className="vt-label mb-3">Drinks logged on game day · grouped by outcome</p>
-          <ul className="divide-y divide-[color:var(--vt-rule)]">
-            {coffeeCrossover.map((c) => (
-              <li key={c.drink} className="grid grid-cols-[minmax(0,1fr)_64px_minmax(0,1fr)] gap-3 items-center py-2.5">
-                <span className="vt-condensed text-sm text-[color:var(--vt-ink)] uppercase truncate">
-                  {c.drink}
-                </span>
-                <span className="vt-display text-base text-[color:var(--vt-ink)] vt-tabular text-right">
-                  {c.wins}–{c.losses}
-                </span>
-                <div className="vt-bar-track">
-                  <div
-                    className="vt-bar-fill-red"
-                    style={{ width: `${c.winRate}%` }}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </section>
   );
 }
@@ -147,7 +123,7 @@ function CompareCard({ stat, netAvailable }) {
       <ul className="space-y-1 vt-mono text-xs text-[color:var(--vt-ink-mute)] vt-tabular">
         <li>
           <span className="text-[color:var(--vt-ink-faint)]">Record</span>{' '}
-          <span className="text-[color:var(--vt-ink)]">{stat.wins}–{stat.losses}</span>{' '}
+          <span className="is-win">{stat.wins}</span>–<span className="is-loss">{stat.losses}</span>{' '}
           <span>· {stat.winRatePct}% in {stat.games} games</span>
         </li>
         {netAvailable && <><li>Q1 {stat.quadrants[1].wins}–{stat.quadrants[1].losses} · Q2 {stat.quadrants[2].wins}–{stat.quadrants[2].losses}</li>

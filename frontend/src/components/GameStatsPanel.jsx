@@ -86,7 +86,7 @@ export default function GameStatsPanel({ games: vestGames }) {
               <button onClick={() => handleExpand(game)} aria-expanded={expanded} aria-controls={`box-${game.espn_event_id}`}
                 className="w-full p-4 sm:px-5 text-left hover:bg-[color:var(--vt-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[color:var(--vt-red-hot)]">
                 <div className="flex items-start gap-3">
-                  <span className={`vt-mono text-xs mt-1 ${win ? 'text-[color:var(--vt-ink)]' : 'text-[color:var(--vt-ink-mute)]'}`}>{win ? 'W' : 'L'}</span>
+                  <span className={`vp-mini-result ${win ? 'is-w' : 'is-l'}`}>{win ? 'W' : 'L'}</span>
                   <div className="min-w-0 flex-1">
                     <strong className="block text-sm text-[color:var(--vt-ink)]">{locationLabel(game.location)}{game.opponent}</strong>
                     <span className="block text-xs text-[color:var(--vt-ink-mute)] mt-1">{formatDate(game.date)}{game.outfit ? ` · ${game.outfit}` : ''}</span>
@@ -119,7 +119,7 @@ export default function GameStatsPanel({ games: vestGames }) {
           {stats.outfits.map((outfit) => <div key={outfit.outfit} className="vt-card-inset p-3">
             <div className="flex justify-between gap-3"><strong className="text-sm">{outfit.outfit}</strong><span className="shrink-0 text-xs text-[color:var(--vt-ink-mute)]">{outfit.games} {outfit.games === 1 ? 'game' : 'games'}</span></div>
             <p className="text-xs text-[color:var(--vt-ink-dim)] mt-2">{outfit.avgScored} scored · {outfit.avgAllowed} allowed per game</p>
-            <p className="vt-mono text-xs mt-1">{signed(outfit.avgMargin)} average margin</p>
+            <p className={`text-xs mt-1 ${outfit.avgMargin >= 0 ? 'is-win' : 'is-loss'}`}>{signed(outfit.avgMargin)} average margin</p>
           </div>)}
         </div>
       </section>
@@ -182,7 +182,7 @@ function LocalSeasonStats({ games, scoreStatus }) {
       </div>
       <section className="vt-card overflow-hidden">
         <div className="vt-section-head"><span className="vt-label">Last 10</span><span className="vt-mono text-[10px] text-[color:var(--vt-ink-faint)]">Newest first</span></div>
-        <div className="flex flex-wrap gap-2 p-5">{recent.map((game) => <span key={game.id} className={`w-9 h-9 grid place-items-center rounded border vt-display ${game.result === 'W' ? 'text-[color:var(--vt-red)] border-[color:var(--vt-red)]' : 'text-[color:var(--vt-ink-mute)] border-[color:var(--vt-rule-strong)]'}`} title={`${game.result} ${game.opponent}`}>{game.result}</span>)}</div>
+        <div className="vp-strip p-5">{recent.map((game) => <span key={game.id} className={game.result === 'W' ? 'is-w' : 'is-l'} title={`${game.result} ${game.opponent}`}>{game.result}</span>)}</div>
       </section>
     </div>
   );

@@ -61,7 +61,7 @@ export default function NetRankingsPage({ netRankings, netStatus, seasonTitle: t
       <section className="vp-cover">
         <button type="button" onClick={onBack} className="vp-text-btn">← Dashboard</button>
         <p className="vp-kicker vp-kicker-ink vp-net-kicker">NET rankings</p>
-        <h2 className="vp-display vp-cover-title">The national list</h2>
+        <h2 className="vp-display vp-cover-title">{title}</h2>
       </section>
 
       {netStatus === 'loading' && (
@@ -69,11 +69,10 @@ export default function NetRankingsPage({ netRankings, netStatus, seasonTitle: t
       )}
 
       {netStatus === 'unreleased' && (
-        <section className="vp-tip" aria-labelledby="net-unreleased-heading">
-          <p className="vp-stamp">Not posted</p>
-          <h2 id="net-unreleased-heading" className="vp-display vp-tip-title">{title} NET</h2>
-          <p className="vp-lede">
-            The NCAA has not posted this season&apos;s NET yet. Rankings usually arrive early in the new year.
+        <section className="vp-callout" aria-labelledby="net-unreleased-heading">
+          <h2 id="net-unreleased-heading">NET is not posted</h2>
+          <p>
+            The NCAA has not posted the {title} NET yet. Rankings usually arrive early in the new year. Saved results stay available on the dashboard.
           </p>
         </section>
       )}

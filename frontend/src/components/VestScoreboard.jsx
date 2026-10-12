@@ -15,8 +15,10 @@ function VestScoreboard({
   return (
     <div className="vp-score" aria-label="Season record">
       <div>
-        <p className="vp-display vp-score-num">
-          {wins}<span>–</span>{losses}
+        <p className="vp-score-num">
+          <span className="is-win">{wins}</span>
+          <span className="vp-dash">–</span>
+          <span className="is-loss">{losses}</span>
         </p>
         <p className="vp-kicker vp-kicker-ink">
           {filterLabel ? `${filterLabel} record` : 'Season record'}
@@ -28,13 +30,17 @@ function VestScoreboard({
           {secondary?.map((pill) => (
             <li key={pill.label} className="vp-split">
               <span className="vp-kicker vp-kicker-ink">{pill.label}</span>
-              <strong>{pill.value}</strong>
+              <strong>
+                {pill.wins != null
+                  ? <><span className="is-win">{pill.wins}</span><span className="vp-dash">–</span><span className="is-loss">{pill.losses}</span></>
+                  : pill.value}
+              </strong>
             </li>
           ))}
           {streak && streak.count >= 2 && (
             <li className="vp-split">
               <span className="vp-kicker vp-kicker-ink">{streak.result === 'W' ? 'Win streak' : 'Loss streak'}</span>
-              <strong>{streak.count}</strong>
+              <strong className={streak.result === 'W' ? 'is-win' : 'is-loss'}>{streak.count}</strong>
             </li>
           )}
           {status?.kind === 'next' && (

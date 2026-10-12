@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { vestGames as seedGames } from '../utils/vestTrackerData';
-import { fetchVestGames, syncVestGames, fetchVisits, fetchVestSchedule } from '../utils/api';
+import { fetchVestGames, syncVestGames, fetchVisits, fetchVestSchedule, fetchVestScores } from '../utils/api';
 import {
   buildNetLookup,
   buildOutfitStats,
@@ -11,9 +11,14 @@ import {
   getQuadrant,
   normalizeNetResponse,
   normalizeTeamName,
-  toIsoDate,
 } from '../utils/vestTrackerMath';
 import { getTodayDateString } from '../utils/dates';
+import {
+  buildCoffeeBrief,
+  buildHalftimeSplit,
+  buildOutfitBriefs,
+  luckyOutfit,
+} from '../utils/vestInsights';
 import {
   currentSeasonEndYear,
   dominantSeasonLabel,
@@ -28,6 +33,7 @@ import VestScoreboard from './VestScoreboard';
 import VestNextGame from './VestNextGame';
 import VestTimeline from './VestTimeline';
 import VestLeaderboard from './VestLeaderboard';
+import VestInsights from './VestInsights';
 import VestExtras from './VestExtras';
 import VestGameForm from './VestGameForm';
 import VestLockInPick from './VestLockInPick';
@@ -75,6 +81,8 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
   const [saveError, setSaveError] = useState('');
   const [vestSeason, setVestSeason] = useState(() => vestSeasonFromSearch(window.location.search));
   const [scheduleEvents, setScheduleEvents] = useState([]);
+  const [scoreGames, setScoreGames] = useState([]);
+  const [coffeeVisits, setCoffeeVisits] = useState([]);
 
   // Warn once if localStorage was corrupted on load.
   useEffect(() => {
@@ -204,6 +212,21 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
     if (selectedOutfit && !outfits.includes(selectedOutfit)) setSelectedOutfit(null);
   }, [outfits, selectedOutfit]);
 
+  const outfitBriefs = useMemo(
+    () => buildOutfitBriefs(completedGames, scoreGames),
+    [completedGames, scoreGames]
+  );
+  const lucky = useMemo(() => luckyOutfit(outfitBriefs), [outfitBriefs]);
+  const halftime = useMemo(() => buildHalftimeSplit(scoreGames), [scoreGames]);
+  const coffeeBrief = useMemo(
+    () => buildCoffeeBrief(coffeeVisits, completedGames, scoreGames),
+    [coffeeVisits, completedGames, scoreGames]
+  );
+  const maxMargin = useMemo(() => {
+    const values = outfitBriefs.map((brief) => Math.abs(brief.margin?.avg || 0));
+    return values.length ? Math.max(...values) : 0;
+  }, [outfitBriefs]);
+
   // Annotate timeline games with quadrant (needs NET) and sort newest-first.
   const visibleTimelineGames = useMemo(() => {
     const filtered = selectedOutfit
@@ -215,8 +238,9 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
         netStatus === 'loaded' && (game.result === 'W' || game.result === 'L')
           ? getQuadrant(game.location, findNetRankForOpponent(netLookup, game.opponent))
           : null,
+      coffeeShops: [...new Set((coffeeBrief?.byDate?.[game.date] || []).map((stop) => stop.shop))],
     }));
-  }, [seasonSortedGames, selectedOutfit, netLookup, netStatus]);
+  }, [seasonSortedGames, selectedOutfit, netLookup, netStatus, coffeeBrief]);
 
   // Filtered scoreboard summary.
   const summary = useMemo(() => {
@@ -248,9 +272,9 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
     const otW = ot.filter((g) => g.result === 'W').length;
 
     const pills = [];
-    if (road.length) pills.push({ label: 'Road', value: `${roadW}–${road.length - roadW}` });
-    if (neutral.length) pills.push({ label: 'Neutral', value: `${neutralW}–${neutral.length - neutralW}` });
-    if (ot.length) pills.push({ label: 'OT', value: `${otW}–${ot.length - otW}` });
+    if (road.length) pills.push({ label: 'Road', wins: roadW, losses: road.length - roadW });
+    if (neutral.length) pills.push({ label: 'Neutral', wins: neutralW, losses: neutral.length - neutralW });
+    if (ot.length) pills.push({ label: 'OT', wins: otW, losses: ot.length - otW });
 
     if (netStatus === 'loaded') {
       const q1q2 = completedGames.filter((g) => {
@@ -258,7 +282,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
         return q === 1 || q === 2;
       });
       const q1q2W = q1q2.filter((g) => g.result === 'W').length;
-      if (q1q2.length) pills.push({ label: 'Q1+Q2', value: `${q1q2W}–${q1q2.length - q1q2W}` });
+      if (q1q2.length) pills.push({ label: 'Q1+Q2', wins: q1q2W, losses: q1q2.length - q1q2W });
     }
     return pills;
   }, [completedGames, selectedOutfit, netLookup, netStatus]);
@@ -387,23 +411,21 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
     }
 
     const ms = [];
-    if (maxStreak >= 3) ms.push({ icon: '🔥', text: `Longest win streak: ${maxStreak} games` });
+    if (maxStreak >= 3) ms.push({ text: `Longest win streak: ${maxStreak} games` });
 
     let bestOutfitStreak = { outfit: null, count: 0 };
     for (const [outfit, data] of Object.entries(outfitStreaks)) {
       if (data.max > bestOutfitStreak.count) bestOutfitStreak = { outfit, count: data.max };
     }
-    if (bestOutfitStreak.count >= 3) ms.push({ icon: '👔', text: `Best outfit streak: ${bestOutfitStreak.count}W in ${bestOutfitStreak.outfit}` });
-    if (firstQ1Road) ms.push({ icon: '🏆', text: `First Q1 road win: ${formatLocationLabel('@', 'full')} ${firstQ1Road.opponent}` });
-    if (worstLoss && worstRank > 150) ms.push({ icon: '😬', text: `Worst loss: ${formatLocationLabel(worstLoss.location, 'full')} ${worstLoss.opponent} (NET #${worstRank})` });
-    if (bestWin && bestRank <= 25) ms.push({ icon: '⭐', text: `Best win: ${formatLocationLabel(bestWin.location, 'full')} ${bestWin.opponent} (NET #${bestRank})` });
-    if (otTotal >= 2) ms.push({ icon: '⏱️', text: `Overtime record: ${otWins}–${otTotal - otWins}` });
+    if (bestOutfitStreak.count >= 3) ms.push({ text: `Best outfit streak: ${bestOutfitStreak.count}W in ${bestOutfitStreak.outfit}` });
+    if (firstQ1Road) ms.push({ text: `First Q1 road win: ${formatLocationLabel('@', 'full')} ${firstQ1Road.opponent}` });
+    if (worstLoss && worstRank > 150) ms.push({ text: `Worst loss: ${formatLocationLabel(worstLoss.location, 'full')} ${worstLoss.opponent} (NET #${worstRank})` });
+    if (bestWin && bestRank <= 25) ms.push({ text: `Best win: ${formatLocationLabel(bestWin.location, 'full')} ${bestWin.opponent} (NET #${bestRank})` });
+    if (otTotal >= 2) ms.push({ text: `Overtime record: ${otWins}–${otTotal - otWins}` });
 
     return ms;
   }, [completedGames, netLookup]);
 
-  // Coffee crossover — same-day visits grouped by drink.
-  const [coffeeVisits, setCoffeeVisits] = useState([]);
   useEffect(() => {
     let cancelled = false;
     fetchVisits()
@@ -414,32 +436,17 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
     return () => { cancelled = true; };
   }, []);
 
-  const coffeeCrossover = useMemo(() => {
-    if (!coffeeVisits.length || !completedGames.length) return [];
-    const gameDateMap = {};
-    for (const g of completedGames) if (g.date) gameDateMap[g.date] = g;
-    const drinkStats = {};
-    for (const visit of coffeeVisits) {
-      const visitDate = toIsoDate(visit.date || visit.visitDate);
-      const game = gameDateMap[visitDate];
-      if (!game) continue;
-      const drink = visit.coffee_order || visit.drink || visit.order || '';
-      if (!drink) continue;
-      if (!drinkStats[drink]) drinkStats[drink] = { wins: 0, losses: 0 };
-      if (game.result === 'W') drinkStats[drink].wins += 1;
-      else drinkStats[drink].losses += 1;
+  useEffect(() => {
+    let cancelled = false;
+    if (!completedGames.length) {
+      setScoreGames([]);
+      return undefined;
     }
-    return Object.entries(drinkStats)
-      .filter(([, s]) => s.wins + s.losses >= 2)
-      .map(([drink, s]) => ({
-        drink,
-        wins: s.wins,
-        losses: s.losses,
-        total: s.wins + s.losses,
-        winRate: Math.round((s.wins / (s.wins + s.losses)) * 100),
-      }))
-      .sort((a, b) => b.winRate - a.winRate || b.total - a.total);
-  }, [coffeeVisits, completedGames]);
+    fetchVestScores(vestSeason)
+      .then((data) => { if (!cancelled) setScoreGames(Array.isArray(data.games) ? data.games : []); })
+      .catch(() => { if (!cancelled) setScoreGames([]); });
+    return () => { cancelled = true; };
+  }, [vestSeason, completedGames.length]);
 
   // ── Form save/delete handlers ──
   const persistGames = async (next) => {
@@ -522,7 +529,14 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
 
       {scoutingReport && <VestNextGame scoutingReport={scoutingReport} mostWorn={completedGames.length ? mostWorn : null} />}
 
-      <StorylineStrip milestones={milestones} />
+      <VestInsights
+        games={selectedOutfit ? completedGames.filter((game) => game.outfit === selectedOutfit) : completedGames}
+        briefs={selectedOutfit ? outfitBriefs.filter((brief) => brief.outfit === selectedOutfit) : outfitBriefs}
+        lucky={selectedOutfit ? null : lucky}
+        halftime={selectedOutfit ? null : halftime}
+        coffee={selectedOutfit ? null : coffeeBrief}
+        maxMargin={maxMargin}
+      />
 
       <NetDegradedBanner netStatus={netStatus} seasonTitle={seasonTitle(seasonEndYearNow)} />
 
@@ -554,12 +568,10 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
         onLogResult={canEdit && syncReady ? handleLogResult : undefined}
       />
 
-      {outfitStats.length > 0 && <VestLeaderboard
-        stats={outfitStats}
-        badges={outfitBadges}
+      {outfitBriefs.length > 0 && <VestLeaderboard
+        briefs={selectedOutfit ? outfitBriefs.filter((brief) => brief.outfit === selectedOutfit) : outfitBriefs}
         selectedOutfit={selectedOutfit}
         onViewOutfit={setViewingOutfit}
-        netStatus={netStatus}
       />}
 
       {netStatus === 'loaded' && (
@@ -571,7 +583,6 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
         outfitStats={outfitStats}
         outfitBadges={outfitBadges}
         netStatus={netStatus}
-        coffeeCrossover={coffeeCrossover}
       />
 
       {(viewingGame || viewingOutfit) && (
@@ -608,7 +619,7 @@ function NetDegradedBanner({ netStatus, seasonTitle: title }) {
   return <p className="vp-note">{detail}</p>;
 }
 
-function VestPageHero({ preseason, endYear, priorLabel, recordSeason, vestSeason, seasonOptions, onSeason, children }) {
+function VestPageHero({ preseason, endYear, priorLabel, vestSeason, seasonOptions, onSeason, children }) {
   return (
     <section className="vp-cover">
       <div className="vp-cover-top">
@@ -617,11 +628,11 @@ function VestPageHero({ preseason, endYear, priorLabel, recordSeason, vestSeason
           <h2 id={preseason ? 'vest-preseason-heading' : 'vest-page-heading'} className="vp-display vp-cover-title">
             {seasonTitle(preseason ? endYear : vestSeason)}
           </h2>
-          <p className="vp-lede">
-            {preseason
-              ? `No ${seasonTitle(endYear)} games are logged yet. The record fills in after the first tip.${priorLabel ? ` Switch to ${priorLabel} for last season.` : ''}`
-              : `What he wore in ${recordSeason}, and how it went.`}
-          </p>
+          {preseason && (
+            <p className="vp-lede">
+              No games logged yet.{priorLabel ? ` ${priorLabel} is in the season menu.` : ''}
+            </p>
+          )}
         </div>
         <label className="vp-season">
           <span className="vp-kicker vp-kicker-ink">Season</span>
