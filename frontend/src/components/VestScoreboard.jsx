@@ -18,7 +18,7 @@ function VestScoreboard({
   return (
     <section className="vt-card vt-rail-top mb-6 overflow-hidden">
       {/* Identity + status strip */}
-      <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-3 border-b border-[color:var(--vt-rule)]">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-5 sm:px-6 py-3 border-b border-[color:var(--vt-rule)]">
         <div className="flex items-center gap-3 min-w-0">
           {/* Block W mark */}
           <span
@@ -56,17 +56,14 @@ function VestScoreboard({
             <div className="vt-label mb-1">
               {filterLabel ? `${filterLabel}` : 'Overall'}
             </div>
-            <div className="flex items-baseline" style={{ letterSpacing: '-0.04em' }}>
-              <span className="vt-hero-num text-[56px] sm:text-[72px] vt-tabular">
+            <div className="vt-score-line flex items-baseline">
+              <span className="vt-hero-num vt-score-num vt-tabular">
                 {wins}
               </span>
-              <span
-                className="vt-hero-num text-[38px] sm:text-[48px] text-[color:var(--vt-ink-faint)] vt-tabular"
-                style={{ margin: '0 0.06em', alignSelf: 'center' }}
-              >
+              <span className="vt-hero-num vt-score-dash text-[color:var(--vt-ink-faint)] vt-tabular">
                 –
               </span>
-              <span className="vt-hero-num text-[56px] sm:text-[72px] vt-tabular text-[color:var(--vt-ink-dim)]">
+              <span className="vt-hero-num vt-score-num vt-tabular text-[color:var(--vt-ink-dim)]">
                 {losses}
               </span>
             </div>
@@ -118,6 +115,9 @@ function StatusBadge({ status }) {
   }
   if (status.kind === 'final') {
     return <span className="vt-label">Final · Season Closed</span>;
+  }
+  if (status.kind === 'archive') {
+    return <span className="vt-label">Last season</span>;
   }
   return <span className="vt-label">Season Record</span>;
 }

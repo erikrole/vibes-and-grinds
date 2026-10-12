@@ -14,8 +14,14 @@ import {
   toIsoDate,
 } from '../utils/vestTrackerMath';
 import { getTodayDateString } from '../utils/dates';
+import {
+  currentSeasonEndYear,
+  dominantSeasonLabel,
+  seasonHasCompletedGames,
+} from '../utils/vestSeason';
 import NetRankingsPage from './NetRankingsPage';
 import VestScoreboard from './VestScoreboard';
+import VestPreseason from './VestPreseason';
 import VestNextGame from './VestNextGame';
 import VestTimeline from './VestTimeline';
 import VestLeaderboard from './VestLeaderboard';
@@ -235,6 +241,10 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
 
   const mostWorn = useMemo(() => [...outfitStats].sort((a, b) => b.games - a.games)[0], [outfitStats]);
 
+  const seasonEndYearNow = currentSeasonEndYear();
+  const preseason = !seasonHasCompletedGames(completedGames, seasonEndYearNow);
+  const recordSeason = dominantSeasonLabel(completedGames) || '25–26';
+
   // Badges per outfit, narrative-style.
   const outfitBadges = useMemo(() => {
     const badges = {};
@@ -442,7 +452,9 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
         onCancel={() => setEditingGame(null)}
       />}
 
-      <VestNextGame scoutingReport={scoutingReport} mostWorn={mostWorn} />
+      {preseason && !selectedOutfit && (
+        <VestPreseason endYear={seasonEndYearNow} priorLabel={recordSeason} />
+      )}
 
       <VestScoreboard
         wins={summary.wins}
@@ -451,7 +463,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
         secondary={scoreboardSecondary}
         filterLabel={selectedOutfit}
         onClearFilter={() => setSelectedOutfit(null)}
-        identity={{ team: "Wisconsin Badgers", season: '25–26', who: "AJ's pick" }}
+        identity={{ team: 'Wisconsin Badgers', season: recordSeason, who: "AJ's pick" }}
         status={
           scoutingReport
             ? {
@@ -459,9 +471,13 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
                 label: `${formatLocationLabel(scoutingReport.location, 'full')} ${scoutingReport.opponent}`,
                 date: scoutingReport.date ? formatDate(scoutingReport.date) : null,
               }
-            : { kind: 'final' }
+            : preseason
+              ? { kind: 'archive' }
+              : { kind: 'final' }
         }
       />
+
+      {scoutingReport && <VestNextGame scoutingReport={scoutingReport} mostWorn={mostWorn} />}
 
       <StorylineStrip milestones={milestones} />
 
@@ -526,22 +542,12 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
 }
 
 function StorylineStrip({ milestones }) {
-  // Surface the top 3 storylines as one prominent strip so the page's narrative
-  // is visible above the fold instead of buried in a drawer.
   if (!milestones?.length) return null;
   const top = milestones.slice(0, 3);
   return (
-    <div className="vt-card mb-6 px-5 py-3 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5">
+    <div className="vt-card vt-storyline mb-6 px-5 py-3">
       {top.map((m, i) => (
-        <div
-          key={i}
-          className="flex items-baseline gap-2 sm:gap-3"
-          style={
-            i > 0
-              ? { borderLeftWidth: '1px', borderLeftStyle: 'solid', borderLeftColor: 'var(--vt-rule)', paddingLeft: '1rem' }
-              : undefined
-          }
-        >
+        <div key={i} className="vt-storyline-item flex items-baseline gap-2 sm:gap-3">
           <span className="text-sm shrink-0" aria-hidden>{m.icon}</span>
           <span className="vt-mono text-xs text-[color:var(--vt-ink-dim)] leading-snug">
             {m.text}
@@ -581,10 +587,13 @@ function NetDegradedBanner({ netStatus }) {
 
 function TabBar({ value, onChange }) {
   return (
-    <div className="mb-5 sm:mb-6 flex border-b border-[color:var(--vt-rule)]">
+    <div className="vt-tabs mb-5 sm:mb-6" role="tablist" aria-label="Vest Tracker">
       {TABS.map((tab) => (
         <button
           key={tab.value}
+          type="button"
+          role="tab"
+          aria-selected={value === tab.value}
           onClick={() => onChange(tab.value)}
           className={`vt-tab ${value === tab.value ? 'is-active' : ''}`}
         >
