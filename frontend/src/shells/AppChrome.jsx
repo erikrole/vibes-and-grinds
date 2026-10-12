@@ -30,7 +30,7 @@ export default function AppChrome({
           <div className="vp-wrap vp-mast-row">
             {showBrand ? (
               <a className="vp-brand" href={brandHref} onClick={onBrandClick}>
-                <p className="vp-kicker">Wisconsin · game day</p>
+                <p className="vp-kicker">Wisconsin</p>
                 <h1>Vest</h1>
               </a>
             ) : <span />}
@@ -59,7 +59,7 @@ export default function AppChrome({
         {showFooter && (
           <footer className="vp-foot">
             <div className="vp-wrap">
-              <p>AJ’s game-day ritual. The vest he wore, and how it went.</p>
+              <p>Wisconsin outfit log.</p>
               <div className="vp-foot-links">
                 <a href={productSwitchHref(APP_MODES.VIBES)}>{MODE_LABELS[APP_MODES.VIBES].outcome} ↗</a>
                 <button type="button" onClick={onOwner}>{owner ? 'Manage journal' : 'Owner sign-in'}</button>

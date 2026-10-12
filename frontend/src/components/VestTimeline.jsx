@@ -54,6 +54,7 @@ function GameCard({ game, onEdit, onLogResult }) {
           <span>{dateLabel}</span>
           {game.quadrant ? <span>Q{game.quadrant}</span> : null}
           {game.source === 'espn' ? null : <span>{game.outfit || 'Outfit TBD'}</span>}
+          {game.coffeeShops?.length ? <span>{game.coffeeShops.join(' · ')}</span> : null}
         </span>
       </span>
     </>

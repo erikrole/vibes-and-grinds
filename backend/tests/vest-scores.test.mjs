@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import { sqliteAdapter } from '../../shared/sqlite-adapter.mjs';
-import { parseScheduleEvent, seasonForDate, vestScoresRoute } from '../../shared/vest-scores.mjs';
+import { linesFromSummary, parseScheduleEvent, seasonForDate, vestScoresRoute } from '../../shared/vest-scores.mjs';
 const require = createRequire(import.meta.url);
 const { open } = require('sqlite');
 const sqlite3 = require('sqlite3');
@@ -88,5 +88,34 @@ test('offline score cache excludes unlinked events and other seasons; invalid se
     assert.equal((await vestScoresRoute(request('?season=bad'), DB, () => assert.fail('Invalid season fetched'))).status, 400);
     const wrong = await vestScoresRoute(request(), DB, async () => Response.json({ events: [event('regular', '2025-11-04T01:00Z', 'Wrong opponent')] }));
     assert.equal((await wrong.json()).games[0].wisconsin_score, 96);
+  } finally { await db.close(); }
+});
+
+test('missing schedule linescores are filled from the game summary and owner rows stay put', async () => {
+  const { db, DB } = await fixture();
+  try {
+    const before = await db.all('SELECT * FROM vest_games ORDER BY game_id');
+    const bare = event('regular', '2025-11-04T01:00Z');
+    delete bare.competitions[0].competitors[0].linescores;
+    delete bare.competitions[0].competitors[1].linescores;
+    assert.equal(linesFromSummary({ header: { competitions: [{ competitors: [
+      { team: { id: '275' }, linescores: [{ displayValue: '48' }, { displayValue: '48' }] },
+      { team: { id: '99' }, linescores: [{ displayValue: '30' }, { displayValue: '34' }] },
+    ] }] } }).wisconsinH1, 48);
+    const fetcher = async (url) => {
+      if (String(url).includes('/summary')) {
+        return Response.json({ header: { competitions: [{ competitors: [
+          { team: { id: '275' }, linescores: [{ displayValue: '48' }, { displayValue: '48' }] },
+          { team: { id: '99' }, linescores: [{ displayValue: '30' }, { displayValue: '34' }] },
+        ] }] } });
+      }
+      const type = new URL(url).searchParams.get('seasontype');
+      return Response.json({ events: type === '2' ? [bare] : [] });
+    };
+    const data = await (await vestScoresRoute(request(), DB, fetcher)).json();
+    const row = data.games.find((game) => game.espn_event_id === 'regular');
+    assert.equal(row.wisconsin_h1, 48);
+    assert.equal(row.opponent_h1, 30);
+    assert.deepEqual(await db.all('SELECT game_id, outfit, result FROM vest_games ORDER BY game_id'), before.map(({ game_id, outfit, result }) => ({ game_id, outfit, result })));
   } finally { await db.close(); }
 });

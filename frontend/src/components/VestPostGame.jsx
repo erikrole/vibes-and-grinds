@@ -42,33 +42,8 @@ function VestPostGame({ game, onLogResult }) {
 
       {/* W / L tap targets */}
       <div className="flex items-center gap-3 flex-wrap">
-        <button
-          onClick={() => handleLog('W')}
-          className="flex-1 min-w-[100px] py-3 rounded vt-display-tight text-4xl leading-none tracking-tighter transition-colors"
-          style={{
-            background: 'var(--vt-red-soft)',
-            color: 'var(--vt-red)',
-            border: '1px solid var(--vt-red)',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(197,5,12,0.15)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--vt-red-soft)')}
-        >
-          W
-        </button>
-
-        <button
-          onClick={() => handleLog('L')}
-          className="flex-1 min-w-[100px] py-3 rounded vt-display-tight text-4xl leading-none tracking-tighter transition-colors"
-          style={{
-            background: 'transparent',
-            color: 'var(--vt-ink-dim)',
-            border: '1px solid var(--vt-rule-strong)',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--vt-ink-mute)')}
-          onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--vt-rule-strong)')}
-        >
-          L
-        </button>
+        <button type="button" onClick={() => handleLog('W')} className="vp-result-tap is-w">W</button>
+        <button type="button" onClick={() => handleLog('L')} className="vp-result-tap is-l">L</button>
 
         {/* OT toggle — lives beside the taps */}
         <label className="flex items-center gap-2 cursor-pointer shrink-0 select-none">
