@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchVestScores, fetchVestGameStats } from '../utils/api';
 import { computeScoreStats } from '../utils/scoreStats';
 import { formatDate } from '../utils/dates';
+import { formatLocationLabel } from '../utils/vestTrackerMath';
 
-const locationLabel = (location) => location === '@' ? 'at ' : location === 'N' ? 'neutral vs ' : 'vs ';
+const locationLabel = (location) => `${formatLocationLabel(location, 'full')} `;
 const signed = (value) => `${value > 0 ? '+' : ''}${value}`;
 const boxRows = [
   ['Field goals', 'wi_fg', 'opp_fg'],
