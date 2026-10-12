@@ -3,7 +3,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import FormModal from './components/FormModal';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import OwnerPanel from './components/OwnerPanel';
-import { APP_MODES, isVestHostname } from './constants/appModes';
+import { APP_MODES, isVestHostname, resolveAppMode } from './constants/appModes';
 import useDarkMode from './hooks/useDarkMode';
 import useJournalRoute from './hooks/useJournalRoute';
 import usePublishedVisits from './hooks/usePublishedVisits';
@@ -21,7 +21,7 @@ const isVestDomain = isVestHostname();
  */
 export default function App() {
   const { route, navigate, closeLayer } = useJournalRoute();
-  const appMode = isVestDomain ? APP_MODES.VEST : route.app;
+  const appMode = resolveAppMode(route.app);
   const journal = usePublishedVisits();
   const [owner, setOwner] = useState(false);
   const [showOwner, setShowOwner] = useState(false);

@@ -1,4 +1,4 @@
-import { APP_MODES } from '../constants/appModes';
+import { APP_MODES, MODE_LABELS, productSwitchHref } from '../constants/appModes';
 
 /**
  * Shared page chrome: brand, dark mode, optional header actions, and the footer
@@ -70,8 +70,8 @@ export default function AppChrome({
             </p>
           )}
           <div className="footer-links">
-            <a href={vest ? (isVestDomain ? 'https://coffee.erikrole.com/' : '/') : '/?app=vest'}>
-              {vest ? 'Coffee journal ↗' : 'Vest Tracker ↗'}
+            <a href={productSwitchHref(vest ? APP_MODES.VIBES : APP_MODES.VEST)}>
+              {MODE_LABELS[vest ? APP_MODES.VIBES : APP_MODES.VEST].outcome} ↗
             </a>
             <button type="button" onClick={onOwner}>{owner ? 'Manage journal' : 'Owner sign-in'}</button>
           </div>
