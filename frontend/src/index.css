@@ -1904,3 +1904,22 @@ button.insight-highlight:hover { background: var(--surface-muted); }
   letter-spacing: -0.03em;
   line-height: 0.95;
 }
+
+.outfit-rate { width: 5.25rem; }
+.outfit-rate-track {
+  display: block;
+  height: 3px;
+  margin-top: 0.35rem;
+  background: var(--vt-rule);
+}
+.outfit-rate-fill {
+  display: block;
+  height: 100%;
+  background: var(--vt-red);
+}
+.outfit-rate-fill.is-small { opacity: 0.4; }
+.outfit-sample-note {
+  display: block;
+  margin-top: 0.28rem;
+  color: var(--vt-ink-mute);
+}
