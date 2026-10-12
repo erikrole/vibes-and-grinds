@@ -14,22 +14,25 @@ export default function AppChrome({
   owner,
   onOwner,
   onBrand,
+  showBrand = true,
   children,
 }) {
   const vest = appMode === APP_MODES.VEST;
 
   return (
     <div className={`min-h-screen transition-colors duration-200 ${vest ? 'vest-tracker-page' : 'coffee-journal-page'}`}>
-      <header className={`safe-top transition-colors duration-200 ${vest ? 'vest-tracker-header' : ''}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+      <header className={`safe-top transition-colors duration-200 ${vest ? 'vest-tracker-header' : 'journal-chrome'}`}>
+        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${vest || showBrand ? 'py-4 sm:py-6 lg:py-8' : 'py-3 sm:py-4'}`}>
           <div className="flex items-center justify-between gap-3 min-w-0">
-            <a
-              className="journal-brand"
-              href={isVestDomain ? '/' : vest ? '/?app=vest' : '/'}
-              onClick={(event) => { event.preventDefault(); onBrand(); }}
-            >
-              <h1>{vest ? 'Vest Tracker' : 'vibes & grinds'}</h1>
-            </a>
+            {showBrand ? (
+              <a
+                className="journal-brand"
+                href={isVestDomain ? '/' : vest ? '/?app=vest' : '/'}
+                onClick={(event) => { event.preventDefault(); onBrand(); }}
+              >
+                <h1>{vest ? 'Vest Tracker' : 'vibes & grinds'}</h1>
+              </a>
+            ) : <span />}
 
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <button
