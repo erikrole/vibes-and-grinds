@@ -25,7 +25,6 @@ import {
 } from '../utils/vestSeason';
 import NetRankingsPage from './NetRankingsPage';
 import VestScoreboard from './VestScoreboard';
-import VestPreseason from './VestPreseason';
 import VestNextGame from './VestNextGame';
 import VestTimeline from './VestTimeline';
 import VestLeaderboard from './VestLeaderboard';
@@ -475,8 +474,9 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
 
   if (vestTab === 'game-stats') {
     return (
-      <main id="vest-dashboard" className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <DashboardHead vestTab={vestTab} onTab={setVestTab} vestSeason={vestSeason} seasonOptions={seasonOptions} onSeason={setVestSeason} />
+      <main id="vest-dashboard" className="vest-tracker vp-wrap py-6 sm:py-8">
+        <VestPageHero preseason={preseason} endYear={seasonEndYearNow} priorLabel={priorSeason ? seasonTitle(priorSeason) : ''} recordSeason={recordSeason} vestSeason={vestSeason} seasonOptions={seasonOptions} onSeason={setVestSeason} />
+        <TabBar value={vestTab} onChange={setVestTab} />
         <Suspense fallback={<LoadingPanel />}>
           <GameStatsPanel games={seasonSortedGames} />
         </Suspense>
@@ -485,10 +485,32 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
   }
 
   return (
-    <main id="vest-dashboard" className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-      <DashboardHead vestTab={vestTab} onTab={setVestTab} vestSeason={vestSeason} seasonOptions={seasonOptions} onSeason={setVestSeason} />
+    <main id="vest-dashboard" className="vest-tracker vp-wrap py-6 sm:py-8">
+      <VestPageHero preseason={preseason} endYear={seasonEndYearNow} priorLabel={priorSeason ? seasonTitle(priorSeason) : ''} recordSeason={recordSeason} vestSeason={vestSeason} seasonOptions={seasonOptions} onSeason={setVestSeason}>
+        {completedGames.length > 0 && <VestScoreboard
+          wins={summary.wins}
+          losses={summary.losses}
+          streak={streak}
+          secondary={scoreboardSecondary}
+          filterLabel={selectedOutfit}
+          onClearFilter={() => setSelectedOutfit(null)}
+          identity={{ team: 'Wisconsin Badgers', season: recordSeason, who: "AJ's pick" }}
+          status={
+            scoutingReport
+              ? {
+                  kind: 'next',
+                  label: `${formatLocationLabel(scoutingReport.location, 'full')} ${scoutingReport.opponent}`,
+                  date: scoutingReport.date ? formatDate(scoutingReport.date) : null,
+                }
+              : preseason
+                ? { kind: 'archive' }
+                : { kind: 'final' }
+          }
+        />}
+      </VestPageHero>
+      <TabBar value={vestTab} onChange={setVestTab} />
 
-      {saveError && <p role="alert" className="vt-card p-4 mb-5">{saveError}</p>}
+      {saveError && <p role="alert" className="vp-tip">{saveError}</p>}
       {syncReady && <VestGameForm
         enabled={canEdit}
         editingGame={editingGame}
@@ -498,32 +520,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
         onCancel={() => setEditingGame(null)}
       />}
 
-      {preseason && !selectedOutfit && (
-        <VestPreseason endYear={seasonEndYearNow} priorLabel={priorSeason ? seasonTitle(priorSeason) : ''} />
-      )}
-
-      {completedGames.length > 0 && <VestScoreboard
-        wins={summary.wins}
-        losses={summary.losses}
-        streak={streak}
-        secondary={scoreboardSecondary}
-        filterLabel={selectedOutfit}
-        onClearFilter={() => setSelectedOutfit(null)}
-        identity={{ team: 'Wisconsin Badgers', season: recordSeason, who: "AJ's pick" }}
-        status={
-          scoutingReport
-            ? {
-                kind: 'next',
-                label: `${formatLocationLabel(scoutingReport.location, 'full')} ${scoutingReport.opponent}`,
-                date: scoutingReport.date ? formatDate(scoutingReport.date) : null,
-              }
-            : preseason
-              ? { kind: 'archive' }
-              : { kind: 'final' }
-        }
-      />}
-
-      {scoutingReport && <VestNextGame scoutingReport={scoutingReport} mostWorn={mostWorn} />}
+      {scoutingReport && <VestNextGame scoutingReport={scoutingReport} mostWorn={completedGames.length ? mostWorn : null} />}
 
       <StorylineStrip milestones={milestones} />
 
@@ -594,67 +591,53 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
 
 function StorylineStrip({ milestones }) {
   if (!milestones?.length) return null;
-  const top = milestones.slice(0, 3);
   return (
-    <div className="vt-card vt-storyline mb-6 px-5 py-3">
-      {top.map((m, i) => (
-        <div key={i} className="vt-storyline-item flex items-baseline gap-2 sm:gap-3">
-          <span className="text-sm shrink-0" aria-hidden>{m.icon}</span>
-          <span className="vt-mono text-xs text-[color:var(--vt-ink-dim)] leading-snug">
-            {m.text}
-          </span>
-        </div>
-      ))}
-    </div>
+    <p className="vp-note">
+      {milestones.slice(0, 3).map((item) => item.text).join(' · ')}
+    </p>
   );
 }
 
 function NetDegradedBanner({ netStatus, seasonTitle: title }) {
   if (netStatus === 'loaded') return null;
-
-  const message =
-    netStatus === 'loading'
-      ? { label: 'Loading NET feed', detail: 'Quadrant breakdowns will appear once available.' }
-      : netStatus === 'unreleased'
-        ? { label: 'NET not released', detail: `The ${title} NET is not out yet. Rankings usually arrive early in the new year.` }
-        : { label: 'NET feed offline', detail: 'Opponent rankings and quadrant records are unavailable. Saved game results and outfit records are still shown.' };
-
-  return (
-    <div
-      className="mb-6 px-4 py-3 rounded border-l-2 flex items-start gap-3"
-      style={{
-        background: 'rgba(197, 5, 12, 0.06)',
-        borderLeftColor: 'var(--vt-red)',
-        borderRight: '1px solid var(--vt-rule)',
-        borderTop: '1px solid var(--vt-rule)',
-        borderBottom: '1px solid var(--vt-rule)',
-      }}
-    >
-      <span className="vt-label vt-label-red shrink-0">⚠ {message.label}</span>
-      <span className="vt-mono text-[11px] text-[color:var(--vt-ink-mute)] leading-snug">
-        {message.detail}
-      </span>
-    </div>
-  );
+  const detail = netStatus === 'loading'
+    ? 'Loading NET rankings. Quadrants will show up once they are in.'
+    : netStatus === 'unreleased'
+      ? `The ${title} NET is not out yet. Rankings usually arrive early in the new year.`
+      : 'NET rankings are offline. Saved results and outfit records are still here.';
+  return <p className="vp-note">{detail}</p>;
 }
 
-function DashboardHead({ vestTab, onTab, vestSeason, seasonOptions, onSeason }) {
+function VestPageHero({ preseason, endYear, priorLabel, recordSeason, vestSeason, seasonOptions, onSeason, children }) {
   return (
-    <div className="vt-dashboard-head">
-      <TabBar value={vestTab} onChange={onTab} />
-      <label className="vt-season-switch">
-        <span className="vt-label">Season</span>
-        <select aria-label="Season" value={vestSeason} onChange={(event) => onSeason(Number(event.target.value))}>
-          {seasonOptions.map((year) => <option key={year} value={year}>{seasonTitle(year)}</option>)}
-        </select>
-      </label>
-    </div>
+    <section className="vp-cover">
+      <div className="vp-cover-top">
+        <div>
+          <p className="vp-kicker vp-kicker-ink">Vest tracker</p>
+          <h2 id={preseason ? 'vest-preseason-heading' : 'vest-page-heading'} className="vp-display vp-cover-title">
+            {seasonTitle(preseason ? endYear : vestSeason)}
+          </h2>
+          <p className="vp-lede">
+            {preseason
+              ? `No ${seasonTitle(endYear)} games are logged yet. The record fills in after the first tip.${priorLabel ? ` Switch to ${priorLabel} for last season.` : ''}`
+              : `What he wore in ${recordSeason}, and how it went.`}
+          </p>
+        </div>
+        <label className="vp-season">
+          <span className="vp-kicker vp-kicker-ink">Season</span>
+          <select aria-label="Season" value={vestSeason} onChange={(event) => onSeason(Number(event.target.value))}>
+            {seasonOptions.map((year) => <option key={year} value={year}>{seasonTitle(year)}</option>)}
+          </select>
+        </label>
+      </div>
+      {children}
+    </section>
   );
 }
 
 function TabBar({ value, onChange }) {
   return (
-    <div className="vt-tabs" role="tablist" aria-label="Vest Tracker">
+    <div className="vp-nav" role="tablist" aria-label="Vest tracker">
       {TABS.map((tab) => (
         <button
           key={tab.value}
@@ -662,7 +645,7 @@ function TabBar({ value, onChange }) {
           role="tab"
           aria-selected={value === tab.value}
           onClick={() => onChange(tab.value)}
-          className={`vt-tab ${value === tab.value ? 'is-active' : ''}`}
+          className={value === tab.value ? 'is-active' : ''}
         >
           {tab.label}
         </button>
@@ -684,7 +667,7 @@ function NetStatusFooter({ netStatus, count }) {
   if (netStatus === 'loaded') {
     return (
       <p className="vt-label mb-6 -mt-1 px-1 vt-label-red">
-        NET feed locked · {count} teams (target ~365)
+        NET posted · {count} teams
       </p>
     );
   }

@@ -13,19 +13,21 @@ function VestTimeline({ games, onEditGame, onLogResult, mode = 'recent' }) {
   const headingId = upcoming ? 'vest-upcoming-heading' : 'vest-games-heading';
 
   return (
-    <section className="vt-card mb-6 overflow-hidden" aria-labelledby={headingId}>
-      <div className="vt-section-head">
+    <section className="vp-section" aria-labelledby={headingId}>
+      <div className="vp-section-head">
         <div>
-          <h2 id={headingId} className="vt-label block">{upcoming ? 'Upcoming' : 'Recent games'}</h2>
-          <span className="vt-mono text-[11px] text-[color:var(--vt-ink-mute)] mt-1 block">{upcoming ? 'From the schedule' : 'Newest first'}</span>
+          <h2 id={headingId}>{upcoming ? 'Upcoming' : 'Recent games'}</h2>
+          <p className="vp-section-note">
+            {upcoming ? 'From the schedule. Nothing here is saved until a game is logged.' : 'Newest first.'}
+          </p>
         </div>
         {games.length > 8 && (
-          <button type="button" onClick={() => setShowAll((value) => !value)} className="vt-label hover:text-[color:var(--vt-ink)] transition-colors">
+          <button type="button" onClick={() => setShowAll((value) => !value)} className="vp-text-btn">
             {showAll ? (upcoming ? 'Show next' : 'Show recent') : `View all ${games.length}`}
           </button>
         )}
       </div>
-      <div className="vt-game-list" role="list">
+      <div className="vp-tickets" role="list">
         {visibleGames.map((game) => (
           <GameCard key={game.id} game={game} onEdit={onEditGame ? () => onEditGame(game) : undefined} onLogResult={onLogResult} />
         ))}
@@ -37,43 +39,46 @@ function VestTimeline({ games, onEditGame, onLogResult, mode = 'recent' }) {
 function GameCard({ game, onEdit, onLogResult }) {
   const pending = game.result !== 'W' && game.result !== 'L';
   const resultClass = pending ? 'is-tbd' : game.result === 'W' ? 'is-w' : 'is-l';
-  const where = formatLocationLabel(game.location, 'short');
-  const cardBody = (
+  const where = formatLocationLabel(game.location, 'full');
+  const dateLabel = formatDate(game.date) || 'Date TBD';
+  const body = (
     <>
-      <span className={`vt-result-pill ${resultClass}`}>{pending ? 'TBD' : game.result}</span>
-      <span className="min-w-0">
-        <strong className="vt-condensed vt-game-opponent text-[color:var(--vt-ink)]">
-          {where} {game.ranking ? <span className="text-[color:var(--vt-red)]">{toSuperscript(game.ranking)}</span> : null}{game.opponent}{game.overtime ? ' OT' : ''}
+      <span className={`vp-stub ${resultClass}`}>
+        <span className="vp-stub-mark">{pending ? 'TBD' : game.result}</span>
+      </span>
+      <span className="vp-ticket-body">
+        <strong className="vp-opponent">
+          {where} {game.ranking ? <span className="vp-rank">{toSuperscript(game.ranking)}</span> : null}{game.opponent}{game.overtime ? ' OT' : ''}
         </strong>
-        <span className="vt-game-meta vt-mono">
-          <span>{formatDate(game.date) || 'Date TBD'}</span>
+        <span className="vp-ticket-meta">
+          <span>{dateLabel}</span>
           {game.quadrant ? <span>Q{game.quadrant}</span> : null}
-          {game.source === 'espn' ? null : <span className="vt-game-outfit">{game.outfit || 'Outfit TBD'}</span>}
+          {game.source === 'espn' ? null : <span>{game.outfit || 'Outfit TBD'}</span>}
         </span>
       </span>
     </>
   );
   return (
-    <div role="listitem" className="vt-game-row">
+    <article role="listitem" className="vp-ticket">
       {onEdit ? (
         <button
           type="button"
           onClick={onEdit}
-          className="vt-game-card"
-          aria-label={`View ${formatLocationLabel(game.location, 'full')} ${game.opponent}, ${formatDate(game.date) || 'date TBD'}, ${game.outfit || 'outfit TBD'}`}
+          className="vp-ticket-hit"
+          aria-label={`View ${where} ${game.opponent}, ${dateLabel}, ${game.outfit || 'outfit TBD'}`}
         >
-          {cardBody}
+          {body}
         </button>
       ) : (
-        <div className="vt-game-card">{cardBody}</div>
+        <div className="vp-ticket-hit">{body}</div>
       )}
       {pending && onLogResult && (
-        <div className="vt-game-log">
-          <button type="button" onClick={() => onLogResult(game.id, 'W', false)} className="vt-display text-[color:var(--vt-red)]" aria-label={`Log win against ${game.opponent}`}>W</button>
-          <button type="button" onClick={() => onLogResult(game.id, 'L', false)} className="vt-display text-[color:var(--vt-ink-mute)]" aria-label={`Log loss against ${game.opponent}`}>L</button>
+        <div className="vp-log">
+          <button type="button" onClick={() => onLogResult(game.id, 'W', false)} aria-label={`Log win against ${game.opponent}`}>W</button>
+          <button type="button" onClick={() => onLogResult(game.id, 'L', false)} aria-label={`Log loss against ${game.opponent}`}>L</button>
         </div>
       )}
-    </div>
+    </article>
   );
 }
 
