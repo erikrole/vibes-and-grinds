@@ -23,7 +23,7 @@ export default function CompositeBadge({ composite }) {
         >
           {composite.toFixed(1)}
         </span>
-        <span className="text-xs text-stone-500 dark:text-stone-400 font-medium">/ 20</span>
+        <span className="text-xs text-ink-soft font-medium">/ 20</span>
       </div>
       <div
         className="mt-1.5 h-[3px] rounded-full"

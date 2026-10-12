@@ -16,10 +16,10 @@ export default function BadgesPanel({ visits }) {
   return (
     <div className="space-y-4">
       {/* Summary */}
-      <div className="bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 rounded-2xl p-4 sm:p-5 shadow-sm">
+      <div className="bg-surface-raised border border-rule rounded-2xl p-4 sm:p-5 shadow-sm">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">Badges</h3>
-          <span className="text-sm font-medium text-stone-500 dark:text-stone-400">
+          <h3 className="text-lg font-bold text-ink">Badges</h3>
+          <span className="text-sm font-medium text-ink-soft">
             {earned}/{total} earned
           </span>
         </div>
@@ -38,9 +38,9 @@ export default function BadgesPanel({ visits }) {
         </div>
 
         {/* Overall progress */}
-        <div className="h-2 rounded-full bg-stone-100 dark:bg-stone-700 overflow-hidden">
+        <div className="h-2 rounded-full bg-surface-muted overflow-hidden">
           <div
-            className="h-full rounded-full bg-amber-500 transition-all duration-500"
+            className="h-full rounded-full bg-accent transition-all duration-500"
             style={{ width: `${(earned / total) * 100}%` }}
           />
         </div>
@@ -52,18 +52,18 @@ export default function BadgesPanel({ visits }) {
         const isExpanded = expandedCategory === category || expandedCategory === null;
 
         return (
-          <div key={category} className="bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-600/60 rounded-2xl shadow-sm overflow-hidden">
+          <div key={category} className="bg-surface-raised border border-rule rounded-2xl shadow-sm overflow-hidden">
             <button
               onClick={() => toggleCategory(category)}
-              className="w-full flex items-center justify-between p-4 sm:p-5 text-left hover:bg-stone-50 dark:hover:bg-stone-700/30 transition-colors"
+              className="w-full flex items-center justify-between p-4 sm:p-5 text-left hover:bg-surface-muted transition-colors"
             >
-              <h4 className="text-sm font-bold text-stone-900 dark:text-stone-100 uppercase tracking-wider">
+              <h4 className="text-sm font-bold text-ink uppercase tracking-wider">
                 {category}
               </h4>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-stone-400 dark:text-stone-500">{categoryEarned}/{categoryBadges.length}</span>
+                <span className="text-xs text-ink-faint">{categoryEarned}/{categoryBadges.length}</span>
                 <svg
-                  className={`w-4 h-4 text-stone-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 text-ink-faint transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                   fill="none" stroke="currentColor" viewBox="0 0 24 24"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -93,14 +93,14 @@ function BadgeCard({ badge }) {
       className={`rounded-xl p-3 sm:p-4 border transition-colors ${
         isEarned
           ? `${badge.tierColors.bg} ${badge.tierColors.border}`
-          : 'bg-stone-50 dark:bg-stone-700/20 border-stone-200 dark:border-stone-700 opacity-60'
+          : 'bg-surface-muted border-rule opacity-60'
       }`}
     >
       <div className="flex items-start gap-3">
         <span className={`text-2xl ${isEarned ? '' : 'grayscale'}`}>{badge.icon}</span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className={`text-sm font-bold ${isEarned ? badge.tierColors.text : 'text-stone-500 dark:text-stone-400'}`}>
+            <span className={`text-sm font-bold ${isEarned ? badge.tierColors.text : 'text-ink-soft'}`}>
               {badge.name}
             </span>
             {isEarned && (
@@ -111,7 +111,7 @@ function BadgeCard({ badge }) {
               </span>
             )}
           </div>
-          <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">{badge.description}</p>
+          <p className="text-xs text-ink-soft mt-0.5">{badge.description}</p>
 
           {/* Level indicators */}
           <div className="flex items-center gap-1 mt-2">
@@ -121,7 +121,7 @@ function BadgeCard({ badge }) {
                 className={`w-5 h-1.5 rounded-full transition-colors ${
                   i < badge.level
                     ? ''
-                    : 'bg-stone-200 dark:bg-stone-600'
+                    : 'bg-surface-muted'
                 }`}
                 style={i < badge.level ? { backgroundColor: TIER_COLORS[TIERS[i]].hex } : undefined}
                 title={`Level ${i + 1}: ${threshold}`}
@@ -132,16 +132,16 @@ function BadgeCard({ badge }) {
           {/* Progress to next level */}
           {badge.nextThreshold && (
             <div className="mt-2">
-              <div className="flex items-center justify-between text-[10px] text-stone-400 dark:text-stone-500">
+              <div className="flex items-center justify-between text-[10px] text-ink-faint">
                 <span>{badge.currentValue} / {badge.nextThreshold}</span>
                 <span>{Math.round(badge.progress * 100)}%</span>
               </div>
-              <div className="h-1 rounded-full bg-stone-200 dark:bg-stone-600 mt-0.5 overflow-hidden">
+              <div className="h-1 rounded-full bg-surface-muted mt-0.5 overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{
                     width: `${badge.progress * 100}%`,
-                    backgroundColor: isEarned ? TIER_COLORS[badge.tier].hex : '#a8a29e',
+                    backgroundColor: isEarned ? TIER_COLORS[badge.tier].hex : 'var(--ink-faint)',
                   }}
                 />
               </div>
@@ -149,7 +149,7 @@ function BadgeCard({ badge }) {
           )}
 
           {!badge.nextThreshold && isEarned && (
-            <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold mt-2">MAX LEVEL</p>
+            <p className="text-[10px] text-accent font-semibold mt-2">MAX LEVEL</p>
           )}
         </div>
       </div>

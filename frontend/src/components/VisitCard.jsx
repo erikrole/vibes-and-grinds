@@ -45,7 +45,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
         {/* Left side: Photo + Shop info */}
         <div className="flex-1 flex gap-5 min-w-0">
           {visit.photo_url && (
-            <div className="hidden sm:block flex-shrink-0 w-20 h-20 rounded-2xl overflow-hidden bg-stone-100 dark:bg-stone-700">
+            <div className="hidden sm:block flex-shrink-0 w-20 h-20 rounded-2xl overflow-hidden bg-surface-muted">
               <img
                 src={visit.photo_url}
                 alt=""
@@ -73,9 +73,9 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                 </button>
               </h3>
               {(visit.city || formatEventContext(visit)) && (
-                <p className="text-sm text-stone-500 dark:text-stone-400 transition-colors flex items-center gap-1.5 flex-wrap">
+                <p className="text-sm text-ink-soft transition-colors flex items-center gap-1.5 flex-wrap">
                   {visit.city && <span>{visit.city}</span>}
-                  {visit.city && formatEventContext(visit) && <span className="text-stone-300 dark:text-stone-600">·</span>}
+                  {visit.city && formatEventContext(visit) && <span className="text-ink-faint">·</span>}
                   {formatEventContext(visit) && <span>{formatEventContext(visit)}</span>}
                 </p>
               )}
@@ -86,7 +86,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
             {onEdit && <div className="relative ml-4 flex-shrink-0" ref={menuRef}>
               <button
                 onClick={(e) => { e.stopPropagation(); setShowMenu((prev) => !prev); }}
-                className="text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 p-3 -m-2 rounded-xl transition-colors"
+                className="text-ink-faint hover:text-ink p-3 -m-2 rounded-xl transition-colors"
                 aria-label={`Open actions for ${visit.coffee_shop_name}`}
                 aria-expanded={showMenu}
                 aria-haspopup="menu"
@@ -97,7 +97,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
               </button>
               {showMenu && (
                 <div
-                  className="absolute right-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-2xl shadow-xl z-20 border border-stone-200 dark:border-stone-700 overflow-hidden"
+                  className="absolute right-0 mt-2 w-48 bg-surface-raised rounded-2xl shadow-xl z-20 border border-rule overflow-hidden"
                   role="menu"
                 >
                   <button
@@ -106,7 +106,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                       onEdit(visit);
                       setShowMenu(false);
                     }}
-                    className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors border-b border-stone-100 dark:border-stone-700"
+                    className="w-full text-left px-4 py-3 text-sm text-ink hover:bg-surface-muted transition-colors border-b border-rule"
                     role="menuitem"
                   >
                     Edit visit
@@ -117,24 +117,24 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                       onLogReturnVisit?.(visit);
                       setShowMenu(false);
                     }}
-                    className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors border-b border-stone-100 dark:border-stone-700"
+                    className="w-full text-left px-4 py-3 text-sm text-ink hover:bg-surface-muted transition-colors border-b border-rule"
                     role="menuitem"
                   >
                     Log return visit
                   </button>
                   {confirmingDelete ? (
                     <div className="px-4 py-3">
-                      <p className="text-xs text-stone-500 dark:text-stone-400 mb-2.5">Move to deleted visits? You can restore it later.</p>
+                      <p className="text-xs text-ink-soft mb-2.5">Move to deleted visits? You can restore it later.</p>
                       <div className="flex gap-2">
                         <button
                           onClick={(e) => { e.stopPropagation(); onDelete(visit.id); setShowMenu(false); }}
-                          className="flex-1 text-xs py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors"
+                          className="flex-1 text-xs py-2 bg-danger hover:opacity-90 text-white rounded-xl font-medium transition-colors"
                         >
                           Delete
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); setConfirmingDelete(false); }}
-                          className="flex-1 text-xs py-2 bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200 rounded-xl font-medium transition-colors"
+                          className="flex-1 text-xs py-2 bg-surface-muted text-ink rounded-xl font-medium transition-colors"
                         >
                           Cancel
                         </button>
@@ -143,7 +143,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                   ) : (
                     <button
                       onClick={(e) => { e.stopPropagation(); setConfirmingDelete(true); }}
-                      className="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      className="w-full text-left px-4 py-3 text-sm text-danger hover:bg-surface-muted transition-colors"
                       role="menuitem"
                     >
                       Move to deleted visits
@@ -154,12 +154,12 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
             </div>}
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-stone-600 dark:text-stone-300 mt-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-ink-soft mt-3">
             <span className="inline-flex items-center gap-1.5">
               {relativeLabel ? (
                 <>
                   <span className="font-medium" style={{ color: 'var(--ink)' }}>{relativeLabel}</span>
-                  <span className="text-stone-400 dark:text-stone-500">{formattedDate}</span>
+                  <span className="text-ink-faint">{formattedDate}</span>
                 </>
               ) : (
                 <span>{formattedDate}</span>
@@ -167,7 +167,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
             </span>
             {visit.coffee_order && (
               <>
-                <span className="text-stone-300 dark:text-stone-600">·</span>
+                <span className="text-ink-faint">·</span>
                 <span>{titleCaseOrder(visit.coffee_order)}</span>
               </>
             )}
@@ -176,7 +176,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
         </div>
 
         {/* Right side: Ratings */}
-        <div className="flex items-end gap-2 justify-center md:justify-end mt-3 md:mt-0 pt-4 md:pt-0 md:pl-6 border-t md:border-t-0 md:border-l border-stone-200/40 dark:border-stone-600/30 transition-colors">
+        <div className="flex items-end gap-2 justify-center md:justify-end mt-3 md:mt-0 pt-4 md:pt-0 md:pl-6 border-t md:border-t-0 md:border-l border-rule transition-colors">
           <RatingBadge rating={visit.vibe_rating} label="Vibe" />
           <RatingBadge rating={visit.coffee_rating} label="Coffee" />
           <CompositeBadge composite={visit.composite_score} />

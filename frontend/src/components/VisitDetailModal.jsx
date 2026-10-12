@@ -217,10 +217,10 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
           {/* Photo or decorative header */}
           <div className="relative">
             {uploading && (
-              <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/60 dark:bg-stone-900/60 backdrop-blur-sm">
-                <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white dark:bg-stone-800 shadow-lg border border-stone-200 dark:border-stone-700">
-                  <div className="w-5 h-5 border-2 border-stone-300 dark:border-stone-500 border-t-stone-700 dark:border-t-stone-200 rounded-full animate-spin" />
-                  <span className="text-sm font-medium text-stone-700 dark:text-stone-200">Uploading...</span>
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-surface-raised/60/60 backdrop-blur-sm">
+                <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface-raised shadow-lg border border-rule">
+                  <div className="w-5 h-5 border-2 border-rule border-t-ink rounded-full animate-spin" />
+                  <span className="text-sm font-medium text-ink">Uploading...</span>
                 </div>
               </div>
             )}
@@ -230,7 +230,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
               </div>
             ) : (
               <div
-                className={`detail-header-accent h-28 sm:h-32 relative overflow-hidden transition-colors ${draggingPhoto ? 'ring-2 ring-inset ring-stone-400 dark:ring-stone-500' : ''}`}
+                className={`detail-header-accent h-28 sm:h-32 relative overflow-hidden transition-colors ${draggingPhoto ? 'ring-2 ring-inset ring-accent' : ''}`}
                 onDrop={onUpdate ? handlePhotoDrop : undefined}
                 onDragOver={onUpdate ? (e) => { e.preventDefault(); setDraggingPhoto(true); } : undefined}
                 onDragLeave={onUpdate ? () => setDraggingPhoto(false) : undefined}
@@ -238,13 +238,13 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                 <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '20px 20px' }} />
                 {draggingPhoto ? (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <p className="text-sm font-medium text-stone-500 dark:text-stone-400">Drop photo here</p>
+                    <p className="text-sm font-medium text-ink-soft">Drop photo here</p>
                   </div>
                 ) : onUpdate ? (
                   <button
                     onClick={handleAddPhoto}
                     disabled={uploading}
-                    className="absolute bottom-3 left-6 sm:left-7 flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm border border-stone-200/60 dark:border-stone-600/40 hover:border-stone-300 dark:hover:border-stone-500 transition-all shadow-sm"
+                    className="absolute bottom-3 left-6 sm:left-7 flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium text-ink-faint hover:text-ink bg-surface-raised backdrop-blur-sm border border-rule hover:border-latte-deep transition-all shadow-sm"
                     aria-label="Add photo to this visit"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -263,7 +263,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
             <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex items-center gap-1.5 z-10">
               {onEdit && <button
                 onClick={() => setShowMenu((prev) => !prev)}
-                className="bg-white/90 dark:bg-stone-800/90 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-50 p-3 rounded-full backdrop-blur-sm transition-all shadow-lg"
+                className="bg-surface-raised text-ink-soft hover:text-ink p-3 rounded-full backdrop-blur-sm transition-all shadow-lg"
                 aria-label="Visit actions"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -273,7 +273,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
               <button
                 ref={closeRef}
                 onClick={handleClose}
-                className="bg-white/90 dark:bg-stone-800/90 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-50 p-3 rounded-full backdrop-blur-sm transition-all shadow-lg"
+                className="bg-surface-raised text-ink-soft hover:text-ink p-3 rounded-full backdrop-blur-sm transition-all shadow-lg"
                 aria-label="Close"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -283,14 +283,14 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
               {showMenu && (
                 <>
                   <div className="fixed inset-0" onClick={() => setShowMenu(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-stone-800 rounded-2xl shadow-xl z-20 border border-stone-200 dark:border-stone-700 overflow-hidden">
+                  <div className="absolute right-0 top-full mt-2 w-52 bg-surface-raised rounded-2xl shadow-xl z-20 border border-rule overflow-hidden">
                     {!visit.photo_url && (
                       <button
                         onClick={handleReplacePhoto}
                         disabled={uploading}
-                        className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors flex items-center gap-3"
+                        className="w-full text-left px-4 py-3 text-sm text-ink hover:bg-surface-muted transition-colors flex items-center gap-3"
                       >
-                        <svg className="w-4 h-4 text-stone-400 dark:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        <svg className="w-4 h-4 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                         Add Photo
                       </button>
                     )}
@@ -298,53 +298,53 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                       <>
                         <button
                           onClick={handleRecropPhoto}
-                          className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors flex items-center gap-3"
+                          className="w-full text-left px-4 py-3 text-sm text-ink hover:bg-surface-muted transition-colors flex items-center gap-3"
                         >
-                          <svg className="w-4 h-4 text-stone-400 dark:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                          <svg className="w-4 h-4 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                           Crop Photo
                         </button>
                         <button
                           onClick={handleReplacePhoto}
-                          className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors flex items-center gap-3"
+                          className="w-full text-left px-4 py-3 text-sm text-ink hover:bg-surface-muted transition-colors flex items-center gap-3"
                         >
-                          <svg className="w-4 h-4 text-stone-400 dark:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                          <svg className="w-4 h-4 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                           Replace Photo
                         </button>
                         <button
                           onClick={handleDeletePhoto}
-                          className="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-stone-700 transition-colors flex items-center gap-3"
+                          className="w-full text-left px-4 py-3 text-sm text-danger hover:bg-surface-muted transition-colors flex items-center gap-3"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                           Remove Photo
                         </button>
                       </>
                     )}
-                    <div className="border-t border-stone-100 dark:border-stone-700" />
+                    <div className="border-t border-rule" />
                     <button
                       onClick={handleEdit}
-                      className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors flex items-center gap-3"
+                      className="w-full text-left px-4 py-3 text-sm text-ink hover:bg-surface-muted transition-colors flex items-center gap-3"
                     >
-                      <svg className="w-4 h-4 text-stone-400 dark:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      <svg className="w-4 h-4 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                       Edit visit
                     </button>
                     <button
                       onClick={handleShare}
-                      className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors flex items-center gap-3"
+                      className="w-full text-left px-4 py-3 text-sm text-ink hover:bg-surface-muted transition-colors flex items-center gap-3"
                     >
-                      <svg className="w-4 h-4 text-stone-400 dark:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                      <svg className="w-4 h-4 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
                       Share image
                     </button>
                     <button
                       onClick={handleLogReturnVisit}
-                      className="w-full text-left px-4 py-3 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors flex items-center gap-3"
+                      className="w-full text-left px-4 py-3 text-sm text-ink hover:bg-surface-muted transition-colors flex items-center gap-3"
                     >
-                      <svg className="w-4 h-4 text-stone-400 dark:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                      <svg className="w-4 h-4 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                       Log return visit
                     </button>
-                    <div className="border-t border-stone-100 dark:border-stone-700" />
+                    <div className="border-t border-rule" />
                     <button
                       onClick={handleDelete}
-                      className="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-stone-700 transition-colors flex items-center gap-3"
+                      className="w-full text-left px-4 py-3 text-sm text-danger hover:bg-surface-muted transition-colors flex items-center gap-3"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       Move to deleted visits
@@ -380,24 +380,24 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
             </h2>
 
             {/* Inline metadata */}
-            <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-stone-600 dark:text-stone-300">
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-soft">
               {relativeLabel && (
                 <>
                   <span className="font-medium" style={{ color: 'var(--ink)' }}>{relativeLabel}</span>
-                  <span className="text-stone-300 dark:text-stone-600">·</span>
+                  <span className="text-ink-faint">·</span>
                 </>
               )}
-              <span className="text-stone-500 dark:text-stone-400">{formattedDate}</span>
+              <span className="text-ink-soft">{formattedDate}</span>
               {visit.city && (
                 <>
-                  <span className="text-stone-300 dark:text-stone-600">·</span>
+                  <span className="text-ink-faint">·</span>
                   <span>{visit.city}</span>
                 </>
               )}
               {formatEventContext(visit) && (
                 <>
-                  <span className="text-stone-300 dark:text-stone-600">·</span>
-                  <span className="text-stone-500 dark:text-stone-400">{formatEventContext(visit)}</span>
+                  <span className="text-ink-faint">·</span>
+                  <span className="text-ink-soft">{formatEventContext(visit)}</span>
                 </>
               )}
             </div>
@@ -509,14 +509,14 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
           onClick={() => setConfirmAction(null)}
         >
           <div
-            className="rounded-xl shadow-xl max-w-sm w-full p-7 border border-stone-200 dark:border-stone-700"
+            className="rounded-xl shadow-xl max-w-sm w-full p-7 border border-rule"
             style={{ backgroundColor: 'var(--paper-2)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <h3 id="confirm-dialog-title" className="text-xl mb-2" style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
               {confirmAction.title}
             </h3>
-            <p id="confirm-dialog-message" className="text-stone-500 dark:text-stone-400 text-sm leading-relaxed mb-7">{confirmAction.message}</p>
+            <p id="confirm-dialog-message" className="text-ink-soft text-sm leading-relaxed mb-7">{confirmAction.message}</p>
             <div className="space-y-2">
               <button
                 onClick={confirmAction.onConfirm}
@@ -531,7 +531,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
               </button>
               <button
                 onClick={() => setConfirmAction(null)}
-                className="w-full py-3 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 font-medium text-sm transition-colors"
+                className="w-full py-3 text-ink-faint hover:text-ink font-medium text-sm transition-colors"
               >
                 Cancel
               </button>
@@ -601,7 +601,7 @@ function RepeatHistoryCard({ visit, visits, visitNumber, previousVisit, bestVisi
         {onLogReturnVisit && <button
           type="button"
           onClick={() => onLogReturnVisit?.(visit)}
-          className="self-start rounded-xl px-3 py-2 text-xs font-semibold transition-colors bg-white/70 dark:bg-stone-800/70 text-stone-700 dark:text-stone-200 hover:bg-white dark:hover:bg-stone-800 border border-stone-200/70 dark:border-stone-600/70"
+          className="self-start rounded-xl px-3 py-2 text-xs font-semibold transition-colors bg-surface-raised text-ink hover:bg-surface-raised border border-rule"
         >
           Log return visit
         </button>}
@@ -645,14 +645,14 @@ function RepeatHistoryCard({ visit, visits, visitNumber, previousVisit, bestVisi
 
 function RepeatMetric({ label, value, detail, accent }) {
   return (
-    <div className="rounded-xl bg-white/55 dark:bg-stone-800/55 px-3.5 py-3 border border-stone-200/50 dark:border-stone-700/50">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-stone-400 dark:text-stone-500 mb-1">
+    <div className="rounded-xl bg-surface-raised px-3.5 py-3 border border-rule">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-faint mb-1">
         {label}
       </p>
       <p className="text-lg font-black" style={{ color: accent || 'var(--ink)' }}>
         {value}
       </p>
-      {detail && <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">{detail}</p>}
+      {detail && <p className="text-[11px] text-ink-soft mt-0.5">{detail}</p>}
     </div>
   );
 }

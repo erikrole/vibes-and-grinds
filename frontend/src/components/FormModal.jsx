@@ -48,7 +48,7 @@ export default function FormModal({ title, onClose, children, active = true, top
           <button
             ref={closeRef}
             onClick={handleClose}
-            className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 w-10 h-10 flex items-center justify-center rounded-md bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 w-10 h-10 flex items-center justify-center rounded-md bg-surface-muted text-ink-soft hover:bg-surface-muted transition-colors"
             aria-label={`Close ${title}`}
           >
             <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
