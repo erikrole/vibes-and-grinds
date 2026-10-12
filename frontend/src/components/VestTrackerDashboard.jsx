@@ -538,8 +538,6 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
         maxMargin={maxMargin}
       />
 
-      <StorylineStrip milestones={milestones} />
-
       <NetDegradedBanner netStatus={netStatus} seasonTitle={seasonTitle(seasonEndYearNow)} />
 
       {canEdit && syncReady && upcomingGame && (
