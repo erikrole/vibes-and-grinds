@@ -86,8 +86,8 @@ export const toSuperscript = (num) => {
 
 export const formatLocationLabel = (location, mode = 'short') => {
   const labels = {
-    short: { '@': '@', N: 'N', vs: 'vs' },
-    full: { '@': 'at', N: 'neutral vs', vs: 'vs' },
+    short: { '@': '@', N: 'vs', vs: 'vs' },
+    full: { '@': 'at', N: 'vs', vs: 'vs' },
     adjective: { '@': 'away', N: 'neutral', vs: 'home' },
     Adjective: { '@': 'Away', N: 'Neutral', vs: 'Home' },
   };

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { outfitSampleNote, sampleTier } from '../src/utils/vestTrackerMath.js';
+import { formatLocationLabel, outfitSampleNote, sampleTier } from '../src/utils/vestTrackerMath.js';
 
 test('outfit win rates of three games or fewer stay marked as a small sample', () => {
   assert.equal(outfitSampleNote(0), 'No games yet');
@@ -10,4 +10,12 @@ test('outfit win rates of three games or fewer stay marked as a small sample', (
   assert.equal(sampleTier(1), 'tiny');
   assert.equal(sampleTier(3), 'small');
   assert.equal(sampleTier(13), 'solid');
+});
+
+test('neutral opponents use the same vs label as home games', () => {
+  assert.equal(formatLocationLabel('N', 'full'), 'vs');
+  assert.equal(formatLocationLabel('N', 'short'), 'vs');
+  assert.equal(formatLocationLabel('vs', 'full'), 'vs');
+  assert.equal(formatLocationLabel('@', 'full'), 'at');
+  assert.equal(formatLocationLabel('N', 'adjective'), 'neutral');
 });
