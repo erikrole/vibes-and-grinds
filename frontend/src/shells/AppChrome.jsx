@@ -1,8 +1,9 @@
 import { APP_MODES } from '../constants/appModes';
 
 /**
- * Shared page chrome: brand, dark mode, optional header actions, and the footer
+ * Shared page chrome: dark mode, optional header actions, and the footer
  * that switches products and opens owner sign-in.
+ * Coffee brand lives in CoffeeJournalHero; Vest keeps brand in this header.
  */
 export default function AppChrome({
   appMode,
@@ -20,16 +21,22 @@ export default function AppChrome({
 
   return (
     <div className={`min-h-screen transition-colors duration-200 ${vest ? 'vest-tracker-page' : 'coffee-journal-page'}`}>
-      <header className={`safe-top transition-colors duration-200 ${vest ? 'vest-tracker-header' : ''}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+      <header className={`safe-top transition-colors duration-200 ${vest ? 'vest-tracker-header' : 'journal-chrome'}`}>
+        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${vest ? 'py-4 sm:py-6 lg:py-8' : 'py-3 sm:py-4'}`}>
           <div className="flex items-center justify-between gap-3 min-w-0">
-            <a
-              className="journal-brand"
-              href={isVestDomain ? '/' : vest ? '/?app=vest' : '/'}
-              onClick={(event) => { event.preventDefault(); onBrand(); }}
-            >
-              <h1>{vest ? 'Vest Tracker' : 'vibes & grinds'}</h1>
-            </a>
+            {vest ? (
+              <a
+                className="journal-brand"
+                href={isVestDomain ? '/' : '/?app=vest'}
+                onClick={(event) => { event.preventDefault(); onBrand(); }}
+              >
+                <h1>Vest Tracker</h1>
+              </a>
+            ) : (
+              <p className="mode-control__label text-ink-soft" aria-hidden="true">
+                Journal
+              </p>
+            )}
 
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <button

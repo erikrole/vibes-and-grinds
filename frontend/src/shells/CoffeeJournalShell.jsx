@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import AddVisitForm from '../components/AddVisitForm';
+import CoffeeJournalHero from '../components/CoffeeJournalHero';
 import FormModal from '../components/FormModal';
 import ShopHistory from '../components/ShopHistory';
 import VisitList from '../components/VisitList';
@@ -209,8 +210,6 @@ export default function CoffeeJournalShell({
   };
 
   const shopVisitCounts = useMemo(() => getShopVisitCounts(visits), [visits]);
-  const shopCount = Object.keys(shopVisitCounts).length;
-  const cityCount = new Set(visits.map((visit) => visit.city).filter(Boolean)).size;
   const isReturnDraft = Boolean(visitDraft?.coffee_shop_name);
 
   const filteredVisits = useMemo(() => visits.filter((visit) => {
@@ -262,36 +261,38 @@ export default function CoffeeJournalShell({
   const reviewSeason = useMemo(() => getAvailableSeasons(visits)[0] || getCurrentSeason(), [visits]);
   const seasonVisitCount = useMemo(() => getSeasonVisits(visits).length, [visits]);
 
-  const headerActions = owner && !showForm && !editingVisit ? (
-    <>
-      <button onClick={handleOpenNewVisit} className="btn-primary hidden sm:block">Add visit</button>
-      <button onClick={handleOpenNewVisit} className="header-icon-button sm:hidden" aria-label="Add visit">
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.25} d="M12 5v14M5 12h14" />
-        </svg>
-      </button>
-    </>
-  ) : null;
-
   return (
     <AppChrome
       appMode={APP_MODES.VIBES}
       isVestDomain={isVestDomain}
       darkMode={darkMode}
       toggleDarkMode={toggleDarkMode}
-      headerActions={headerActions}
       showFooter={showFooter}
       owner={owner}
       onOwner={onOwner}
       onBrand={onBrand}
     >
       {loading ? (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" aria-busy="true">
-          <div className="flex items-center justify-center py-20 text-ink-faint animate-pulse">Loading visits…</div>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-1 sm:pt-2 pb-8" aria-busy="true">
+          <CoffeeJournalHero
+            visitCount={0}
+            avgVibe="—"
+            avgCoffee="—"
+            avgComposite="—"
+            showAddVisit={false}
+          />
+          <div className="flex items-center justify-center py-16 text-ink-faint animate-pulse">Loading visits…</div>
         </main>
       ) : error ? (
-        <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
-          <section className="recovery-panel" role="alert">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-1 sm:pt-2 pb-8">
+          <CoffeeJournalHero
+            visitCount={0}
+            avgVibe="—"
+            avgCoffee="—"
+            avgComposite="—"
+            showAddVisit={false}
+          />
+          <section className="recovery-panel max-w-2xl" role="alert">
             <p className="eyebrow mb-3">Connection problem</p>
             <h2 className="text-2xl sm:text-3xl font-semibold mb-3">Couldn’t load the coffee journal</h2>
             <p className="text-sm mb-6" style={{ color: 'var(--ink-soft)' }}>{error}</p>
@@ -299,21 +300,17 @@ export default function CoffeeJournalShell({
           </section>
         </main>
       ) : (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-5 pb-8">
-          {viewTab === 'visits' && !route.shop && <section className="journal-summary">
-            <div className="journal-intro">
-              <h2>{visits.length} <span>{visits.length === 1 ? 'visit' : 'visits'}</span></h2>
-              <p className="journal-totals">{shopCount} {shopCount === 1 ? 'shop' : 'shops'} <span>·</span> {cityCount} {cityCount === 1 ? 'city' : 'cities'}</p>
-            </div>
-            <div className="journal-averages">
-              <p className="eyebrow">Average ratings</p>
-              <div className="journal-average-values">
-                <EditorialStat label="Vibe" value={avgVibe} suffix="/ 10" />
-                <EditorialStat label="Coffee" value={avgCoffee} suffix="/ 10" />
-                <EditorialStat label="Overall" value={avgComposite} suffix="/ 20" />
-              </div>
-            </div>
-          </section>}
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-1 sm:pt-2 pb-8">
+          {!route.shop && (
+            <CoffeeJournalHero
+              visitCount={visits.length}
+              avgVibe={avgVibe}
+              avgCoffee={avgCoffee}
+              avgComposite={avgComposite}
+              onAddVisit={handleOpenNewVisit}
+              showAddVisit={!showForm && !editingVisit}
+            />
+          )}
 
           <div className="journal-navigation flex items-center justify-between gap-5 mb-6 border-b border-rule">
             <div className="flex items-end gap-7 sm:gap-9">
@@ -569,31 +566,6 @@ export default function CoffeeJournalShell({
         </Suspense>
       )}
     </AppChrome>
-  );
-}
-
-function EditorialStat({ label, value, suffix }) {
-  return (
-    <div className="flex flex-col min-w-0">
-      <div className="flex items-center gap-1.5 mb-2">
-        <p className="eyebrow truncate">{label}</p>
-      </div>
-      <div className="flex items-baseline gap-1.5 min-w-0">
-        <span
-          className="text-2xl sm:text-3xl tracking-tight font-semibold tabular-nums"
-          style={{
-            color: 'var(--ink)',
-            fontFamily: 'Inter, system-ui, sans-serif',
-            fontWeight: 600,
-          }}
-        >
-          {value}
-        </span>
-        {suffix && (
-          <span className="text-xs sm:text-sm text-ink-soft font-medium">{suffix}</span>
-        )}
-      </div>
-    </div>
   );
 }
 
