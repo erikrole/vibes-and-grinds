@@ -1,83 +1,55 @@
-# Quick Start Guide
+# Quick Start
 
-## Running Locally Right Now
+Coffee journal and Vest Tracker. Production is Cloudflare Pages + D1 + Pages Functions at [coffee.erikrole.com](https://coffee.erikrole.com). Local development is Express + SQLite. Editing requires an owner session. Reads stay public.
 
-**Terminal 1 - Backend:**
+## Run locally
+
+Use Node 20 or newer.
+
+```bash
+npm --prefix frontend ci
+npm --prefix backend ci
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+```
+
+**Terminal 1 — API** (start it from `backend/` so SQLite is created there):
+
 ```bash
 cd backend
-npm install
 npm start
 ```
 
-**Terminal 2 - Frontend:**
+**Terminal 2 — frontend:**
+
 ```bash
 cd frontend
-npm install
 npm run dev
 ```
 
-Then open: http://localhost:3000
+Open http://localhost:3000. Vite proxies `/api` to http://localhost:3001.
 
-Set your Google Maps API key in `frontend/.env` before running locally.
+Set `LOCAL_ORIGIN=http://localhost:3000` in `backend/.env` to the exact origin you open (use `http://127.0.0.1:3000` if that is the host). Writes require that origin.
 
----
+Owner sign-in uses a generated 256-bit access key. Put only its SHA-256 digest in `OWNER_KEY_HASH`. Never commit the key, and never use a human password. Without the hash, mutations fail closed. Sign in from the footer; the session cookie is HttpOnly and lasts 12 hours.
 
-## Deploy to coffee.erikrole.com
+Saved shops and manual entry work without map credentials. Optional `APPLE_MAPS_TOKEN` is a public MapKit JS token. `GOOGLE_MAPS_API_KEY` is the Places fallback. Never put a private `.p8` signing key in either variable.
 
-### The Fast Way (5 minutes)
+To preview production data without writing to it:
 
-1. **Install Wrangler CLI:**
-   ```bash
-   npm install -g wrangler
-   wrangler login
-   ```
+```bash
+cd frontend
+VITE_PROXY_TARGET=https://coffee.erikrole.com VITE_PROXY_READ_ONLY=true npm run dev
+```
 
-2. **Create D1 Database:**
-   ```bash
-   wrangler d1 create vibes-and-grinds-db
-   ```
+## Checks
 
-   Copy the database ID it gives you.
+```bash
+npm --prefix frontend test
+npm --prefix backend test
+npm --prefix frontend run build
+```
 
-3. **Update wrangler.toml:**
+## Release
 
-   Open `wrangler.toml` and paste your database ID:
-   ```toml
-   database_id = "paste-the-id-here"
-   ```
-
-4. **Initialize Database:**
-   ```bash
-   wrangler d1 execute vibes-and-grinds-db --file=./schema.sql
-   ```
-
-5. **Deploy via GitHub:**
-   - Go to [Cloudflare Dashboard](https://dash.cloudflare.com/) → Pages
-   - Click "Create a project" → "Connect to Git"
-   - Select your `vibes-and-grinds` repository
-   - Build settings:
-     - Build command: `cd frontend && npm install && npm run build`
-     - Build output: `frontend/dist`
-   - Add environment variable:
-     - `GOOGLE_MAPS_API_KEY` = `your_new_google_maps_api_key`
-     - (Optional legacy fallback) `VITE_GOOGLE_MAPS_API_KEY` = `your_new_google_maps_api_key`
-   - Click "Save and Deploy"
-
-6. **Bind Database:**
-   - After deployment, go to Settings → Functions
-   - Add D1 binding:
-     - Variable name: `DB`
-     - Database: Select `vibes-and-grinds-db`
-
-7. **Set Custom Domain:**
-   - Go to Custom domains tab
-   - Add: `coffee.erikrole.com`
-   - Cloudflare handles DNS automatically
-
-**Done!** Visit https://coffee.erikrole.com
-
-> Security tip: Rotate/restrict your key in Google Cloud (HTTP referrers + API restrictions) and do not commit real keys to git.
-
----
-
-For detailed instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md)
+The live site and database already exist. Do not create a second D1 database or Pages project. Merge to `main` and follow [DEPLOYMENT.md](./DEPLOYMENT.md).

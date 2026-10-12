@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import { sqliteAdapter } from '../../shared/sqlite-adapter.mjs';
-import { ownerSession, authorizeWrite, hash, isOwner } from '../../shared/auth.mjs';
+import { ownerSession, authorizeWrite, hash, isOwner, mutationRequiresOwner } from '../../shared/auth.mjs';
 import { resolveShop, sameLocation } from '../../shared/shops.mjs';
 import { visitRoute, ownerDataRoute } from '../../shared/visits.mjs';
 import { vestRoute } from '../../shared/vest.mjs';
@@ -26,6 +26,38 @@ async function login(env) {
   return response.headers.get('Set-Cookie').split(';')[0];
 }
 const visit = { date: '2026-10-04', coffee_shop_name: 'Main Street Coffee', city: 'Madison, WI', coffee_shop_address: '123 Main Street', coffee_shop_place_id: 'google:one', coffee_shop_lat: 43.07, coffee_shop_lng: -89.4, vibe_rating: 0, coffee_rating: 8.6, visit_type: 'road' };
+
+test('anonymous mutations are rejected', async () => {
+  const env = await fixture();
+  try {
+    const writes = [
+      ['POST', '/api/visits'],
+      ['PUT', '/api/visits/1'],
+      ['PATCH', '/api/visits/1'],
+      ['DELETE', '/api/visits/1'],
+      ['POST', '/api/upload'],
+      ['PUT', '/api/vest/games'],
+      ['POST', '/api/owner/backfill'],
+      ['POST', '/api/owner/trash/1'],
+      ['DELETE', '/api/owner/export'],
+    ];
+    for (const [method, path] of writes) {
+      assert.equal(mutationRequiresOwner(method, path), true, `${method} ${path}`);
+      const denied = await authorizeWrite(req(path, method, {}), env);
+      assert.equal(denied.status, 401, `${method} ${path}`);
+      assert.equal((await denied.json()).error, 'Sign in as the owner to make changes.');
+    }
+    assert.equal(mutationRequiresOwner('GET', '/api/visits'), false);
+    assert.equal(mutationRequiresOwner('HEAD', '/api/vest/games'), false);
+    assert.equal(mutationRequiresOwner('OPTIONS', '/api/upload'), false);
+    assert.equal(mutationRequiresOwner('POST', '/api/owner/session'), false);
+    assert.equal(mutationRequiresOwner('DELETE', '/api/owner/session'), false);
+    const unconfigured = await authorizeWrite(req('/api/visits', 'DELETE', {}), { ...env, OWNER_KEY_HASH: '' });
+    assert.equal(unconfigured.status, 401);
+    const offsite = await authorizeWrite(req('/api/visits', 'POST', visit, '', 'https://evil.test'), env);
+    assert.equal(offsite.status, 403);
+  } finally { await env.db.close(); }
+});
 
 test('owner sessions fail closed, enforce origin, reject forged cookies and expire on logout', async () => {
   const env = await fixture();

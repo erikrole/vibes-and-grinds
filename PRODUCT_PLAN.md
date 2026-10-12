@@ -1,31 +1,47 @@
 # Vibes & Grinds — Product Plan
 
-## Version 1 (built now)
+Personal app: coffee journal (default) and Vest Tracker, live at [coffee.erikrole.com](https://coffee.erikrole.com) on Cloudflare Pages + D1 + Pages Functions. Local: Express + SQLite.
 
-### Must-have now
-- Add and edit coffee visits with vibe + coffee ratings.
-- Automatic composite score.
-- Main feed with sorting and search/filter.
-- Visit detail modal with extra notes + photo section.
-- Simple dashboard snapshot (visit count + average scores).
+## Shipped
 
-### Add later (Version 2)
-- Google Maps place auto-fill hardening (better validation and graceful fallback).
-- Map view of all shops.
-- Shared trip links and export.
-- Year-end recap visuals.
+### Coffee journal
+- Visit records with vibe and coffee ratings (decimals 0–10, including zero) and an overall sum out of 20
+- Saved-shop search, return visits, order, notes, and photo
+- Road vs Around Madison, with Madison detected from coordinates or Wisconsin place text
+- Filters, sort, map, insights, badges, and July–June road season reviews
+- Shareable entry, shop, view, and season URLs with browser Back
+- Apple Maps when a public domain-restricted token is configured; Google Places and OpenStreetMap remain the fallback
 
-## Technical approach (plain language)
-- **Frontend:** React + Tailwind for a polished, fast UI.
-- **API:** Works in both local Express and Cloudflare Functions.
-- **Data:** SQLite/D1 schema aligned so local and cloud behave the same.
-- **Modernization:** close feature gaps between local backend and cloud API, improve UX states, and add lightweight analytics cards.
+### Vest Tracker
+- Opened from the footer, or via `vests.*` / `?app=vest`
+- Saved games, NET rankings, and factual score summaries
+- Browsing does not write games. Outfit recommendations and generated blurbs are retired
 
-## Complexity
-- Overall: **Medium**.
-- Biggest risk area: API/schema drift between local development and deployed environment.
+### Owner access
+- Mutations require an owner session. Reads stay public
+- The access key is 256 bits of entropy. The server stores only `OWNER_KEY_HASH` (SHA-256). The browser keeps an HttpOnly, same-origin cookie for 12 hours
+- Missing `OWNER_KEY_HASH` fails closed. A different origin is rejected before the session is checked
+- Visits can be soft-deleted and restored. Owner export omits credentials and sessions. Vest saves keep recovery snapshots and reject stale revisions
 
-## Decisions you'll eventually need to make
-- Keep photo uploads simple (current) vs object storage provider (Cloudflare R2/S3).
-- Google Maps API budget and restrictions.
-- Whether to keep this private or add auth for wider sharing.
+### Platform
+- Production API is Pages Functions. Local API is Express. Both use `shared/` for auth, visits, shops, and Vest
+- Schema source is `schema.sql`. Existing production databases use the additive `migrations/0001_owner_shops_recovery.sql` once, after a backup
+
+## Next
+
+| Item | Status |
+|------|--------|
+| Finish coffee journal design tokens (semantic Tailwind colors on top of the existing CSS variables) | Follow-up on `main` |
+| Split `App.jsx` into coffee and Vest shells | Follow-up on `main` |
+| Add Visit flow, mobile filters, first viewport, and Vest hostname entry | Open PRs #45 and #49–#51, written against the old tracker branch; rebase onto `main` |
+| Photo storage (keep the current upload vs R2) | Decision |
+| Move the Cloudflare production branch to `main` if it is still pinned elsewhere | Infrastructure approval |
+
+## Not a future rewrite
+
+Interactive map, insights, season review, filtering, and owner-only editing already shipped. Do not re-plan them as greenfield.
+
+## Open decisions
+- Photos: current upload path vs Cloudflare R2
+- Apple Maps token restrictions when preview hostnames need to render maps
+- Wider sharing would be a new auth design. The owner session is the gate for this personal site

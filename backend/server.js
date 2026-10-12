@@ -160,7 +160,8 @@ async function sendResponse(res, response) {
 
 const ownerEnv = () => ({ DB: apiDB, OWNER_KEY_HASH: process.env.OWNER_KEY_HASH });
 app.use('/api', async (req, res, next) => {
-  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) || req.path === '/owner/session') return next();
+  const pathname = req.originalUrl.split('?')[0];
+  if (!auth.mutationRequiresOwner(req.method, pathname)) return next();
   try {
     const denied = await auth.authorizeWrite(webRequest(req), ownerEnv());
     if (denied) return sendResponse(res, denied);
