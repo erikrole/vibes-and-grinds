@@ -470,12 +470,15 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
   // ── Tab routing for the sub-pages ──
   if (vestTab === 'rankings') {
     return (
-      <NetRankingsPage
-        netRankings={netRankings}
-        netStatus={netStatus}
-        seasonTitle={seasonTitle(currentSeasonEndYear())}
-        onBack={() => setVestTab('dashboard')}
-      />
+      <main id="vest-dashboard" className="vest-tracker vp-wrap py-6 sm:py-8">
+        <VestPageHero preseason={preseason} endYear={seasonEndYearNow} priorLabel={priorSeason ? seasonTitle(priorSeason) : ''} recordSeason={recordSeason} vestSeason={vestSeason} seasonOptions={seasonOptions} onSeason={setVestSeason} />
+        <TabBar value={vestTab} onChange={setVestTab} />
+        <NetRankingsPage
+          netRankings={netRankings}
+          netStatus={netStatus}
+          seasonTitle={seasonTitle(vestSeason)}
+        />
+      </main>
     );
   }
 

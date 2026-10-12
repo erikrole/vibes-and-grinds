@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { prepareNetRankings } from '../utils/netRankingsView';
 
 const SORT_FIELDS = {
   RANK: 'rank',
@@ -6,13 +7,7 @@ const SORT_FIELDS = {
   RECORD: 'record',
 };
 
-const parseRecord = (record) => {
-  if (!record) return { wins: -1, losses: -1 };
-  const [w, l] = record.split('-').map(Number);
-  return { wins: Number.isFinite(w) ? w : -1, losses: Number.isFinite(l) ? l : -1 };
-};
-
-export default function NetRankingsPage({ netRankings, netStatus, seasonTitle: title = '2026–27', onBack }) {
+export default function NetRankingsPage({ netRankings, netStatus, seasonTitle: title = '2026–27' }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState(SORT_FIELDS.RANK);
   const [sortAsc, setSortAsc] = useState(true);
@@ -26,30 +21,14 @@ export default function NetRankingsPage({ netRankings, netStatus, seasonTitle: t
     }
   };
 
-  const filtered = useMemo(() => {
-    if (!searchQuery) return netRankings;
-    const q = searchQuery.toLowerCase();
-    return netRankings.filter((entry) => entry.team.toLowerCase().includes(q));
-  }, [netRankings, searchQuery]);
-
-  const sorted = useMemo(() => {
-    const arr = [...filtered];
-    const dir = sortAsc ? 1 : -1;
-
-    arr.sort((a, b) => {
-      if (sortField === SORT_FIELDS.RANK) return (a.rank - b.rank) * dir;
-      if (sortField === SORT_FIELDS.TEAM) return a.team.localeCompare(b.team) * dir;
-      if (sortField === SORT_FIELDS.RECORD) {
-        const ra = parseRecord(a.record);
-        const rb = parseRecord(b.record);
-        if (ra.wins !== rb.wins) return (rb.wins - ra.wins) * dir;
-        return (ra.losses - rb.losses) * dir;
-      }
-      return 0;
-    });
-
-    return arr;
-  }, [filtered, sortField, sortAsc]);
+  const sorted = useMemo(
+    () => prepareNetRankings(netRankings, { query: searchQuery, sortField, sortAsc }),
+    [netRankings, searchQuery, sortField, sortAsc],
+  );
+  const listedCount = useMemo(
+    () => prepareNetRankings(netRankings).length,
+    [netRankings],
+  );
 
   const sortIcon = (field) => {
     if (sortField !== field) return '';
@@ -57,12 +36,10 @@ export default function NetRankingsPage({ netRankings, netStatus, seasonTitle: t
   };
 
   return (
-    <main id="vest-dashboard" className="vest-tracker vp-wrap py-6 sm:py-8">
-      <section className="vp-cover">
-        <button type="button" onClick={onBack} className="vp-text-btn">← Dashboard</button>
-        <p className="vp-kicker vp-kicker-ink vp-net-kicker">NET rankings</p>
-        <h2 className="vp-display vp-cover-title">{title}</h2>
-      </section>
+    <section aria-labelledby="net-rankings-heading">
+      <div className="vp-section-head">
+        <h2 id="net-rankings-heading">NET rankings</h2>
+      </div>
 
       {netStatus === 'loading' && (
         <p className="vp-note">Loading NET rankings…</p>
@@ -103,9 +80,9 @@ export default function NetRankingsPage({ netRankings, netStatus, seasonTitle: t
           </div>
 
           <p className="vt-mono text-xs text-[color:var(--vt-ink-mute)] mb-3">
-            {filtered.length === netRankings.length
-              ? `${netRankings.length} teams`
-              : `${filtered.length} of ${netRankings.length} teams`}
+            {sorted.length === listedCount
+              ? `${listedCount} teams`
+              : `${sorted.length} of ${listedCount} teams`}
           </p>
 
           <div className="overflow-x-auto">
@@ -127,7 +104,7 @@ export default function NetRankingsPage({ netRankings, netStatus, seasonTitle: t
                 {sorted.map((entry) => {
                   const wisconsin = /wisconsin/i.test(entry.team);
                   return (
-                    <tr key={entry.rank + entry.team}>
+                    <tr key={`${entry.rank}-${entry.team}`}>
                       <td className={`vt-mono ${wisconsin ? 'vt-net-wisconsin' : ''}`}>{entry.rank}</td>
                       <td className={wisconsin ? 'vt-net-wisconsin' : ''}>{entry.team}</td>
                       <td className="vt-mono">{entry.record || '—'}</td>
@@ -146,6 +123,6 @@ export default function NetRankingsPage({ netRankings, netStatus, seasonTitle: t
           </div>
         </div>
       )}
-    </main>
+    </section>
   );
 }
