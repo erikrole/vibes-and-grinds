@@ -1,7 +1,5 @@
 import { memo } from 'react';
 
-// Arena jumbotron scoreboard. Black surface, red top rail, big Barlow Condensed
-// numerals with tabular nums, single accent. No decoration.
 function VestScoreboard({
   wins,
   losses,
@@ -10,147 +8,48 @@ function VestScoreboard({
   filterLabel,
   onClearFilter,
   status,
-  identity,
 }) {
   const total = wins + losses;
   const winPct = total > 0 ? Math.round((wins / total) * 100) : null;
 
   return (
-    <section className="vt-card vt-rail-top mb-6 overflow-hidden">
-      {/* Identity + status strip */}
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-5 sm:px-6 py-3 border-b border-[color:var(--vt-rule)]">
-        <div className="flex items-center gap-3 min-w-0">
-          {/* Block W mark */}
-          <span
-            aria-hidden
-            className="vt-display-tight text-2xl shrink-0"
-            style={{ color: 'var(--vt-red)', letterSpacing: '-0.04em' }}
-          >
-            W
-          </span>
-          <span className="vt-label truncate">
-            {identity?.team || 'Wisconsin Badgers'} · {identity?.season || '25–26'}
-            {identity?.who && (
-              <span className="text-[color:var(--vt-ink-faint)]"> · {identity.who}</span>
-            )}
-          </span>
-        </div>
-        {filterLabel ? (
-          <button
-            onClick={onClearFilter}
-            className="vt-condensed text-xs tracking-[0.16em] uppercase text-[color:var(--vt-ink-dim)] hover:text-[color:var(--vt-ink)] flex items-center gap-2 transition-colors"
-          >
-            <span className="text-[color:var(--vt-ink-faint)]">Filter ·</span>
-            <span>{filterLabel}</span>
-            <span aria-hidden className="text-[color:var(--vt-red)]">✕</span>
-          </button>
-        ) : (
-          status && <StatusBadge status={status} />
-        )}
+    <div className="vp-score" aria-label="Season record">
+      <div>
+        <p className="vp-display vp-score-num">
+          {wins}<span>–</span>{losses}
+        </p>
+        <p className="vp-kicker vp-kicker-ink">
+          {filterLabel ? `${filterLabel} record` : 'Season record'}
+          {winPct != null ? ` · ${winPct}%` : ''}
+        </p>
       </div>
-
-      <div className="px-5 sm:px-6 py-4 sm:py-5">
-        <div className="flex items-center justify-between gap-5 flex-wrap">
-          <div className="min-w-0 flex items-end gap-5 sm:gap-8">
-            <div>
-            <div className="vt-label mb-1">
-              {filterLabel ? `${filterLabel}` : 'Overall'}
-            </div>
-            <div className="vt-score-line flex items-baseline">
-              <span className="vt-hero-num vt-score-num vt-tabular">
-                {wins}
-              </span>
-              <span className="vt-hero-num vt-score-dash text-[color:var(--vt-ink-faint)] vt-tabular">
-                –
-              </span>
-              <span className="vt-hero-num vt-score-num vt-tabular text-[color:var(--vt-ink-dim)]">
-                {losses}
-              </span>
-            </div>
-            </div>
-            {winPct != null && (
-              <div className="pb-1">
-                <span className="vt-display text-2xl text-[color:var(--vt-red)] vt-tabular block">
-                  {winPct}<span className="text-xl">%</span>
-                </span>
-                <span className="vt-label block mt-1">Win Pct</span>
-              </div>
-            )}
-          </div>
-
+      {(secondary?.length > 0 || (streak && streak.count >= 2) || status?.kind === 'next') && (
+        <ul className="vp-splits">
+          {secondary?.map((pill) => (
+            <li key={pill.label} className="vp-split">
+              <span className="vp-kicker vp-kicker-ink">{pill.label}</span>
+              <strong>{pill.value}</strong>
+            </li>
+          ))}
           {streak && streak.count >= 2 && (
-            <StreakBadge streak={streak} />
+            <li className="vp-split">
+              <span className="vp-kicker vp-kicker-ink">{streak.result === 'W' ? 'Win streak' : 'Loss streak'}</span>
+              <strong>{streak.count}</strong>
+            </li>
           )}
-        </div>
-
-        {secondary?.length > 0 && (
-          <div className="mt-4 grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-            {secondary.map((pill) => (
-              <StatBlock key={pill.label} label={pill.label} value={pill.value} />
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function StatusBadge({ status }) {
-  if (status.kind === 'next') {
-    return (
-      <div className="flex items-center gap-2">
-        <span
-          className="inline-block w-1.5 h-1.5 rounded-full"
-          style={{ background: 'var(--vt-red)', boxShadow: '0 0 8px var(--vt-red)' }}
-          aria-hidden
-        />
-        <span className="vt-label">
-          Next · {status.label}
-          {status.date && (
-            <span className="text-[color:var(--vt-ink-faint)] ml-1">· {status.date}</span>
+          {status?.kind === 'next' && (
+            <li className="vp-split">
+              <span className="vp-kicker vp-kicker-ink">Next</span>
+              <strong className="vp-split-note">{status.label}{status.date ? ` · ${status.date}` : ''}</strong>
+            </li>
           )}
-        </span>
-      </div>
-    );
-  }
-  if (status.kind === 'final') {
-    return <span className="vt-label">Final · Season Closed</span>;
-  }
-  if (status.kind === 'archive') {
-    return <span className="vt-label">Last season</span>;
-  }
-  return <span className="vt-label">Season Record</span>;
-}
-
-function StreakBadge({ streak }) {
-  const isWin = streak.result === 'W';
-  return (
-    <div
-      className="flex items-baseline gap-2 px-4 py-3 rounded border"
-      style={{
-        background: isWin ? 'var(--vt-red-soft)' : 'transparent',
-        borderColor: isWin ? 'var(--vt-red)' : 'var(--vt-rule-strong)',
-      }}
-      title={`${streak.count}-game ${isWin ? 'win' : 'loss'} streak`}
-    >
-      <span
-        className="vt-display text-4xl sm:text-5xl vt-tabular"
-        style={{ color: isWin ? 'var(--vt-red)' : 'var(--vt-ink-dim)' }}
-      >
-        {streak.count}
-      </span>
-      <span className="vt-label" style={{ color: isWin ? 'var(--vt-red)' : 'var(--vt-ink-mute)' }}>
-        {isWin ? 'W Streak' : 'L Streak'}
-      </span>
-    </div>
-  );
-}
-
-function StatBlock({ label, value }) {
-  return (
-    <div className="vt-stat">
-      <span className="vt-stat-label">{label}</span>
-      <span className="vt-stat-value">{value}</span>
+        </ul>
+      )}
+      {filterLabel && (
+        <button type="button" onClick={onClearFilter} className="vp-text-btn">
+          Clear {filterLabel}
+        </button>
+      )}
     </div>
   );
 }

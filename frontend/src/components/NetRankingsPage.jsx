@@ -57,34 +57,33 @@ export default function NetRankingsPage({ netRankings, netStatus, seasonTitle: t
   };
 
   return (
-    <main id="vest-dashboard" className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-      <div className="mb-5 sm:mb-6 flex items-center gap-3">
-        <button type="button" onClick={onBack} className="vt-label hover:text-[color:var(--vt-ink)] py-2 pr-2">
-          ← Dashboard
-        </button>
-        <h2 className="vt-display text-2xl sm:text-3xl">NET Rankings</h2>
-      </div>
+    <main id="vest-dashboard" className="vest-tracker vp-wrap py-6 sm:py-8">
+      <section className="vp-cover">
+        <button type="button" onClick={onBack} className="vp-text-btn">← Dashboard</button>
+        <p className="vp-kicker vp-kicker-ink vp-net-kicker">NET rankings</p>
+        <h2 className="vp-display vp-cover-title">The national list</h2>
+      </section>
 
       {netStatus === 'loading' && (
-        <p className="vt-mono text-sm text-[color:var(--vt-ink-mute)]">Loading NET rankings…</p>
+        <p className="vp-note">Loading NET rankings…</p>
       )}
 
       {netStatus === 'unreleased' && (
-        <section className="vt-card vt-rail-top p-6 sm:p-8" aria-labelledby="net-unreleased-heading">
-          <p className="vt-label vt-label-red">Not yet released</p>
-          <h2 id="net-unreleased-heading" className="vt-display-tight text-4xl sm:text-5xl mt-3">{title} NET</h2>
-          <p className="vt-mono text-sm sm:text-base mt-4 max-w-xl text-[color:var(--vt-ink-dim)] leading-relaxed">
+        <section className="vp-tip" aria-labelledby="net-unreleased-heading">
+          <p className="vp-stamp">Not posted</p>
+          <h2 id="net-unreleased-heading" className="vp-display vp-tip-title">{title} NET</h2>
+          <p className="vp-lede">
             The NCAA has not posted this season&apos;s NET yet. Rankings usually arrive early in the new year.
           </p>
         </section>
       )}
 
       {netStatus === 'error' && (
-        <p className="vt-mono text-sm text-[color:var(--vt-red-hot)]">Unable to load NET rankings. Try refreshing the page.</p>
+        <p className="vp-note">Unable to load NET rankings. Try refreshing the page.</p>
       )}
 
       {netStatus === 'loaded' && (
-        <div className="vt-card p-4 sm:p-5">
+        <div className="vp-panel">
           <div className="relative mb-4">
             <input
               type="text"
@@ -131,7 +130,7 @@ export default function NetRankingsPage({ netRankings, netStatus, seasonTitle: t
                   return (
                     <tr key={entry.rank + entry.team}>
                       <td className={`vt-mono ${wisconsin ? 'vt-net-wisconsin' : ''}`}>{entry.rank}</td>
-                      <td className={`vt-condensed uppercase text-base ${wisconsin ? 'vt-net-wisconsin' : ''}`}>{entry.team}</td>
+                      <td className={wisconsin ? 'vt-net-wisconsin' : ''}>{entry.team}</td>
                       <td className="vt-mono">{entry.record || '—'}</td>
                     </tr>
                   );
