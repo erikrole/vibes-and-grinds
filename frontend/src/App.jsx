@@ -3,7 +3,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import FormModal from './components/FormModal';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import OwnerPanel from './components/OwnerPanel';
-import { APP_MODES, isVestHostname } from './constants/appModes';
+import { APP_MODES, enterAppMode, isVestHostname, resolveAppMode } from './constants/appModes';
 import useDarkMode from './hooks/useDarkMode';
 import useJournalRoute from './hooks/useJournalRoute';
 import usePublishedVisits from './hooks/usePublishedVisits';
@@ -18,10 +18,11 @@ const isVestDomain = isVestHostname();
  * Root shell. Mode comes from the vests.* hostname or ?app=vest.
  * Toasts use the toastBag returned by useToast. Owner sign-in stays here so
  * both products share one session, and anonymous writes stay on the API gate.
+ * Mode flips prefer coffee.* ↔ vests.* hops; local/dev keeps ?app=vest.
  */
 export default function App() {
   const { route, navigate, closeLayer } = useJournalRoute();
-  const appMode = isVestDomain ? APP_MODES.VEST : route.app;
+  const appMode = resolveAppMode(route.app);
   const journal = usePublishedVisits();
   const [owner, setOwner] = useState(false);
   const [showOwner, setShowOwner] = useState(false);
@@ -29,6 +30,16 @@ export default function App() {
   const [blockingUi, setBlockingUi] = useState(false);
   const [darkMode, toggleDarkMode] = useDarkMode();
   const toastBag = useToast();
+
+  const setAppMode = (mode) => {
+    navigate({
+      app: mode,
+      view: 'visits',
+      visit: null,
+      shop: null,
+      season: null,
+    });
+  };
 
   useEffect(() => {
     ownerRequest().then((session) => setOwner(session.owner)).catch(() => setOwner(false));
@@ -42,17 +53,22 @@ export default function App() {
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
       // An open dialog owns the keyboard. Coffee-only keys live in the journal shell.
+      // Guard blockingUi so `v` does not discard an open visit form.
       if (showOwner || showShortcuts || blockingUi) return;
-      if (e.key === '?') setShowShortcuts((prev) => !prev);
+      if (e.key.toLowerCase() === 'v') {
+        const next = appMode === APP_MODES.VIBES ? APP_MODES.VEST : APP_MODES.VIBES;
+        enterAppMode(next, { setAppMode });
+      } else if (e.key === '?') setShowShortcuts((prev) => !prev);
       else if (e.key.toLowerCase() === 'd') toggleDarkMode();
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [showOwner, showShortcuts, blockingUi, toggleDarkMode]);
+  }, [appMode, showOwner, showShortcuts, blockingUi, toggleDarkMode]);
 
   const chrome = {
     isVestDomain,
+    setAppMode,
     darkMode,
     toggleDarkMode,
     owner,

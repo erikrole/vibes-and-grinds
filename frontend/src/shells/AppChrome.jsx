@@ -1,12 +1,19 @@
-import { APP_MODES } from '../constants/appModes';
+import {
+  APP_MODES,
+  MODE_LABELS,
+  enterAppMode,
+  getSiblingProductUrl,
+} from '../constants/appModes';
 
 /**
  * Shared page chrome: brand, dark mode, optional header actions, and the footer
  * that switches products and opens owner sign-in.
+ * Product switch prefers coffee.* ↔ vests.* hops; local/dev keeps ?app=vest.
  */
 export default function AppChrome({
   appMode,
   isVestDomain,
+  setAppMode,
   darkMode,
   toggleDarkMode,
   headerActions = null,
@@ -17,6 +24,15 @@ export default function AppChrome({
   children,
 }) {
   const vest = appMode === APP_MODES.VEST;
+  const siblingTarget = vest ? APP_MODES.VIBES : APP_MODES.VEST;
+  const siblingUrl = getSiblingProductUrl(siblingTarget);
+  const switchHref = siblingUrl || (vest ? '/' : '/?app=vest');
+  const switchLabel = MODE_LABELS[siblingTarget].outcome;
+
+  const switchProduct = (event) => {
+    event.preventDefault();
+    enterAppMode(siblingTarget, { setAppMode });
+  };
 
   return (
     <div className={`min-h-screen transition-colors duration-200 ${vest ? 'vest-tracker-page' : 'coffee-journal-page'}`}>
@@ -67,8 +83,8 @@ export default function AppChrome({
             </p>
           )}
           <div className="footer-links">
-            <a href={vest ? (isVestDomain ? 'https://coffee.erikrole.com/' : '/') : '/?app=vest'}>
-              {vest ? 'Coffee journal ↗' : 'Vest Tracker ↗'}
+            <a href={switchHref} onClick={switchProduct}>
+              {switchLabel} ↗
             </a>
             <button type="button" onClick={onOwner}>{owner ? 'Manage journal' : 'Owner sign-in'}</button>
           </div>

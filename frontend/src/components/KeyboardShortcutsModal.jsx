@@ -4,6 +4,7 @@ import useFocusTrap from '../hooks/useFocusTrap';
 const SHORTCUTS = [
   { keys: ['/', '\u2318K'], label: 'Focus search' },
   { keys: ['N'], label: 'New visit' },
+  { keys: ['V'], label: 'Flip coffee journal ↔ Vest Tracker' },
   { keys: ['D'], label: 'Toggle dark mode' },
   { keys: ['\u2190', '\u2192'], label: 'Navigate between visits (in detail view)' },
   { keys: ['Esc'], label: 'Close modal or menu' },

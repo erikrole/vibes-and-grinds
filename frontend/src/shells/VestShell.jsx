@@ -7,6 +7,7 @@ const VestTrackerDashboard = lazy(() => import('../components/VestTrackerDashboa
 /** Vest Tracker screen. The dashboard keeps its own games; edits stay owner-gated. */
 export default function VestShell({
   isVestDomain,
+  setAppMode,
   darkMode,
   toggleDarkMode,
   owner,
@@ -19,6 +20,7 @@ export default function VestShell({
     <AppChrome
       appMode={APP_MODES.VEST}
       isVestDomain={isVestDomain}
+      setAppMode={setAppMode}
       darkMode={darkMode}
       toggleDarkMode={toggleDarkMode}
       owner={owner}

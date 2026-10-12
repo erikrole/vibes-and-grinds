@@ -29,6 +29,7 @@ export default function CoffeeJournalShell({
   owner,
   onOwner,
   onBrand,
+  setAppMode,
   showFooter,
   route,
   navigate,
@@ -277,6 +278,7 @@ export default function CoffeeJournalShell({
     <AppChrome
       appMode={APP_MODES.VIBES}
       isVestDomain={isVestDomain}
+      setAppMode={setAppMode}
       darkMode={darkMode}
       toggleDarkMode={toggleDarkMode}
       headerActions={headerActions}
