@@ -33,7 +33,7 @@ import VestScoreboard from './VestScoreboard';
 import VestNextGame from './VestNextGame';
 import VestTimeline from './VestTimeline';
 import VestLeaderboard from './VestLeaderboard';
-import VestInsights from './VestInsights';
+import VestInsights, { CoffeeTieIn } from './VestInsights';
 import VestExtras from './VestExtras';
 import VestGameForm from './VestGameForm';
 import VestLockInPick from './VestLockInPick';
@@ -83,6 +83,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
   const [scheduleEvents, setScheduleEvents] = useState([]);
   const [scoreGames, setScoreGames] = useState([]);
   const [coffeeVisits, setCoffeeVisits] = useState([]);
+  const [coffeeStatus, setCoffeeStatus] = useState('loading');
 
   // Warn once if localStorage was corrupted on load.
   useEffect(() => {
@@ -219,8 +220,8 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
   const lucky = useMemo(() => luckyOutfit(outfitBriefs), [outfitBriefs]);
   const halftime = useMemo(() => buildHalftimeSplit(scoreGames), [scoreGames]);
   const coffeeBrief = useMemo(
-    () => buildCoffeeBrief(coffeeVisits, completedGames, scoreGames),
-    [coffeeVisits, completedGames, scoreGames]
+    () => (coffeeStatus === 'ready' ? buildCoffeeBrief(coffeeVisits, completedGames, scoreGames) : null),
+    [coffeeStatus, coffeeVisits, completedGames, scoreGames]
   );
   const maxMargin = useMemo(() => {
     const values = outfitBriefs.map((brief) => Math.abs(brief.margin?.avg || 0));
@@ -430,9 +431,16 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
     let cancelled = false;
     fetchVisits()
       .then((data) => {
-        if (!cancelled) setCoffeeVisits(Array.isArray(data) ? data : data?.visits || []);
+        if (cancelled) return;
+        setCoffeeVisits(Array.isArray(data) ? data : data?.visits || []);
+        setCoffeeStatus('ready');
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) {
+          setCoffeeVisits([]);
+          setCoffeeStatus('error');
+        }
+      });
     return () => { cancelled = true; };
   }, []);
 
@@ -537,8 +545,14 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
         briefs={selectedOutfit ? outfitBriefs.filter((brief) => brief.outfit === selectedOutfit) : outfitBriefs}
         lucky={selectedOutfit ? null : lucky}
         halftime={selectedOutfit ? null : halftime}
-        coffee={selectedOutfit ? null : coffeeBrief}
         maxMargin={maxMargin}
+      />
+
+      <CoffeeTieIn
+        coffee={coffeeBrief}
+        status={coffeeStatus}
+        hasGames={completedGames.length > 0}
+        outfitFiltered={Boolean(selectedOutfit)}
       />
 
       <NetDegradedBanner netStatus={netStatus} seasonTitle={seasonTitle(seasonEndYearNow)} />

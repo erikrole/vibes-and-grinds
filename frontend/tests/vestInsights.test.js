@@ -76,6 +76,51 @@ test('coffee brief joins same-day visits without counting a home game that has n
   assert.equal(brief.repeatOrder.order, 'Iced Vanilla Latte');
   assert.equal(brief.repeatOrder.games, 2);
   assert.equal(brief.repeatShop.shop, 'Comet Coffee');
+  assert.equal(brief.goToCafe.shop, 'Comet Coffee');
+  assert.equal(brief.goToCafe.games, 2);
+  assert.equal(brief.goToCafe.wins, 2);
+  assert.equal(brief.goToCafe.losses, 0);
   assert.equal(brief.byDate['2026-01-10'][0].shop, 'Comet Coffee');
   assert.equal(buildCoffeeBrief(visits, [], scores), null);
+});
+
+test('coffee brief leaves the go-to cafe empty unless one shop leads on two or more game days', () => {
+  const onceEach = [
+    { date: '2026-01-10', coffee_shop_name: 'Comet Coffee' },
+    { date: '2025-12-10', coffee_shop_name: 'Crescent Moon Coffee' },
+  ];
+  const lonely = buildCoffeeBrief(onceEach, games, scores);
+  assert.equal(lonely.days, 2);
+  assert.equal(lonely.goToCafe, null);
+  assert.deepEqual(lonely.tiedCafes, []);
+
+  const tiedVisits = [
+    { date: '2026-01-10', coffee_shop_name: 'Comet Coffee' },
+    { date: '2026-02-13', coffee_shop_name: '  comet coffee  ' },
+    { date: '2025-12-10', coffee_shop_name: 'Crescent Moon Coffee' },
+    { date: '2026-02-20', coffee_shop_name: 'Crescent Moon Coffee' },
+  ];
+  const tied = buildCoffeeBrief(tiedVisits, games, scores);
+  assert.equal(tied.goToCafe, null);
+  assert.deepEqual(tied.tiedCafes.map((cafe) => cafe.shop), ['Comet Coffee', 'Crescent Moon Coffee']);
+  assert.equal(tied.tiedCafes[0].games, 2);
+  assert.equal(tied.repeatShop, null);
+
+  const unmatched = buildCoffeeBrief(
+    [{ date: '2026-08-28', coffee_shop_name: 'happy coffee', coffee_order: 'Cherry Pie Iced Latte' }],
+    games,
+    scores,
+  );
+  assert.equal(unmatched.days, 0);
+  assert.equal(unmatched.goToCafe, null);
+  assert.equal(unmatched.withRecord.games, 0);
+  assert.equal(unmatched.withoutRecord.games, games.length);
+
+  const doubled = buildCoffeeBrief([
+    { date: '2026-01-10', coffee_shop_name: 'Comet Coffee', coffee_order: 'Latte' },
+    { date: '2026-01-10', coffee_shop_name: 'Comet Coffee', coffee_order: 'Espresso' },
+  ], games, scores);
+  assert.equal(doubled.days, 1);
+  assert.equal(doubled.goToCafe, null);
+  assert.equal(doubled.stops, 2);
 });

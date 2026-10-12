@@ -2608,8 +2608,32 @@ button.insight-highlight:hover { background: var(--surface-muted); }
   font-weight: 700;
   line-height: 1;
 }
-.vp-coffee { display: grid; gap: 0.55rem; max-width: 42rem; }
-.vp-coffee p { margin: 0; line-height: 1.45; }
+.vp-coffee-stats { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
+.vp-cafe-name {
+  display: block;
+  margin-top: 0.2rem;
+  font-family: 'Barlow Condensed', Barlow, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+.vp-coffee-meta {
+  display: block;
+  margin-top: 0.28rem;
+  color: var(--vp-mute);
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+.vp-coffee-note {
+  margin: 0.85rem 0 0;
+  max-width: 40rem;
+  color: var(--vp-mute);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.vp-coffee-note + .vp-coffee-note { margin-top: 0.4rem; }
 
 .vp-table-wrap { display: none; }
 .vp-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }

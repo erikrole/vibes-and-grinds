@@ -143,14 +143,15 @@ const visitDate = (visit) => String(visit?.date || visit?.visitDate || '').slice
 
 export function buildCoffeeBrief(visits, games, scores) {
   const done = completed(games);
-  if (!done.length || !visits?.length) return null;
+  if (!done.length) return null;
   const byDate = new Map();
-  for (const visit of visits) {
+  for (const visit of visits || []) {
     const date = visitDate(visit);
-    if (!date || !visit.coffee_shop_name) continue;
+    const shop = String(visit?.coffee_shop_name || '').trim();
+    if (!date || !shop) continue;
     if (!byDate.has(date)) byDate.set(date, []);
     byDate.get(date).push({
-      shop: visit.coffee_shop_name,
+      shop,
       order: (visit.coffee_order || '').trim(),
       city: visit.city || '',
     });
@@ -162,7 +163,7 @@ export function buildCoffeeBrief(visits, games, scores) {
     if (stops.length) withCoffee.push({ game, stops });
     else without.push(game);
   }
-  if (!withCoffee.length) return null;
+  if (!withCoffee.length) return emptyCoffeeBrief(done, scores);
 
   const withRecord = recordOf(withCoffee.map((entry) => entry.game));
   const withoutRecord = recordOf(without);
@@ -183,11 +184,10 @@ export function buildCoffeeBrief(visits, games, scores) {
   const repeatOrder = [...orders.values()]
     .filter((stat) => stat.games >= 2)
     .sort((a, b) => b.games - a.games || (b.wins / b.games) - (a.wins / a.games) || a.order.localeCompare(b.order))[0] || null;
-  const shops = new Map();
-  for (const entry of withCoffee) {
-    for (const stop of entry.stops) shops.set(stop.shop, (shops.get(stop.shop) || 0) + 1);
-  }
-  const repeatShop = [...shops.entries()].filter(([, count]) => count >= 2).sort((a, b) => b[1] - a[1])[0] || null;
+  const cafes = cafeRecords(withCoffee);
+  const leaderCount = cafes[0]?.games || 0;
+  const leaders = leaderCount >= 2 ? cafes.filter((cafe) => cafe.games === leaderCount) : [];
+  const goToCafe = leaders.length === 1 ? leaders[0] : null;
 
   return {
     days: withCoffee.length,
@@ -199,7 +199,48 @@ export function buildCoffeeBrief(visits, games, scores) {
     homeCoffee,
     awayOrNeutral: withCoffee.length - homeCoffee,
     repeatOrder,
-    repeatShop: repeatShop ? { shop: repeatShop[0], games: repeatShop[1] } : null,
+    repeatShop: goToCafe ? { shop: goToCafe.shop, games: goToCafe.games } : null,
+    goToCafe,
+    tiedCafes: leaders.length > 1 ? leaders : [],
     byDate: Object.fromEntries(withCoffee.map((entry) => [entry.game.date, entry.stops])),
+  };
+}
+
+const shopKey = (name) => String(name || '').trim().toLowerCase();
+
+// One café per game day. A second cup at the same shop does not add a day.
+function cafeRecords(withCoffee) {
+  const shops = new Map();
+  for (const entry of withCoffee) {
+    const seen = new Set();
+    for (const stop of entry.stops) {
+      const key = shopKey(stop.shop);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      const stat = shops.get(key) || { shop: stop.shop.trim(), games: 0, wins: 0, losses: 0 };
+      stat.games += 1;
+      if (entry.game.result === 'W') stat.wins += 1;
+      else stat.losses += 1;
+      shops.set(key, stat);
+    }
+  }
+  return [...shops.values()].sort((a, b) => b.games - a.games || a.shop.localeCompare(b.shop));
+}
+
+function emptyCoffeeBrief(games, scores) {
+  return {
+    days: 0,
+    stops: 0,
+    withRecord: { wins: 0, losses: 0, games: 0 },
+    withoutRecord: recordOf(games),
+    withMargin: null,
+    withoutMargin: marginsFor(games, scores),
+    homeCoffee: 0,
+    awayOrNeutral: 0,
+    repeatOrder: null,
+    repeatShop: null,
+    goToCafe: null,
+    tiedCafes: [],
+    byDate: {},
   };
 }
