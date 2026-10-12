@@ -91,20 +91,17 @@ export function enterAppMode(targetMode, { setAppMode, location = window.locatio
 }
 
 /**
- * Footer href. Vest Tracker stays on this site at /?app=vest.
- * A vests.* host still links the coffee journal back to its sibling.
- * Hostname detection is unchanged: vests.* forces Vest mode.
+ * Footer href. Production coffee.* and vests.* hosts hop to the sibling.
+ * Previews and localhost keep the ?app=vest query so they stay on this deployment.
  */
 export function productSwitchHref(targetMode, location = window.location) {
-  if (targetMode === APP_MODES.VEST) return '/?app=vest';
-
   const host = location.hostname || '';
   const sibling = getSiblingProductUrl(targetMode, location);
-  if (sibling && host.startsWith('vests.')) {
+  if (sibling && (host.startsWith('coffee.') || host.startsWith('vests.'))) {
     const url = new URL(sibling);
     url.searchParams.delete('app');
     url.hash = '';
     return `${url.origin}${url.pathname}${url.search}`;
   }
-  return '/';
+  return targetMode === APP_MODES.VEST ? '/?app=vest' : '/';
 }
