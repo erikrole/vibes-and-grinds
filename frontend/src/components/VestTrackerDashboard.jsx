@@ -419,7 +419,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
 
   if (vestTab === 'game-stats') {
     return (
-      <main className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <main id="vest-dashboard" className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <TabBar value={vestTab} onChange={setVestTab} />
         <Suspense fallback={<LoadingPanel />}>
           <GameStatsPanel games={games} />
@@ -429,7 +429,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
   }
 
   return (
-    <main className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <main id="vest-dashboard" className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       <TabBar value={vestTab} onChange={setVestTab} />
 
       {saveError && <p role="alert" className="vt-card p-4 mb-5">{saveError}</p>}

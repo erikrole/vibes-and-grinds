@@ -317,12 +317,12 @@ export default function CoffeeJournalShell({
       onBrand={onBrand}
     >
       {loading ? (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-1 sm:pt-2 pb-8" aria-busy="true">
+        <main id="journal-main" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-1 sm:pt-2 pb-8" aria-busy="true">
           {hero(0, '—', '—', '—', false)}
-          <div className="flex items-center justify-center py-16 text-ink-faint animate-pulse">Loading visits…</div>
+          <div className="flex items-center justify-center py-16 text-ink-faint animate-pulse" role="status">Loading visits…</div>
         </main>
       ) : error ? (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-1 sm:pt-2 pb-8">
+        <main id="journal-main" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-1 sm:pt-2 pb-8">
           {hero(0, '—', '—', '—', false)}
           <section className="recovery-panel max-w-2xl" role="alert">
             <p className="eyebrow mb-3">Connection problem</p>
@@ -332,7 +332,7 @@ export default function CoffeeJournalShell({
           </section>
         </main>
       ) : (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-1 sm:pt-2 pb-8">
+        <main id="journal-main" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-1 sm:pt-2 pb-8">
           {hero(visits.length, avgVibe, avgCoffee, avgComposite, true)}
 
           <div className="journal-navigation flex items-center justify-between gap-5 mb-6 border-b border-rule">
@@ -396,6 +396,13 @@ export default function CoffeeJournalShell({
                 onAddVisit={owner ? handleOpenNewVisit : undefined}
                 onLogReturnVisit={owner ? handleLogReturnVisit : undefined}
                 hasActiveFilters={hasActiveFilters}
+                onClearFilters={() => setViewPrefs((current) => ({
+                  ...current,
+                  searchQuery: '',
+                  sportFilter: '',
+                  repeatFilter: '',
+                  scopeFilter: '',
+                }))}
                 shopVisitCounts={shopVisitCounts}
               />
 

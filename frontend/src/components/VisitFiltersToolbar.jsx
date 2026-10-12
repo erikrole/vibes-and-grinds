@@ -107,6 +107,9 @@ export default function VisitFiltersToolbar({
   const sheetDoneRef = useRef(null);
 
   const discreteFilterCount = [scopeFilter, sportFilter, repeatFilter].filter(Boolean).length;
+  const refineLabel = discreteFilterCount
+    ? `Refine, ${discreteFilterCount} ${discreteFilterCount === 1 ? 'filter' : 'filters'} selected`
+    : 'Refine';
   const hasDiscreteFilters = discreteFilterCount > 0;
   const hasActiveFilters = Boolean(searchQuery || hasDiscreteFilters);
 
@@ -186,12 +189,12 @@ export default function VisitFiltersToolbar({
         <div className="min-w-0 flex-1">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-ink transition-colors leading-tight">
+              <h2 id="journal-stops-heading" className="text-3xl sm:text-4xl font-semibold tracking-tight text-ink transition-colors leading-tight">
                 {hasActiveFilters ? 'Matching stops' : 'All stops'}
               </h2>
-              <p className="text-ink-soft text-sm tracking-wide transition-colors mt-1.5">
+              <p className="text-ink-soft text-sm tracking-wide transition-colors mt-1.5" role="status" aria-live="polite" aria-atomic="true">
                 {hasActiveFilters
-                  ? `${resultCount} of ${totalCount}`
+                  ? `${resultCount} of ${totalCount} ${totalCount === 1 ? 'visit' : 'visits'}`
                   : `${totalCount} ${totalCount === 1 ? 'visit' : 'visits'}`}
               </p>
             </div>
@@ -202,6 +205,7 @@ export default function VisitFiltersToolbar({
               className={`filter-refine-trigger sm:hidden ${discreteFilterCount || showRefine ? 'is-active' : ''}`}
               aria-expanded={showRefine}
               aria-controls={panelId}
+              aria-label={refineLabel}
               onClick={() => setShowRefine((open) => !open)}
             >
               Refine
@@ -271,6 +275,7 @@ export default function VisitFiltersToolbar({
             className={`filter-refine-trigger filter-refine-trigger-desktop ${discreteFilterCount || showRefine ? 'is-active' : ''}`}
             aria-expanded={showRefine}
             aria-controls={panelId}
+            aria-label={refineLabel}
             onClick={() => setShowRefine((open) => !open)}
           >
             Refine

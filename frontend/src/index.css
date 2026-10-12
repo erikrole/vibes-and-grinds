@@ -1923,3 +1923,23 @@ button.insight-highlight:hover { background: var(--surface-muted); }
   margin-top: 0.28rem;
   color: var(--vt-ink-mute);
 }
+
+.skip-link {
+  position: absolute;
+  left: 0.75rem;
+  top: 0.75rem;
+  z-index: 80;
+  transform: translateY(-150%);
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.6rem;
+  background: var(--surface-raised);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.skip-link:focus {
+  transform: none;
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}

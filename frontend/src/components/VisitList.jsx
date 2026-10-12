@@ -9,12 +9,14 @@ export default function VisitList({
   onViewDetails,
   onAddVisit,
   onLogReturnVisit,
+  onClearFilters,
   hasActiveFilters = false,
   shopVisitCounts = {},
 }) {
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4" role="status" aria-live="polite">
+        <span className="sr-only">Loading stops</span>
         {Array.from({ length: 3 }).map((_, index) => (
           <div
             key={index}
@@ -49,6 +51,11 @@ export default function VisitList({
         <p className="text-ink-soft mb-6">
           {hasActiveFilters ? 'Try a different search or remove filters.' : 'Add a shop, your order, and your ratings.'}
         </p>
+        {hasActiveFilters && onClearFilters && (
+          <button type="button" onClick={onClearFilters} className="btn-secondary">
+            Clear filters
+          </button>
+        )}
         {!hasActiveFilters && onAddVisit && (
           <button onClick={onAddVisit} className="btn-primary inline-flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,7 +69,7 @@ export default function VisitList({
   }
 
   return (
-    <div className="space-y-4">
+    <div id="journal-stops" className="space-y-4" aria-labelledby="journal-stops-heading">
       {visits.map((visit) => (
           <VisitCard
             key={visit.id}
