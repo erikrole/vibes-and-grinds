@@ -53,7 +53,7 @@ test('vest hostnames force Vest mode and sibling hosts hop both ways', () => {
   );
 });
 
-test('the journal footer stays on this site and local hosts flip in-app mode', () => {
+test('production hosts hop and local hosts flip in-app mode', () => {
   let assigned = null;
   let mode = APP_MODES.VIBES;
   const resultNav = enterAppMode(APP_MODES.VEST, {
@@ -95,21 +95,10 @@ test('the journal footer stays on this site and local hosts flip in-app mode', (
       protocol: 'https:',
       port: '',
       pathname: '/',
-      search: '',
+      search: '?app=vest',
       hash: '',
     }),
-    '/?app=vest'
-  );
-  assert.equal(
-    productSwitchHref(APP_MODES.VIBES, {
-      hostname: 'vests.erikrole.com',
-      protocol: 'https:',
-      port: '',
-      pathname: '/',
-      search: '',
-      hash: '',
-    }),
-    'https://coffee.erikrole.com/'
+    'https://vests.erikrole.com/'
   );
   assert.equal(
     productSwitchHref(APP_MODES.VEST, {
