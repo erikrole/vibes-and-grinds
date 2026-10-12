@@ -49,3 +49,15 @@ export function seasonHasCompletedGames(games, endYear) {
     (game) => (game.result === 'W' || game.result === 'L') && seasonEndYear(game.date) === endYear,
   );
 }
+
+export function vestSeasonFromSearch(search, now = new Date()) {
+  const raw = new URLSearchParams(String(search || '').replace(/^\?/, '')).get('vestSeason');
+  const year = Number(raw);
+  if (Number.isInteger(year) && year >= 1900 && year <= 2100) return year;
+  return currentSeasonEndYear(now);
+}
+
+export function seasonChoices(games, selected, now = new Date()) {
+  const years = (games || []).map((game) => seasonEndYear(game?.date)).filter(Boolean);
+  return [...new Set([currentSeasonEndYear(now), selected, ...years].filter(Boolean))].sort((a, b) => b - a);
+}

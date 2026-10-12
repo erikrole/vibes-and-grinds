@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { vestGames as seedGames } from '../utils/vestTrackerData';
-import { fetchVestGames, syncVestGames, fetchVisits } from '../utils/api';
+import { fetchVestGames, syncVestGames, fetchVisits, fetchVestSchedule } from '../utils/api';
 import {
   buildNetLookup,
   buildOutfitStats,
@@ -17,7 +17,11 @@ import { getTodayDateString } from '../utils/dates';
 import {
   currentSeasonEndYear,
   dominantSeasonLabel,
-  seasonHasCompletedGames,
+  seasonChoices,
+  seasonEndYear,
+  seasonLabel,
+  seasonTitle,
+  vestSeasonFromSearch,
 } from '../utils/vestSeason';
 import NetRankingsPage from './NetRankingsPage';
 import VestScoreboard from './VestScoreboard';
@@ -70,6 +74,8 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
   const [vestTab, setVestTab] = useState('dashboard');
   const [syncReady, setSyncReady] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [vestSeason, setVestSeason] = useState(() => vestSeasonFromSearch(window.location.search));
+  const [scheduleEvents, setScheduleEvents] = useState([]);
 
   // Warn once if localStorage was corrupted on load.
   useEffect(() => {
@@ -139,6 +145,23 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('vestSeason') === String(vestSeason)) return;
+    params.set('vestSeason', String(vestSeason));
+    const next = `${window.location.pathname}?${params}${window.location.hash}`;
+    window.history.replaceState(null, '', next);
+  }, [vestSeason]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setScheduleEvents([]);
+    fetchVestSchedule(vestSeason)
+      .then((payload) => { if (!cancelled) setScheduleEvents(Array.isArray(payload.events) ? payload.events : []); })
+      .catch(() => { if (!cancelled) setScheduleEvents([]); });
+    return () => { cancelled = true; };
+  }, [vestSeason]);
+
   const netLookup = useMemo(() => buildNetLookup(netRankings), [netRankings]);
 
   const sortedGames = useMemo(
@@ -146,9 +169,15 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
     [games]
   );
 
+  const seasonOptions = useMemo(() => seasonChoices(games, vestSeason), [games, vestSeason]);
+  const seasonSortedGames = useMemo(
+    () => sortedGames.filter((game) => seasonEndYear(game.date) === vestSeason),
+    [sortedGames, vestSeason]
+  );
+
   const completedGames = useMemo(
-    () => sortedGames.filter((g) => g.result === 'W' || g.result === 'L'),
-    [sortedGames]
+    () => seasonSortedGames.filter((g) => g.result === 'W' || g.result === 'L'),
+    [seasonSortedGames]
   );
 
   const teamWins = useMemo(() => completedGames.filter((g) => g.result === 'W').length, [completedGames]);
@@ -172,8 +201,8 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
   // Annotate timeline games with quadrant (needs NET) and sort newest-first.
   const visibleTimelineGames = useMemo(() => {
     const filtered = selectedOutfit
-      ? sortedGames.filter((g) => g.outfit === selectedOutfit)
-      : sortedGames;
+      ? seasonSortedGames.filter((g) => g.outfit === selectedOutfit)
+      : seasonSortedGames;
     return filtered.map((game) => ({
       ...game,
       quadrant:
@@ -181,7 +210,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
           ? getQuadrant(game.location, findNetRankForOpponent(netLookup, game.opponent))
           : null,
     }));
-  }, [sortedGames, selectedOutfit, netLookup, netStatus]);
+  }, [seasonSortedGames, selectedOutfit, netLookup, netStatus]);
 
   // Filtered scoreboard summary.
   const summary = useMemo(() => {
@@ -242,8 +271,12 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
   const mostWorn = useMemo(() => [...outfitStats].sort((a, b) => b.games - a.games)[0], [outfitStats]);
 
   const seasonEndYearNow = currentSeasonEndYear();
-  const preseason = !seasonHasCompletedGames(completedGames, seasonEndYearNow);
-  const recordSeason = dominantSeasonLabel(completedGames) || '25–26';
+  const preseason = vestSeason === seasonEndYearNow && completedGames.length === 0;
+  const recordSeason = dominantSeasonLabel(completedGames) || seasonLabel(vestSeason);
+  const priorSeason = useMemo(() => {
+    const years = sortedGames.map((game) => seasonEndYear(game.date)).filter((year) => year && year !== vestSeason);
+    return years.length ? Math.max(...years) : null;
+  }, [sortedGames, vestSeason]);
 
   // Badges per outfit, narrative-style.
   const outfitBadges = useMemo(() => {
@@ -264,9 +297,13 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
 
   // Next game scouting report.
   const upcomingGame = useMemo(
-    () => sortedGames.find((g) => !g.result || (g.result !== 'W' && g.result !== 'L')) || null,
-    [sortedGames]
+    () => seasonSortedGames.find((g) => !g.result || (g.result !== 'W' && g.result !== 'L')) || null,
+    [seasonSortedGames]
   );
+  const upcomingSchedule = useMemo(() => {
+    const saved = new Set(seasonSortedGames.map((game) => `${game.date}|${normalizeTeamName(game.opponent)}`));
+    return scheduleEvents.filter((game) => !game.result && !saved.has(`${game.date}|${normalizeTeamName(game.opponent)}`));
+  }, [scheduleEvents, seasonSortedGames]);
 
   // Once the game day arrives (date <= today) and an outfit is locked,
   // switch from the lock-in card to the post-game result card.
@@ -278,10 +315,11 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
   );
 
   const scoutingReport = useMemo(() => {
-    const upcoming = upcomingGame;
+    const upcoming = upcomingGame || upcomingSchedule[0] || null;
     if (!upcoming) return null;
-    const rank = findNetRankForOpponent(netLookup, upcoming.opponent);
-    const quadrant = getQuadrant(upcoming.location || 'vs', rank);
+    const useNet = upcoming.source !== 'espn' || completedGames.length > 0;
+    const rank = useNet ? findNetRankForOpponent(netLookup, upcoming.opponent) : null;
+    const quadrant = useNet ? getQuadrant(upcoming.location || 'vs', rank) : null;
     const vsOpponent = completedGames.filter(
       (g) => g.opponent.toLowerCase() === upcoming.opponent.toLowerCase()
     );
@@ -294,7 +332,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
       quadrant,
       allTimeRecord: vsOpponent.length ? { wins: vsWins, losses: vsOpponent.length - vsWins } : null,
     };
-  }, [upcomingGame, netLookup, completedGames]);
+  }, [upcomingGame, upcomingSchedule, netLookup, completedGames]);
 
   // Season storylines (single pass over completed games).
   const milestones = useMemo(() => {
@@ -430,9 +468,9 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
   if (vestTab === 'game-stats') {
     return (
       <main id="vest-dashboard" className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <TabBar value={vestTab} onChange={setVestTab} />
+        <DashboardHead vestTab={vestTab} onTab={setVestTab} vestSeason={vestSeason} seasonOptions={seasonOptions} onSeason={setVestSeason} />
         <Suspense fallback={<LoadingPanel />}>
-          <GameStatsPanel games={games} />
+          <GameStatsPanel games={seasonSortedGames} />
         </Suspense>
       </main>
     );
@@ -440,7 +478,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
 
   return (
     <main id="vest-dashboard" className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-      <TabBar value={vestTab} onChange={setVestTab} />
+      <DashboardHead vestTab={vestTab} onTab={setVestTab} vestSeason={vestSeason} seasonOptions={seasonOptions} onSeason={setVestSeason} />
 
       {saveError && <p role="alert" className="vt-card p-4 mb-5">{saveError}</p>}
       {syncReady && <VestGameForm
@@ -453,10 +491,10 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
       />}
 
       {preseason && !selectedOutfit && (
-        <VestPreseason endYear={seasonEndYearNow} priorLabel={recordSeason} />
+        <VestPreseason endYear={seasonEndYearNow} priorLabel={priorSeason ? seasonTitle(priorSeason) : ''} />
       )}
 
-      <VestScoreboard
+      {completedGames.length > 0 && <VestScoreboard
         wins={summary.wins}
         losses={summary.losses}
         streak={streak}
@@ -475,7 +513,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
               ? { kind: 'archive' }
               : { kind: 'final' }
         }
-      />
+      />}
 
       {scoutingReport && <VestNextGame scoutingReport={scoutingReport} mostWorn={mostWorn} />}
 
@@ -501,18 +539,23 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
       )}
 
       <VestTimeline
+        games={upcomingSchedule}
+        mode="upcoming"
+      />
+
+      <VestTimeline
         games={visibleTimelineGames}
         onEditGame={setViewingGame}
         onLogResult={canEdit && syncReady ? handleLogResult : undefined}
       />
 
-      <VestLeaderboard
+      {outfitStats.length > 0 && <VestLeaderboard
         stats={outfitStats}
         badges={outfitBadges}
         selectedOutfit={selectedOutfit}
         onViewOutfit={setViewingOutfit}
         netStatus={netStatus}
-      />
+      />}
 
       {netStatus === 'loaded' && (
         <NetStatusFooter netStatus={netStatus} count={netRankings.length} />
@@ -585,9 +628,23 @@ function NetDegradedBanner({ netStatus }) {
   );
 }
 
+function DashboardHead({ vestTab, onTab, vestSeason, seasonOptions, onSeason }) {
+  return (
+    <div className="vt-dashboard-head">
+      <TabBar value={vestTab} onChange={onTab} />
+      <label className="vt-season-switch">
+        <span className="vt-label">Season</span>
+        <select aria-label="Season" value={vestSeason} onChange={(event) => onSeason(Number(event.target.value))}>
+          {seasonOptions.map((year) => <option key={year} value={year}>{seasonTitle(year)}</option>)}
+        </select>
+      </label>
+    </div>
+  );
+}
+
 function TabBar({ value, onChange }) {
   return (
-    <div className="vt-tabs mb-5 sm:mb-6" role="tablist" aria-label="Vest Tracker">
+    <div className="vt-tabs" role="tablist" aria-label="Vest Tracker">
       {TABS.map((tab) => (
         <button
           key={tab.value}

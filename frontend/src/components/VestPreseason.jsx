@@ -10,7 +10,7 @@ function VestPreseason({ endYear, priorLabel }) {
         <h2 id="vest-preseason-heading" className="vt-display-tight vt-preseason-title">{title}</h2>
         <p className="vt-mono text-sm sm:text-base mt-4 max-w-xl text-[color:var(--vt-ink-dim)] leading-relaxed">
           No {title} games are logged yet. The scoreboard fills in after the first tip.
-          {priorLabel ? ` The ${priorLabel} record stays below.` : ''}
+          {priorLabel ? ` Switch to ${priorLabel} for last season.` : ''}
         </p>
       </div>
     </section>

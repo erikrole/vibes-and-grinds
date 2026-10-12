@@ -1,6 +1,9 @@
+import { toScheduleGames } from '../../../shared/vest-schedule.mjs';
+
 // Use relative URLs in production (for Cloudflare Pages Functions)
 // Use full URL in development
 const API_URL = import.meta.env.VITE_API_URL || '';
+const ESPN_SCHEDULE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/275/schedule';
 
 async function parseErrorResponse(response, fallbackMessage) {
   const errorData = await response.json().catch(() => ({}));
@@ -81,6 +84,27 @@ export async function syncVestGames(games, revision) {
 
   if (!response.ok) await parseErrorResponse(response, 'Could not save game records.');
   return response.json();
+}
+
+export async function fetchVestSchedule(season) {
+  const query = `?${new URLSearchParams({ season: String(season) })}`;
+  try {
+    const response = await fetch(`${API_URL}/api/vest/schedule${query}`);
+    if (response.ok) {
+      const payload = await response.json();
+      if (Array.isArray(payload.events)) return payload;
+    }
+  } catch { /* The browser can read ESPN directly when the function is not deployed yet. */ }
+  const batches = await Promise.all([2, 3].map(async (type) => {
+    const response = await fetch(`${ESPN_SCHEDULE}?season=${encodeURIComponent(season)}&seasontype=${type}`);
+    if (!response.ok) {
+      if (type === 2) throw new Error('ESPN unavailable');
+      return [];
+    }
+    const payload = await response.json();
+    return payload.events || [];
+  }));
+  return { season: Number(season), events: toScheduleGames(batches.flat()), source: 'espn' };
 }
 
 export async function fetchVestScores(season) {
