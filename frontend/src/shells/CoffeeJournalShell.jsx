@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import AddVisitForm from '../components/AddVisitForm';
 import FormModal from '../components/FormModal';
 import ShopHistory from '../components/ShopHistory';
+import VisitFiltersToolbar from '../components/VisitFiltersToolbar';
 import VisitList from '../components/VisitList';
 import { APP_MODES, isVestHostname } from '../constants/appModes';
 import useLocalStorage from '../hooks/useLocalStorage';
@@ -52,7 +53,6 @@ export default function CoffeeJournalShell({
     if (next) navigate({ visit: String(next.id) }, { layer: true, replace: Boolean(viewingVisit) });
     else if (route.visit) closeLayer('visit');
   };
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const showYearReview = Boolean(route.season);
   const setShowYearReview = (open) => open ? navigate({ season: reviewSeason }, { layer: true }) : closeLayer('season');
   const searchRef = useRef(null);
@@ -350,152 +350,22 @@ export default function CoffeeJournalShell({
             </Suspense>
           ) : (
             <>
-              <section className="log-toolbar mb-5">
-                <div className="relative search-glow rounded-lg transition-shadow mb-5">
-                  <input
-                    ref={searchRef}
-                    type="search"
-                    aria-label="Search the coffee journal"
-                    placeholder="Find a shop, city, or favorite order"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="journal-search"
-                  />
-                  <svg className="absolute left-3.5 top-3.5 h-5 w-5 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  {searchQuery && (
-                    <button onClick={() => setSearchQuery('')} className="absolute right-2 top-2 p-2 text-ink-faint hover:text-ink" aria-label="Clear search">
-                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-                <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-                  <div>
-                    <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-ink transition-colors leading-tight">
-                      {hasActiveFilters ? 'Matching stops' : 'All stops'}
-                    </h2>
-                    <p className="text-ink-soft text-sm tracking-wide transition-colors mt-2">
-                      {hasActiveFilters
-                        ? `${sortedVisits.length} of ${visits.length}`
-                        : `${visits.length} ${visits.length === 1 ? 'visit' : 'visits'}`}
-                    </p>
-                    {hasActiveFilters && (
-                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                        {scopeFilter && (
-                          <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-surface-muted text-ink border border-rule">
-                            {scopeFilter === VISIT_TYPES.HOME ? 'Around Madison' : 'Road trips'}
-                            <button onClick={() => setScopeFilter('')} className="ml-0.5 p-0.5 rounded-full hover:bg-surface-muted transition-colors" aria-label="Clear scope filter">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                          </span>
-                        )}
-                        {sportFilter && (
-                          <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-surface-muted text-ink border border-rule">
-                            {sportFilter}
-                            <button onClick={() => setSportFilter('')} className="ml-0.5 p-0.5 rounded-full hover:bg-surface-muted transition-colors" aria-label={`Remove ${sportFilter} filter`}>
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                          </span>
-                        )}
-                        {repeatFilter && (
-                          <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-surface-muted text-ink border border-rule">
-                            {repeatFilter === 'first' ? 'First-time shops' : 'Regular spots'}
-                            <button onClick={() => setRepeatFilter('')} className="ml-0.5 p-0.5 rounded-full hover:bg-surface-muted transition-colors" aria-label="Clear repeat filter">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                          </span>
-                        )}
-                        {searchQuery && (
-                          <span className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-surface-muted text-ink border border-rule">
-                            "{searchQuery}"
-                            <button onClick={() => setSearchQuery('')} className="ml-0.5 p-0.5 rounded-full hover:bg-surface-muted transition-colors" aria-label="Clear search">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                          </span>
-                        )}
-                        <button
-                          onClick={() => { setSearchQuery(''); setSportFilter(''); setRepeatFilter(''); setScopeFilter(''); }}
-                          className="text-xs text-ink-faint hover:text-ink underline underline-offset-2 transition-colors"
-                        >
-                          Clear all
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col gap-3 lg:items-end">
-                    <div className="flex sm:hidden gap-2">
-                      <select
-                        value={sortBy}
-                        onChange={(e) => setViewPrefs((prefs) => ({ ...prefs, sortBy: e.target.value, sortAsc: false }))}
-                        aria-label="Sort visits"
-                        className="control-field flex-1"
-                      >
-                        <option value="date">{sortAsc && sortBy === 'date' ? 'Oldest first' : 'Newest first'}</option>
-                        <option value="vibe">{sortAsc && sortBy === 'vibe' ? 'Lowest vibe' : 'Best vibe'}</option>
-                        <option value="coffee">{sortAsc && sortBy === 'coffee' ? 'Lowest coffee' : 'Best coffee'}</option>
-                        <option value="composite">{sortAsc && sortBy === 'composite' ? 'Lowest overall' : 'Best overall'}</option>
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => setShowMobileFilters((value) => !value)}
-                        className="control-field"
-                        aria-expanded={showMobileFilters}
-                        aria-controls="mobile-visit-filters"
-                      >
-                        Filters{(sportFilter || repeatFilter || scopeFilter) ? ' (active)' : ''}
-                      </button>
-                    </div>
-                    <div className="hidden sm:flex items-end gap-4 sm:gap-5 border-b border-rule pb-0">
-                      <span className="eyebrow pb-2.5">Sort</span>
-                      {[
-                        { value: 'date', label: sortBy === 'date' && sortAsc ? 'Oldest first' : 'Newest first' },
-                        { value: 'vibe', label: sortBy === 'vibe' && sortAsc ? 'Lowest vibe' : 'Highest vibe' },
-                        { value: 'coffee', label: sortBy === 'coffee' && sortAsc ? 'Lowest coffee' : 'Highest coffee' },
-                        { value: 'composite', label: sortBy === 'composite' && sortAsc ? 'Lowest total' : 'Highest total' },
-                      ].map((option) => (
-                        <button
-                          key={option.value}
-                          onClick={() => setSortBy(option.value)}
-                          className="tab-edge text-sm sm:text-base flex items-center gap-1"
-                          aria-pressed={sortBy === option.value}
-                        >
-                          {option.label}
-                          {sortBy === option.value && (
-                            <svg className={`w-3 h-3 transition-transform ${sortAsc ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-
-                    <div id="mobile-visit-filters" className={`${showMobileFilters ? 'grid' : 'hidden'} sm:grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto`}>
-                      <select value={scopeFilter} onChange={(e) => setScopeFilter(e.target.value)} aria-label="Filter visits by trip type" className="control-field sm:min-w-[170px]">
-                        <option value="">Road & Madison</option>
-                        <option value={VISIT_TYPES.ROAD}>Road trips</option>
-                        <option value={VISIT_TYPES.HOME}>Around Madison</option>
-                      </select>
-                      <select value={sportFilter} onChange={(e) => setSportFilter(e.target.value)} aria-label="Filter visits by sport" className="control-field sm:min-w-[180px]">
-                        <option value="">All sports</option>
-                        <option value="Men's Basketball">Men's Basketball</option>
-                        <option value="Men's Hockey">Men's Hockey</option>
-                        <option value="Football">Football</option>
-                        <option value="Track & Field">Track & Field</option>
-                        <option value="Cross Country">Cross Country</option>
-                      </select>
-                      <select value={repeatFilter} onChange={(e) => setRepeatFilter(e.target.value)} aria-label="Filter visits by repeat status" className="control-field sm:min-w-[170px]">
-                        <option value="">All visits</option>
-                        <option value="first">First-time shops</option>
-                        <option value="regular">Regular spots</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </section>
+              <VisitFiltersToolbar
+                searchRef={searchRef}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                sortBy={sortBy}
+                sortAsc={sortAsc}
+                setSortBy={setSortBy}
+                sportFilter={sportFilter}
+                setSportFilter={setSportFilter}
+                repeatFilter={repeatFilter}
+                setRepeatFilter={setRepeatFilter}
+                scopeFilter={scopeFilter}
+                setScopeFilter={setScopeFilter}
+                resultCount={sortedVisits.length}
+                totalCount={visits.length}
+              />
 
               <VisitList
                 visits={sortedVisits}
