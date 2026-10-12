@@ -6,7 +6,7 @@ import ShopHistory from '../components/ShopHistory';
 import VisitFiltersToolbar from '../components/VisitFiltersToolbar';
 import VisitList from '../components/VisitList';
 import { APP_MODES, isVestHostname } from '../constants/appModes';
-import useLocalStorage from '../hooks/useLocalStorage';
+import { mergeStoredFilters, searchFromFilters } from '../utils/journalFilters';
 import { createVisit, deleteVisit, restoreVisit, updateVisit } from '../utils/api';
 import { titleCaseOrder } from '../utils/display';
 import { buildReturnVisitDraft, getShopRepeatKey, getShopVisitCounts } from '../utils/repeats';
@@ -57,14 +57,25 @@ export default function CoffeeJournalShell({
   const showYearReview = Boolean(route.season);
   const setShowYearReview = (open) => open ? navigate({ season: reviewSeason }, { layer: true }) : closeLayer('season');
   const searchRef = useRef(null);
+  const VIEW_PREFS_KEY = 'vibes-and-grinds:view-preferences';
 
-  const [viewPrefs, setViewPrefs] = useLocalStorage('vibes-and-grinds:view-preferences', {
-    sortBy: 'date',
-    searchQuery: '',
-    sportFilter: '',
-    repeatFilter: '',
-    scopeFilter: '',
-    appMode: isVestHostname() ? APP_MODES.VEST : APP_MODES.VIBES,
+  const [viewPrefs, setViewPrefs] = useState(() => {
+    const defaults = {
+      sortBy: 'date',
+      sortAsc: false,
+      searchQuery: '',
+      sportFilter: '',
+      repeatFilter: '',
+      scopeFilter: '',
+      appMode: isVestHostname() ? APP_MODES.VEST : APP_MODES.VIBES,
+    };
+    try {
+      const raw = localStorage.getItem(VIEW_PREFS_KEY);
+      const stored = raw ? { ...defaults, ...JSON.parse(raw) } : defaults;
+      return mergeStoredFilters(stored, window.location.search);
+    } catch {
+      return mergeStoredFilters(defaults, window.location.search);
+    }
   });
 
   const sortBy = viewPrefs.sortBy || 'date';
@@ -83,6 +94,26 @@ export default function CoffeeJournalShell({
   const setSportFilter = (v) => setViewPrefs((p) => ({ ...p, sportFilter: v }));
   const setRepeatFilter = (v) => setViewPrefs((p) => ({ ...p, repeatFilter: v }));
   const setScopeFilter = (v) => setViewPrefs((p) => ({ ...p, scopeFilter: v }));
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(VIEW_PREFS_KEY, JSON.stringify(viewPrefs));
+    } catch {
+      // Storage full or unavailable.
+    }
+    const nextSearch = searchFromFilters({
+      searchQuery,
+      sortBy,
+      sortAsc,
+      scopeFilter,
+      sportFilter,
+      repeatFilter,
+    }, window.location.search);
+    const nextUrl = `${window.location.pathname}${nextSearch}${window.location.hash}`;
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (nextUrl !== currentUrl) window.history.replaceState(window.history.state, '', nextUrl);
+  }, [viewPrefs, searchQuery, sortBy, sortAsc, scopeFilter, sportFilter, repeatFilter]);
+
   const setViewTab = (view) => navigate({ view, visit: null, shop: null, season: null });
   const openShop = (visit) => navigate({ shop: visit.shop_id, visit: null }, { layer: true });
 
