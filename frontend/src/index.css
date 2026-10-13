@@ -2608,6 +2608,7 @@ button.insight-highlight:hover { background: var(--surface-muted); }
   font-weight: 700;
   line-height: 1;
 }
+.vp-coffee-head { align-items: flex-end; }
 .vp-coffee-stats { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
 .vp-cafe-name {
   display: block;

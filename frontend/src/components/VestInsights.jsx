@@ -111,14 +111,14 @@ function VestInsights({ games, briefs, lucky, halftime, maxMargin, coffeeTieIn =
 export function CoffeeTieIn({ coffee, status, hasGames, outfitFiltered }) {
   return (
     <section className="vp-section" aria-labelledby="vest-coffee-heading">
-      <div className="vp-section-head">
+      <div className="vp-section-head vp-coffee-head">
         <div>
           <p className="vp-kicker vp-kicker-ink">Just for fun</p>
           <h2 id="vest-coffee-heading">Coffee days</h2>
         </div>
         <p className="vp-section-note">
-          Read only. Same date in the coffee journal. Small sample.
-          {outfitFiltered ? ' Full season, not the outfit filter.' : ''}
+          Same date in the coffee journal. Small sample.
+          {outfitFiltered ? ' Ignores the outfit filter.' : ''}
         </p>
       </div>
       <CoffeeTieInBody coffee={coffee} status={status} hasGames={hasGames} />
@@ -131,7 +131,7 @@ function CoffeeTieInBody({ coffee, status, hasGames }) {
     return <p className="vp-coffee-note">Checking the coffee journal.</p>;
   }
   if (status === 'error') {
-    return <p className="vp-coffee-note">The coffee journal didn’t load, so there is no tie-in yet.</p>;
+    return <p className="vp-coffee-note">The coffee journal didn’t load.</p>;
   }
   if (!hasGames) {
     return <p className="vp-coffee-note">No completed games this season to match.</p>;
@@ -194,7 +194,7 @@ function CoffeeTieInBody({ coffee, status, hasGames }) {
         <p className="vp-coffee-note">
           Repeat order: {coffee.repeatOrder.order},{' '}
           <Record wins={coffee.repeatOrder.wins} losses={coffee.repeatOrder.losses} />
-          {' '}in {countLabel(coffee.repeatOrder.games, 'game', 'games')}. Small sample.
+          {' '}in {countLabel(coffee.repeatOrder.games, 'game', 'games')}.
         </p>
       ) : null}
     </>
@@ -206,7 +206,7 @@ function travelNote(coffee) {
     const days = coffee.days === 1
       ? 'The coffee day was a road or neutral trip.'
       : `All ${coffee.days} coffee days were road or neutral trips.`;
-    return `${days} Home games have no coffee log, so this tracks travel as much as the drink.`;
+    return `${days} No home game has a coffee log.`;
   }
   if (coffee.awayOrNeutral === 0) {
     return coffee.days === 1 ? 'The coffee day was a home game.' : `All ${coffee.days} coffee days were home games.`;
