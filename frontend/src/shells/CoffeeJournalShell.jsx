@@ -29,6 +29,7 @@ export default function CoffeeJournalShell({
   darkMode,
   toggleDarkMode,
   owner,
+  contributor,
   onOwner,
   onBrand,
   showFooter,
@@ -121,8 +122,10 @@ export default function CoffeeJournalShell({
     onBlockingUiChange(Boolean(showForm || editingVisit || viewingVisit || showYearReview));
   }, [showForm, editingVisit, viewingVisit, showYearReview, onBlockingUiChange]);
 
+  const canAdd = Boolean(owner || contributor);
+
   const handleOpenNewVisit = () => {
-    if (!owner) { onOwner(); return; }
+    if (!canAdd) { onOwner(); return; }
     setVisitDraft(
       scopeFilter === VISIT_TYPES.HOME
         ? { visit_type: VISIT_TYPES.HOME, city: HOME_CITY }
@@ -215,7 +218,7 @@ export default function CoffeeJournalShell({
   };
 
   const handleLogReturnVisit = (visit) => {
-    if (!owner) { onOwner(); return; }
+    if (!canAdd) { onOwner(); return; }
     setVisitDraft(buildReturnVisitDraft(visit));
     setEditingVisit(null);
     setViewingVisit(null);
@@ -299,7 +302,7 @@ export default function CoffeeJournalShell({
       avgCoffee={coffee}
       avgComposite={overall}
       onAddVisit={handleOpenNewVisit}
-      showAddVisit={allowAdd && owner && !showForm && !editingVisit}
+      showAddVisit={allowAdd && canAdd && !showForm && !editingVisit}
       onBrand={onBrand}
     />
   );
@@ -313,6 +316,7 @@ export default function CoffeeJournalShell({
       showFooter={showFooter}
       showBrand={false}
       owner={owner}
+      contributor={contributor}
       onOwner={onOwner}
       onBrand={onBrand}
     >
@@ -360,7 +364,7 @@ export default function CoffeeJournalShell({
             )}
           </div>
 
-          {route.shop ? <ShopHistory shopId={route.shop} visits={visits} onBack={() => closeLayer('shop')} onVisitClick={setViewingVisit} onEdit={owner ? handleEditVisit : undefined} onDelete={owner ? handleDeleteVisit : undefined} onLogReturnVisit={owner ? handleLogReturnVisit : undefined} /> : viewTab === 'insights' ? (
+          {route.shop ? <ShopHistory shopId={route.shop} visits={visits} onBack={() => closeLayer('shop')} onVisitClick={setViewingVisit} onEdit={owner ? handleEditVisit : undefined} onDelete={owner ? handleDeleteVisit : undefined} onLogReturnVisit={canAdd ? handleLogReturnVisit : undefined} /> : viewTab === 'insights' ? (
             <Suspense fallback={<div className="flex items-center justify-center py-20 text-ink-faint animate-pulse">Loading insights...</div>}>
               <InsightsPanel visits={visits} onVisitClick={setViewingVisit} onShopClick={openShop} />
             </Suspense>
@@ -393,8 +397,8 @@ export default function CoffeeJournalShell({
                 onEdit={owner ? handleEditVisit : undefined}
                 onDelete={owner ? handleDeleteVisit : undefined}
                 onViewDetails={setViewingVisit}
-                onAddVisit={owner ? handleOpenNewVisit : undefined}
-                onLogReturnVisit={owner ? handleLogReturnVisit : undefined}
+                onAddVisit={canAdd ? handleOpenNewVisit : undefined}
+                onLogReturnVisit={canAdd ? handleLogReturnVisit : undefined}
                 hasActiveFilters={hasActiveFilters}
                 onClearFilters={() => setViewPrefs((current) => ({
                   ...current,
@@ -438,7 +442,7 @@ export default function CoffeeJournalShell({
             onUpdate={owner ? handleModalUpdateVisit : undefined}
             onEdit={owner ? handleEditVisit : undefined}
             onDelete={owner ? handleDeleteVisit : undefined}
-            onLogReturnVisit={owner ? handleLogReturnVisit : undefined}
+            onLogReturnVisit={canAdd ? handleLogReturnVisit : undefined}
           />
         </Suspense>
       )}

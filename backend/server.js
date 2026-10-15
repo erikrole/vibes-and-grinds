@@ -158,7 +158,7 @@ async function sendResponse(res, response) {
   res.status(response.status).send(Buffer.from(await response.arrayBuffer()));
 }
 
-const ownerEnv = () => ({ DB: apiDB, OWNER_KEY_HASH: process.env.OWNER_KEY_HASH });
+const ownerEnv = () => ({ DB: apiDB, OWNER_KEY_HASH: process.env.OWNER_KEY_HASH, CONTRIB_KEY_HASH: process.env.CONTRIB_KEY_HASH });
 app.use('/api', async (req, res, next) => {
   const pathname = req.originalUrl.split('?')[0];
   if (!auth.mutationRequiresOwner(req.method, pathname)) return next();

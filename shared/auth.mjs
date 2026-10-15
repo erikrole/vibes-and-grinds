@@ -44,29 +44,47 @@ export function mutationRequiresOwner(method, pathname) {
   return pathname !== '/api/owner/session';
 }
 
-export async function isOwner(request, env) {
-  if (!env.OWNER_KEY_HASH || !env.DB) return false;
+async function hasSession(request, env, keyHash) {
+  if (!keyHash || !env.DB) return false;
   const token = sessionToken(request);
   if (!/^[a-f0-9]{64}$/.test(token)) return false;
   const session = await env.DB.prepare('SELECT expires_at FROM owner_sessions WHERE token_hash = ?')
-    .bind(await hash(`${env.OWNER_KEY_HASH}:${token}`)).first();
+    .bind(await hash(`${keyHash}:${token}`)).first();
   return Boolean(session && session.expires_at > Math.floor(Date.now() / 1000));
+}
+
+export const isOwner = (request, env) => hasSession(request, env, env.OWNER_KEY_HASH);
+
+// A contributor key (CONTRIB_KEY_HASH, optional) signs in a session that can only
+// add visits and photos. It cannot edit, delete, export, restore, or save Vest games.
+export const isContributor = (request, env) => hasSession(request, env, env.CONTRIB_KEY_HASH);
+
+export function contributorMayWrite(method, pathname) {
+  return method === 'POST' && (pathname === '/api/visits' || pathname === '/api/upload');
 }
 
 export async function authorizeWrite(request, env) {
   if (!sameOrigin(request)) return json({ error: 'This action must come from this site.' }, 403);
-  if (!(await isOwner(request, env))) return json({ error: 'Sign in as the owner to make changes.' }, 401);
-  return null;
+  if (await isOwner(request, env)) return null;
+  if (contributorMayWrite(request.method, new URL(request.url).pathname) && (await isContributor(request, env))) return null;
+  return json({ error: 'Sign in as the owner to make changes.' }, 401);
 }
 
 export async function ownerSession(request, env) {
   const method = request.method;
-  if (method === 'GET') return json({ owner: await isOwner(request, env), configured: Boolean(env.OWNER_KEY_HASH) });
+  if (method === 'GET') {
+    const owner = await isOwner(request, env);
+    return json({ owner, contributor: !owner && (await isContributor(request, env)), configured: Boolean(env.OWNER_KEY_HASH) });
+  }
   if (!sameOrigin(request)) return json({ error: 'This action must come from this site.' }, 403);
   if (method === 'DELETE') {
     const token = sessionToken(request);
-    if (token) await env.DB.prepare('DELETE FROM owner_sessions WHERE token_hash = ?').bind(await hash(`${env.OWNER_KEY_HASH}:${token}`)).run();
-    return json({ owner: false }, 200, { 'Set-Cookie': cookie(request, '', 0) });
+    if (token) {
+      for (const keyHash of [env.OWNER_KEY_HASH, env.CONTRIB_KEY_HASH].filter(Boolean)) {
+        await env.DB.prepare('DELETE FROM owner_sessions WHERE token_hash = ?').bind(await hash(`${keyHash}:${token}`)).run();
+      }
+    }
+    return json({ owner: false, contributor: false }, 200, { 'Set-Cookie': cookie(request, '', 0) });
   }
   if (method !== 'POST') return json({ error: 'Method not allowed' }, 405);
   if (!env.OWNER_KEY_HASH) return json({ error: 'Owner sign-in is not configured yet.' }, 503);
@@ -87,13 +105,17 @@ export async function ownerSession(request, env) {
     window_start = CASE WHEN window_start < ? THEN excluded.window_start ELSE window_start END
     RETURNING attempts`).bind(client, now, now - 900, now - 900).first();
   if (attempt.attempts > 8) return json({ error: 'Too many attempts. Try again in 15 minutes.' }, 429, { 'Retry-After': '900' });
-  if (!equal(await hash(key.trim()), env.OWNER_KEY_HASH)) return json({ error: 'That access key didn’t match.' }, 401);
+  const attemptHash = await hash(key.trim());
+  const role = equal(attemptHash, env.OWNER_KEY_HASH) ? 'owner'
+    : env.CONTRIB_KEY_HASH && equal(attemptHash, env.CONTRIB_KEY_HASH) ? 'contributor' : null;
+  if (!role) return json({ error: 'That access key didn’t match.' }, 401);
+  const sessionKeyHash = role === 'owner' ? env.OWNER_KEY_HASH : env.CONTRIB_KEY_HASH;
 
   const token = [...crypto.getRandomValues(new Uint8Array(32))].map((byte) => byte.toString(16).padStart(2, '0')).join('');
   await env.DB.batch([
     env.DB.prepare('DELETE FROM owner_sessions WHERE expires_at <= ?').bind(now),
     env.DB.prepare('DELETE FROM owner_login_attempts WHERE client_hash = ? OR window_start < ?').bind(client, now - 900),
-    env.DB.prepare('INSERT INTO owner_sessions (token_hash, expires_at) VALUES (?, ?)').bind(await hash(`${env.OWNER_KEY_HASH}:${token}`), now + SESSION_SECONDS),
+    env.DB.prepare('INSERT INTO owner_sessions (token_hash, expires_at) VALUES (?, ?)').bind(await hash(`${sessionKeyHash}:${token}`), now + SESSION_SECONDS),
   ]);
-  return json({ owner: true }, 200, { 'Set-Cookie': cookie(request, token) });
+  return json({ owner: role === 'owner', contributor: role === 'contributor' }, 200, { 'Set-Cookie': cookie(request, token) });
 }

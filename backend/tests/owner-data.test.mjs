@@ -146,3 +146,29 @@ test('Vest saves validate all rows, reject stale revisions, preserve metadata an
     assert.equal(restored.games[0].espn_event_id, '123'); assert.equal(restored.games[0].outfit, 'Red Vest');
   } finally { await env.db.close(); }
 });
+
+test('contributor key can only add visits and photos', async () => {
+  const env = { ...(await fixture()), CONTRIB_KEY_HASH: await hash('aj') };
+  try {
+    const wrong = await ownerSession(req('/api/owner/session', 'POST', { key: 'nope' }), env);
+    assert.equal(wrong.status, 401);
+    const signIn = await ownerSession(req('/api/owner/session', 'POST', { key: ' aj ' }), env);
+    assert.equal(signIn.status, 200);
+    assert.deepEqual(await signIn.json(), { owner: false, contributor: true });
+    const cookie = signIn.headers.get('Set-Cookie').split(';')[0];
+    const allowed = async (method, path) => (await authorizeWrite(req(path, method, {}, cookie), env)) === null;
+    assert.equal(await allowed('POST', '/api/visits'), true);
+    assert.equal(await allowed('POST', '/api/upload'), true);
+    for (const [method, path] of [['PUT', '/api/visits/1'], ['DELETE', '/api/visits/1'], ['POST', '/api/owner/backfill'], ['PUT', '/api/vest/games'], ['POST', '/api/owner/trash/1']]) {
+      assert.equal(await allowed(method, path), false, `${method} ${path}`);
+    }
+    assert.equal(await isOwner(req('/api/visits', 'POST', {}, cookie), env), false);
+    const status = await (await ownerSession(req('/api/owner/session', 'GET', null, cookie), env)).json();
+    assert.deepEqual(status, { owner: false, contributor: true, configured: true });
+    await ownerSession(req('/api/owner/session', 'DELETE', null, cookie), env);
+    assert.equal(await allowed('POST', '/api/visits'), false);
+    // No contributor key configured: the contributor path is closed.
+    const closed = await ownerSession(req('/api/owner/session', 'POST', { key: 'aj' }), await fixture());
+    assert.equal(closed.status, 401);
+  } finally { await env.db.close(); }
+});

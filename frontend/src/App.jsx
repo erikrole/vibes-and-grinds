@@ -24,6 +24,7 @@ export default function App() {
   const appMode = resolveAppMode(route.app);
   const journal = usePublishedVisits();
   const [owner, setOwner] = useState(false);
+  const [contributor, setContributor] = useState(false);
   const [showOwner, setShowOwner] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [blockingUi, setBlockingUi] = useState(false);
@@ -31,8 +32,8 @@ export default function App() {
   const toastBag = useToast();
 
   useEffect(() => {
-    ownerRequest().then((session) => setOwner(session.owner)).catch(() => setOwner(false));
-    const signIn = () => { setOwner(false); setShowOwner(true); };
+    ownerRequest().then((session) => { setOwner(session.owner); setContributor(Boolean(session.contributor)); }).catch(() => { setOwner(false); setContributor(false); });
+    const signIn = () => { setOwner(false); setContributor(false); setShowOwner(true); };
     window.addEventListener('vg:sign-in-required', signIn);
     return () => window.removeEventListener('vg:sign-in-required', signIn);
   }, []);
@@ -56,6 +57,7 @@ export default function App() {
     darkMode,
     toggleDarkMode,
     owner,
+    contributor,
     onOwner: () => setShowOwner(true),
     onBrand: () => navigate({ view: 'visits', visit: null, shop: null, season: null }),
     showFooter: !journal.loading && !journal.error,
@@ -114,8 +116,8 @@ export default function App() {
         <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />
       )}
 
-      {showOwner && <FormModal topmost title={owner ? 'Manage journal' : 'Owner sign-in'} onClose={() => setShowOwner(false)}>
-        <OwnerPanel owner={owner} onSignedIn={() => { setOwner(true); setShowOwner(false); toastBag.show('Signed in.'); }} onSignedOut={() => { setOwner(false); setShowOwner(false); }} onRestored={(visit) => { journal.setVisits((items) => [visit, ...items]); toastBag.show('Visit restored.'); }} />
+      {showOwner && <FormModal topmost title={owner ? 'Manage journal' : contributor ? 'Signed in' : 'Sign in'} onClose={() => setShowOwner(false)}>
+        <OwnerPanel owner={owner} contributor={contributor} onSignedIn={(session) => { setOwner(Boolean(session?.owner)); setContributor(Boolean(session?.contributor)); setShowOwner(false); toastBag.show('Signed in.'); }} onSignedOut={() => { setOwner(false); setContributor(false); setShowOwner(false); }} onRestored={(visit) => { journal.setVisits((items) => [visit, ...items]); toastBag.show('Visit restored.'); }} />
       </FormModal>}
     </ErrorBoundary>
   );

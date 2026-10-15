@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ownerRequest, restoreVisit } from '../utils/api';
 import { formatDate } from '../utils/dates';
 
-export default function OwnerPanel({ owner, onSignedIn, onSignedOut, onRestored, onSavingChange }) {
+export default function OwnerPanel({ owner, contributor, onSignedIn, onSignedOut, onRestored, onSavingChange }) {
   const [key, setKey] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -20,13 +20,16 @@ export default function OwnerPanel({ owner, onSignedIn, onSignedOut, onRestored,
     try { await action(); } catch (err) { setError(err.message); } finally { setBusy(false); }
   };
   return <section className="owner-panel">
-    <h2 className="type-title">{owner ? 'Manage journal' : 'Owner sign-in'}</h2>
+    <h2 className="type-title">{owner ? 'Manage journal' : contributor ? 'Signed in' : 'Sign in'}</h2>
     {error && <p className="form-error" role="alert">{error}</p>}
-    {!owner ? <form onSubmit={(event) => { event.preventDefault(); run(async () => {
-      await ownerRequest('session', 'POST', { key }); setKey(''); onSignedIn();
+    {!owner && contributor ? <>
+      <p className="type-meta my-4">You can add visits and photos. Ask Erik to edit or delete an entry.</p>
+      <button type="button" className="text-action" disabled={busy} onClick={() => run(async () => { await ownerRequest('session', 'DELETE'); onSignedOut(); })}>Sign out</button>
+    </> : !owner ? <form onSubmit={(event) => { event.preventDefault(); run(async () => {
+      const session = await ownerRequest('session', 'POST', { key }); setKey(''); onSignedIn(session);
     }); }}>
-      <p className="type-meta my-4">Sign in to add visits, edit entries, or restore deleted visits.</p>
-      <label htmlFor="owner-key" className="block text-sm font-medium mb-2">Owner access key</label>
+      <p className="type-meta my-4">Enter your access key to add visits.</p>
+      <label htmlFor="owner-key" className="block text-sm font-medium mb-2">Access key</label>
       <input id="owner-key" name="password" type="password" autoComplete="current-password" value={key} onChange={(event) => setKey(event.target.value)} className="control-field w-full" required />
       <button type="submit" disabled={busy} className="btn-primary mt-4">{busy ? 'Signing in…' : 'Sign in'}</button>
     </form> : <>
