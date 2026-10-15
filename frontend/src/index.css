@@ -1320,9 +1320,10 @@ button.insight-highlight:hover { background: var(--surface-muted); }
 .compare-controls { flex-wrap: wrap; }
 .map-repair-note { font-size: var(--text-sm); color: var(--text-secondary); margin-top: .5rem; }
 .map-result b small { font-weight: 400; font-size: var(--text-2xs); display: block; white-space: nowrap; }
-.season-review { background: var(--surface); color: var(--text-primary); padding: clamp(1.25rem, 4vw, 2.5rem); }
-.season-review-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
-.season-review-header h2 { font: 600 clamp(1.7rem, 4vw, 2.6rem)/1.2 Fraunces, Georgia, serif; margin-top: .5rem; }
+.season-review { display: block; overflow-y: auto; overscroll-behavior: contain; background: var(--surface); color: var(--text-primary); padding: clamp(1.25rem, 4vw, 2.5rem); }
+.season-review-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.season-review-header h2 { font: 600 clamp(1.7rem, 4vw, 2.6rem)/1.15 var(--font-display); margin: .4rem 0 .5rem; }
+.season-review-range { max-width: 34rem; color: var(--text-secondary); font-size: var(--text-sm); line-height: 1.45; }
 .season-counts { display: flex; flex-wrap: wrap; gap: 1.5rem; color: var(--text-secondary); }
 .season-counts strong { color: var(--text-primary); font-size: 2rem; font-weight: 600; }
 .season-stop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; }
@@ -1334,10 +1335,12 @@ button.insight-highlight:hover { background: var(--surface-muted); }
 .season-facts { margin: 1.25rem 0; }
 .season-months { margin-top: 1.5rem; }
 .season-months h3 { font-size: var(--text-lg); font-weight: 600; margin-bottom: 1rem; }
-.season-months ol { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem 2rem; }
-.season-months li { display: grid; grid-template-columns: 2.5rem 1.5rem 1fr; align-items: center; gap: .5rem; font-size: var(--text-sm); min-height: 1.7rem; }
-.season-months b { font-variant-numeric: tabular-nums; font-weight: 500; }
-.season-month-bar { display: block; background: var(--latte-deep); height: .25rem; border-radius: 2px; }
+.season-month-chart { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: clamp(.25rem, 1.5vw, .6rem); height: 9rem; align-items: stretch; }
+.season-month-chart li { display: grid; grid-template-rows: 1.1rem 1fr 1.2rem; justify-items: center; min-width: 0; font-size: var(--text-xs); color: var(--text-tertiary); }
+.season-month-chart b { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text-primary); }
+.season-month-chart .season-month-bar { align-self: end; width: 100%; max-width: 1.6rem; background: var(--border-subtle); border-radius: 3px 3px 0 0; }
+.season-month-chart .has-visits .season-month-bar { background: var(--accent-fill); }
+.season-month-label { align-self: end; }
 .season-bookends { margin-top: 1.5rem; border-top: 1px solid var(--border-subtle); padding-top: 1rem; }
 .vest-tracker { color: var(--vt-ink); }
 .vt-method { color: var(--vt-ink-dim); font: .8rem/1.7 Inter, system-ui, sans-serif; }
@@ -1367,7 +1370,6 @@ button.insight-highlight:hover { background: var(--surface-muted); }
   .shop-history-stats { gap: .75rem; }
   .shop-history-stats dd { font-size: 1.25rem; }
   .shop-history-stats dt, .shop-history-stats p { font-size: var(--text-xs); }
-  .season-months ol { grid-template-columns: 1fr; }
   .footer-links { gap: 1rem; }
 }
 
