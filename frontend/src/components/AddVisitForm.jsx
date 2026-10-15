@@ -7,16 +7,8 @@ import { getRepeatContext } from '../utils/repeats';
 import { titleCaseOrder } from '../utils/display';
 import { HOME_CITY, VISIT_TYPES, getVisitType, isMadisonArea } from '../utils/visitTypes';
 
-// Transparent, borderless input style for use inside section cells
-const FI = 'form-control';
-const FS = 'form-control appearance-none cursor-pointer';
-
-function tripContextSummary({ sport, opponent }) {
-  return [sport, opponent].filter(Boolean).join(' · ');
-}
-
-function locationSummary({ city, coffee_shop_address: address }) {
-  return [city, address].filter(Boolean).join(' · ');
+function moreSummary({ city, sport, opponent, notes }) {
+  return [city, sport, opponent, notes && 'Note'].filter(Boolean).join(' · ');
 }
 
 function getDefaultVisitData() {
@@ -55,11 +47,8 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
 
   const [errors, setErrors] = useState({});
   const [locating, setLocating] = useState(false);
-  const [showLocationDetails, setShowLocationDetails] = useState(
-    () => Boolean(initialData?.city || initialData?.coffee_shop_address)
-  );
-  const [showTripContext, setShowTripContext] = useState(
-    () => Boolean(initialData?.sport || initialData?.opponent)
+  const [showMore, setShowMore] = useState(
+    () => Boolean(initialData?.city || initialData?.coffee_shop_address || initialData?.sport || initialData?.opponent || initialData?.notes)
   );
   const [showCustomSport, setShowCustomSport] = useState(false);
   const [photoFile, setPhotoFile] = useState(null);
@@ -196,7 +185,6 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
     ));
 
     setFormData((prev) => ({ ...prev, ...updates }));
-    setEditingLocation(false);
     setErrors((prev) => ({ ...prev, coffee_shop_name: '' }));
   };
 
@@ -261,12 +249,6 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
     return '';
   };
 
-  const handleBlur = (e) => {
-    const { name, value } = e.target;
-    const error = validateField(name, value);
-    if (error) setErrors((prev) => ({ ...prev, [name]: error }));
-  };
-
   const validate = () => {
     const newErrors = {};
     for (const name of ['date', 'coffee_shop_name', 'vibe_rating', 'coffee_rating']) {
@@ -316,354 +298,255 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
     }
   };
 
-  return (
-    <div>
-      {/* Header */}
-      <div className="visit-form-header">
-        <h2 className="type-title">
-          {isEditing ? 'Edit visit' : isReturnVisit ? 'Return visit' : 'Add visit'}
-        </h2>
-        <p className="type-meta">
-          {isReturnVisit
-            ? 'The shop is filled in. Add your order and today’s ratings.'
-            : isHomeStop
-              ? 'Shop, order, score — then save. Trip fields stay out of the way.'
-              : 'Where, what you ordered, how it was. Sport and opponent stay optional.'}
-        </p>
-      </div>
+  const rated = formData.vibe_rating !== '' && formData.coffee_rating !== '';
+  const total = rated ? (Number(formData.vibe_rating) + Number(formData.coffee_rating)).toFixed(1) : null;
+  const moreHint = moreSummary(formData) || (isHomeStop ? 'City, address, note' : 'City, sport, opponent, note');
 
-      <form ref={formRef} onSubmit={handleSubmit} className="visit-form" noValidate>
-        <div className="form-scope" role="group" aria-label="Visit type">
-          {[
-            { value: VISIT_TYPES.ROAD, label: 'Road trip' },
-            { value: VISIT_TYPES.HOME, label: 'Around Madison' },
-          ].map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                handleVisitTypeChange(option.value);
-              }}
-              aria-pressed={visitType === option.value}
-              className="form-scope-option"
-            >
-              {option.label}
-            </button>
-          ))}
+  return (
+    <div className="avf">
+      <h2 className="type-title avf-title">
+        {isEditing ? 'Edit visit' : isReturnVisit ? 'Return visit' : 'Add visit'}
+      </h2>
+
+      <form ref={formRef} onSubmit={handleSubmit} className="avf-form" noValidate>
+        <div className="avf-top">
+          <div className="avf-scope" role="group" aria-label="Visit type">
+            {[
+              { value: VISIT_TYPES.ROAD, label: 'Road trip' },
+              { value: VISIT_TYPES.HOME, label: 'Madison' },
+            ].map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleVisitTypeChange(option.value);
+                }}
+                aria-pressed={visitType === option.value}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <div className="avf-date">
+            <label htmlFor={fieldIds.date} className="sr-only">Date</label>
+            <input
+              id={fieldIds.date}
+              type="date"
+              name="date"
+              value={formData.date}
+              onChange={handleInputChange}
+              aria-invalid={Boolean(errors.date)}
+              aria-describedby={errors.date ? `${fieldIds.date}-error` : undefined}
+            />
+          </div>
         </div>
+        {errors.date && <p id={`${fieldIds.date}-error`} className="avf-error" role="alert">{errors.date}</p>}
 
         {repeatContext?.personalCount > 0 && (
           <RepeatContextPanel context={repeatContext} />
         )}
 
-        <FormSection title="Where did you stop?" description="Search the shop first. City and address fill in from the place.">
-          <Field label="Coffee shop" htmlFor={fieldIds.coffee_shop_name} required error={errors.coffee_shop_name}>
-            <PlacesAutocomplete
-              id={fieldIds.coffee_shop_name}
-              value={formData.coffee_shop_name}
-              onChange={(e) => {
-                const nextValue = e.target.value;
-                setFormData((prev) => ({
-                  ...prev,
-                  coffee_shop_name: nextValue,
-                  city: isHomeStop ? HOME_CITY : '',
-                  coffee_shop_address: '',
-                  shop_id: null,
-                  coffee_shop_place_id: '',
-                  coffee_shop_lat: '',
-                  coffee_shop_lng: '',
-                }));
-                if (errors.coffee_shop_name) setErrors((prev) => ({ ...prev, coffee_shop_name: '' }));
-              }}
-              onBlur={handleBlur}
-              onPlaceSelected={handlePlaceSelected}
-              inputClassName={FI}
-              ariaInvalid={Boolean(errors.coffee_shop_name)}
-              ariaDescribedBy={errors.coffee_shop_name ? `${fieldIds.coffee_shop_name}-error` : undefined}
-              enterKeyHint="next"
-              savedPlaces={visits}
-              city={isHomeStop ? HOME_CITY : searchCity}
-              onBusyChange={setLocating}
-            />
-          </Field>
-          <FieldRow>
-            <Field label="Date" htmlFor={fieldIds.date} required error={errors.date}>
-              <input
-                id={fieldIds.date}
-                type="date"
-                name="date"
-                value={formData.date}
-                onChange={handleInputChange}
-                onBlur={handleBlur}
-                className={FI}
-                aria-invalid={Boolean(errors.date)}
-                aria-describedby={errors.date ? `${fieldIds.date}-error` : undefined}
-              />
-            </Field>
-          </FieldRow>
+        <Field label="Coffee shop" htmlFor={fieldIds.coffee_shop_name} error={errors.coffee_shop_name}>
+          <PlacesAutocomplete
+            id={fieldIds.coffee_shop_name}
+            value={formData.coffee_shop_name}
+            onChange={(e) => {
+              const nextValue = e.target.value;
+              setFormData((prev) => ({
+                ...prev,
+                coffee_shop_name: nextValue,
+                city: isHomeStop ? HOME_CITY : '',
+                coffee_shop_address: '',
+                shop_id: null,
+                coffee_shop_place_id: '',
+                coffee_shop_lat: '',
+                coffee_shop_lng: '',
+              }));
+              if (errors.coffee_shop_name) setErrors((prev) => ({ ...prev, coffee_shop_name: '' }));
+            }}
+            onPlaceSelected={handlePlaceSelected}
+            inputClassName="avf-input"
+            ariaInvalid={Boolean(errors.coffee_shop_name)}
+            ariaDescribedBy={errors.coffee_shop_name ? `${fieldIds.coffee_shop_name}-error` : undefined}
+            enterKeyHint="next"
+            savedPlaces={visits}
+            city={isHomeStop ? HOME_CITY : searchCity}
+            onBusyChange={setLocating}
+          />
+          {formData.city && <p className="avf-hint">{[formData.city, formData.coffee_shop_address].filter(Boolean).join(' · ')}</p>}
+        </Field>
 
-          <div className="form-disclosure">
-            <button
-              type="button"
-              className="form-disclosure-toggle"
-              aria-expanded={showLocationDetails}
-              onClick={(event) => {
-                event.stopPropagation();
-                setShowLocationDetails((open) => !open);
-              }}
-            >
-              <span className="form-disclosure-label">Location details</span>
-              <span className="form-disclosure-meta">
-                {locationSummary(formData) || (showLocationDetails ? 'City and address' : 'Usually filled by the place')}
-              </span>
-              <svg className={`form-disclosure-chevron ${showLocationDetails ? 'is-open' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {showLocationDetails && (
-              <div className="form-disclosure-body" id={`${reactId}-location-fields`}>
+        <Field label="Order" htmlFor={fieldIds.coffee_order}>
+          <AutocompleteInput
+            id={fieldIds.coffee_order}
+            name="coffee_order"
+            value={formData.coffee_order}
+            onChange={handleInputChange}
+            suggestions={suggestions.orders}
+            className="avf-input"
+            placeholder="What did you get?"
+            enterKeyHint="next"
+            autoCapitalize="words"
+          />
+        </Field>
+
+        <div className="avf-ratings">
+          {[
+            { key: 'vibe_rating', label: 'Vibe' },
+            { key: 'coffee_rating', label: 'Coffee' },
+          ].map(({ key, label }) => {
+            const value = formData[key];
+            const unset = value === '';
+            return (
+              <div key={key} className={`avf-rating ${unset ? 'is-unset' : ''} ${errors[key] ? 'has-error' : ''}`}>
+                <div className="avf-rating-head">
+                  <label htmlFor={fieldIds[key]}>{label}</label>
+                  <span className="avf-rating-value">
+                    <input
+                      id={fieldIds[key]}
+                      type="number"
+                      name={key}
+                      value={value}
+                      onChange={handleInputChange}
+                      step="0.1"
+                      min="0"
+                      max="10"
+                      inputMode="decimal"
+                      autoComplete="off"
+                      placeholder="–"
+                      aria-invalid={Boolean(errors[key])}
+                      aria-describedby={errors[key] ? `${fieldIds[key]}-error` : undefined}
+                      enterKeyHint={key === 'coffee_rating' ? 'done' : 'next'}
+                    />
+                    <small>/ 10</small>
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="10"
+                  step="0.1"
+                  name={key}
+                  value={unset ? 0 : value}
+                  onChange={handleInputChange}
+                  aria-label={`${label} rating slider`}
+                  aria-valuetext={unset ? 'Not rated yet' : `${value} out of 10`}
+                  className="avf-slider"
+                />
+                {errors[key] && <p id={`${fieldIds[key]}-error`} className="avf-error" role="alert">{errors[key]}</p>}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Photo */}
+        {photoPreview ? (
+          <div className="avf-photo">
+            <img src={photoPreview} alt="Visit photo preview" />
+            <div>
+              <button type="button" onClick={handleRecropPhoto}>Crop</button>
+              <button type="button" onClick={removePhoto}>Remove</button>
+              <label htmlFor={fieldIds.photo}>Change<input id={fieldIds.photo} type="file" accept="image/*" onChange={handlePhotoChange} className="sr-only" /></label>
+            </div>
+          </div>
+        ) : (
+          <label
+            htmlFor={fieldIds.photo}
+            className={`avf-photo-add ${dragging ? 'is-dragging' : ''}`}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {dragging ? 'Drop photo here' : 'Add a photo'}
+            <input id={fieldIds.photo} type="file" accept="image/*" onChange={handlePhotoChange} className="sr-only" />
+          </label>
+        )}
+        {errors.photo && <p className="avf-error" role="alert">{errors.photo}</p>}
+
+        <div className="avf-more">
+          <button
+            type="button"
+            className="avf-more-toggle"
+            aria-expanded={showMore}
+            onClick={(event) => {
+              event.stopPropagation();
+              setShowMore((open) => !open);
+            }}
+          >
+            <span>More details</span>
+            <small>{moreHint}</small>
+            <svg className={showMore ? 'is-open' : ''} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {showMore && (
+            <div className="avf-more-body">
+              <div className="avf-pair">
                 <Field label="City" htmlFor={fieldIds.city}>
-                  <AutocompleteInput id={fieldIds.city} name="city" value={formData.city} onChange={handleInputChange} suggestions={suggestions.cities} className={FI} placeholder="City, state" />
+                  <AutocompleteInput id={fieldIds.city} name="city" value={formData.city} onChange={handleInputChange} suggestions={suggestions.cities} className="avf-input" placeholder="City, state" />
                 </Field>
                 <Field label="Address" htmlFor={fieldIds.coffee_shop_address}>
                   <input id={fieldIds.coffee_shop_address} name="coffee_shop_address" value={formData.coffee_shop_address} onChange={(event) => {
                     handleInputChange(event);
                     setFormData((prev) => ({ ...prev, shop_id: null, coffee_shop_place_id: '', coffee_shop_lat: '', coffee_shop_lng: '' }));
-                  }} className={FI} placeholder="Street address" />
+                  }} className="avf-input" placeholder="Street address" />
                 </Field>
               </div>
-            )}
-          </div>
-
-          {!isHomeStop && (
-            <div className="form-disclosure">
-              <button
-                type="button"
-                className="form-disclosure-toggle"
-                aria-expanded={showTripContext}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setShowTripContext((open) => !open);
-                }}
-              >
-                <span className="form-disclosure-label">Trip context</span>
-                <span className="form-disclosure-meta">
-                  {tripContextSummary(formData) || (showTripContext ? 'Sport and opponent' : 'Optional')}
-                </span>
-                <svg className={`form-disclosure-chevron ${showTripContext ? 'is-open' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {showTripContext && (
-                <div className="form-disclosure-body">
-            <FieldRow>
-          <Field label="Sport" htmlFor={showCustomSport ? fieldIds.customSport : fieldIds.sport}>
-            <div className="relative">
-              {showCustomSport ? (
-                <input
-                  id={fieldIds.customSport}
-                  name="sport"
-                  type="text"
-                  value={formData.sport}
-                  onChange={handleInputChange}
-                  placeholder="Enter sport name"
-                  className={FI}
-                  autoFocus
-                  enterKeyHint="next"
-                  autoCapitalize="words"
-                />
-              ) : (
-                <>
-                  <select
-                    id={fieldIds.sport}
-                    name="sport"
-                    value={formData.sport}
-                    onChange={handleInputChange}
-                    className={FS}
-                  >
-                    <option value="">None</option>
-                    <option value="Men's Basketball">Men's Basketball</option>
-                    <option value="Men's Hockey">Men's Hockey</option>
-                    <option value="Football">Football</option>
-                    <option value="Track & Field">Track & Field</option>
-                    <option value="Cross Country">Cross Country</option>
-                    <option value="__custom__">+ Add Sport</option>
-                  </select>
-                  <svg className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-faint pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </>
+              {!isHomeStop && (
+                <div className="avf-pair">
+                  <Field label="Sport" htmlFor={showCustomSport ? fieldIds.customSport : fieldIds.sport}>
+                    {showCustomSport ? (
+                      <input
+                        id={fieldIds.customSport}
+                        name="sport"
+                        type="text"
+                        value={formData.sport}
+                        onChange={handleInputChange}
+                        placeholder="Sport name"
+                        className="avf-input"
+                        autoFocus
+                        enterKeyHint="next"
+                        autoCapitalize="words"
+                      />
+                    ) : (
+                      <select id={fieldIds.sport} name="sport" value={formData.sport} onChange={handleInputChange} className="avf-input avf-select">
+                        <option value="">None</option>
+                        <option value="Men's Basketball">Men's Basketball</option>
+                        <option value="Men's Hockey">Men's Hockey</option>
+                        <option value="Football">Football</option>
+                        <option value="Track & Field">Track & Field</option>
+                        <option value="Cross Country">Cross Country</option>
+                        <option value="__custom__">+ Add sport</option>
+                      </select>
+                    )}
+                  </Field>
+                  <Field label="Event or opponent" htmlFor={fieldIds.opponent}>
+                    <AutocompleteInput id={fieldIds.opponent} name="opponent" value={formData.opponent} onChange={handleInputChange} suggestions={suggestions.opponents} className="avf-input" placeholder={/Cross Country|Track/.test(formData.sport) ? 'Meet or event' : 'Opponent'} />
+                  </Field>
+                </div>
               )}
-            </div>
-          </Field>
-              <Field label="Event / opponent" htmlFor={fieldIds.opponent}>
-                <AutocompleteInput id={fieldIds.opponent} name="opponent" value={formData.opponent} onChange={handleInputChange} suggestions={suggestions.opponents} className={FI} placeholder={/Cross Country|Track/.test(formData.sport) ? "Meet or event name" : "Event or opponent (optional)"} />
+              <Field label="Note" htmlFor={fieldIds.notes}>
+                <textarea id={fieldIds.notes} name="notes" value={formData.notes} onChange={handleInputChange} rows={3} className="avf-input avf-textarea" placeholder="Anything worth remembering" enterKeyHint="done" />
               </Field>
-            </FieldRow>
-                </div>
-              )}
             </div>
           )}
-        </FormSection>
+        </div>
 
-        <FormSection title="What did you order?" description="Name the drink. Suggestions come from past visits.">
-          <Field label="Order" htmlFor={fieldIds.coffee_order}>
-            <AutocompleteInput
-              id={fieldIds.coffee_order}
-              name="coffee_order"
-              value={formData.coffee_order}
-              onChange={handleInputChange}
-              suggestions={suggestions.orders}
-              className={FI}
-              enterKeyHint="next"
-              autoCapitalize="words"
-            />
-          </Field>
-        </FormSection>
-
-        <FormSection title="How was it?" description="Score the room and the cup. Both are required.">
-          <FieldRow>
-            <Field label="Vibe" htmlFor={fieldIds.vibe_rating} required error={errors.vibe_rating}>
-              <div className="form-rating-control">
-                <input
-                  id={fieldIds.vibe_rating}
-                  type="number"
-                  name="vibe_rating"
-                  value={formData.vibe_rating}
-                  onChange={handleInputChange}
-                  onBlur={handleBlur}
-                  step="0.1"
-                  min="0"
-                  max="10"
-                  inputMode="decimal"
-                  autoComplete="off"
-                  placeholder="—"
-                  className="form-rating-input"
-                  aria-invalid={Boolean(errors.vibe_rating)}
-                  aria-describedby={errors.vibe_rating ? `${fieldIds.vibe_rating}-error` : undefined}
-                  enterKeyHint="next"
-                />
-                <span>/ 10</span>
-              </div>
-
-              <input type="range" min="0" max="10" step="0.1" name="vibe_rating" value={formData.vibe_rating === '' ? 0 : formData.vibe_rating} onChange={handleInputChange} aria-label="Vibe rating slider" aria-valuetext={formData.vibe_rating === '' ? 'Not rated yet' : `${formData.vibe_rating} out of 10`} className="rating-slider" />
-              <div className="rating-anchors"><span>Not great</span><span>Excellent</span></div>
-            </Field>
-            <Field label="Coffee" htmlFor={fieldIds.coffee_rating} required error={errors.coffee_rating}>
-              <div className="form-rating-control">
-                <input
-                  id={fieldIds.coffee_rating}
-                  type="number"
-                  name="coffee_rating"
-                  value={formData.coffee_rating}
-                  onChange={handleInputChange}
-                  onBlur={handleBlur}
-                  step="0.1"
-                  min="0"
-                  max="10"
-                  inputMode="decimal"
-                  autoComplete="off"
-                  placeholder="—"
-                  className="form-rating-input"
-                  aria-invalid={Boolean(errors.coffee_rating)}
-                  aria-describedby={errors.coffee_rating ? `${fieldIds.coffee_rating}-error` : undefined}
-                  enterKeyHint="done"
-                />
-                <span>/ 10</span>
-              </div>
-              <input type="range" min="0" max="10" step="0.1" name="coffee_rating" value={formData.coffee_rating === '' ? 0 : formData.coffee_rating} onChange={handleInputChange} aria-label="Coffee rating slider" aria-valuetext={formData.coffee_rating === '' ? 'Not rated yet' : `${formData.coffee_rating} out of 10`} className="rating-slider" />
-              <div className="rating-anchors"><span>Not great</span><span>Excellent</span></div>
-            </Field>
-          </FieldRow>
-        </FormSection>
-
-        <FormSection title="Save the memory" description="Optional. A photo and a note.">
-          {/* Photo */}
-          {photoPreview ? (
-            <>
-              <div className="relative aspect-[4/5] rounded-t-2xl overflow-hidden">
-                <img src={photoPreview} alt="Visit photo preview" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                <div className="absolute bottom-3 right-3 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleRecropPhoto}
-                    className="bg-black/40 backdrop-blur-sm border border-white/20 text-white px-3 py-1.5 rounded-full text-xs font-medium hover:bg-black/60 transition-colors"
-                  >
-                    Crop
-                  </button>
-                  <button
-                    type="button"
-                    onClick={removePhoto}
-                    className="bg-black/40 backdrop-blur-sm border border-white/20 text-white px-3 py-1.5 rounded-full text-xs font-medium hover:bg-black/60 transition-colors"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-              <label htmlFor={fieldIds.photo} className="flex items-center gap-3 px-4 py-3 cursor-pointer group">
-                <svg className="w-4 h-4 text-ink-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                </svg>
-                <span className="text-[14px] text-ink-soft group-hover:text-ink transition-colors">
-                  Change photo
-                </span>
-                {errors.photo && <span className="text-xs text-red-500 ml-auto">{errors.photo}</span>}
-                <input id={fieldIds.photo} type="file" accept="image/*" onChange={handlePhotoChange} className="sr-only" />
-              </label>
-            </>
-          ) : (
-            <label
-              htmlFor={fieldIds.photo}
-              className={`flex items-center gap-4 px-4 py-3.5 cursor-pointer group transition-colors ${dragging ? 'bg-surface-muted' : ''}`}
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-            >
-              <div className={`w-14 h-14 rounded-2xl bg-surface-muted border-2 border-dashed flex items-center justify-center flex-shrink-0 transition-colors ${dragging ? 'border-latte-deep' : 'border-rule group-hover:border-latte-deep'}`}>
-                <svg className={`w-6 h-6 transition-colors ${dragging ? 'text-ink-soft' : 'text-ink-faint'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[15px] font-medium text-ink-soft">{dragging ? 'Drop photo here' : 'Add a photo'}</p>
-                <p className="text-xs text-ink-faint mt-0.5">Choose a photo</p>
-              </div>
-              <svg className="w-4 h-4 text-ink-faint flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-              {errors.photo && <span className="text-xs text-red-500">{errors.photo}</span>}
-              <input id={fieldIds.photo} type="file" accept="image/*" onChange={handlePhotoChange} className="sr-only" />
-            </label>
-          )}
-
-          {/* Notes */}
-          <Field label="Notes" htmlFor={fieldIds.notes}>
-            <textarea
-              id={fieldIds.notes}
-              name="notes"
-              value={formData.notes}
-              onChange={handleInputChange}
-              rows={3}
-              className={`${FI} resize-none`}
-              enterKeyHint="done"
-            />
-          </Field>
-        </FormSection>
-
-        {/* ── ACTIONS ──────────────────────────────────── */}
-        <div className="form-actions safe-bottom">
+        <div className="avf-actions safe-bottom">
           {errors.submit && <p className="form-save-error" role="alert">{errors.submit}</p>}
-          <div className="form-save-summary"><span>{formData.coffee_shop_name || 'New visit'}</span><strong>{formData.vibe_rating !== '' && formData.coffee_rating !== '' ? `${(Number(formData.vibe_rating) + Number(formData.coffee_rating)).toFixed(1)} / 20` : 'Rate the vibe and the coffee'}</strong></div>
-          <button
-            type="submit"
-            disabled={uploading || locating}
-            className="form-submit"
-          >
-            {uploading ? 'Saving…' : locating ? 'Finding the shop…' : isEditing ? 'Save changes' : 'Save visit'}
-          </button>
+          <div className="avf-save-row">
+            <div className="avf-total" aria-live="polite">
+              <strong>{total ?? '–'}</strong><small>/ 20</small>
+            </div>
+            <button type="submit" disabled={uploading || locating} className="avf-submit">
+              {uploading ? 'Saving…' : locating ? 'Finding the shop…' : isEditing ? 'Save changes' : 'Save visit'}
+            </button>
+          </div>
         </div>
       </form>
 
@@ -675,21 +558,6 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
 }
 
 // ── Sub-components ──────────────────────────────────────────────────────────
-
-function FormSection({ title, description, children }) {
-  return (
-    <section className="form-section">
-      {title && <div className="form-section-heading">
-        <h3>{title}</h3>
-        {description && <p>{description}</p>}
-      </div>}
-      {/* No overflow-hidden so autocomplete dropdowns can escape the card */}
-      <div className="form-surface">
-        {children}
-      </div>
-    </section>
-  );
-}
 
 function RepeatContextPanel({ context }) {
   const lastVisitDate = context.lastVisit?.date
@@ -732,40 +600,12 @@ function RepeatContextPanel({ context }) {
   );
 }
 
-function FieldRow({ children }) {
+function Field({ label, htmlFor, error, children }) {
   return (
-    <div className="form-field-row">
+    <div className="avf-field">
+      <label htmlFor={htmlFor}>{label}</label>
       {children}
-    </div>
-  );
-}
-
-function Field({ label, htmlFor, required = false, error, children }) {
-  const labelClassName = 'form-label';
-  const labelContent = (
-    <>
-      {label}{required && <span className="text-red-400 ml-0.5">*</span>}
-    </>
-  );
-
-  return (
-    <div className="form-field">
-      {htmlFor ? (
-        <label htmlFor={htmlFor} className={`block ${labelClassName}`}>
-          {labelContent}
-        </label>
-      ) : (
-        <p className={labelClassName}>{labelContent}</p>
-      )}
-      {children}
-      {error && (
-        <p id={`${htmlFor}-error`} className="flex items-center gap-1 text-red-500 dark:text-red-400 text-xs mt-1.5">
-          <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-          </svg>
-          {error}
-        </p>
-      )}
+      {error && <p id={`${htmlFor}-error`} className="avf-error" role="alert">{error}</p>}
     </div>
   );
 }
