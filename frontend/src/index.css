@@ -2843,3 +2843,12 @@ button.insight-highlight:hover { background: var(--surface-muted); }
 .toast:hover { opacity: .85; }
 .toast-error { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, var(--surface-raised)); color: var(--danger); }
 .toast-success { border-color: var(--success); background: color-mix(in srgb, var(--success) 10%, var(--surface-raised)); color: var(--success); }
+
+/* Note over the photo: the photo is untouched until the note is opened. */
+.visit-photo-stage { position: relative; }
+.photo-note-pill { position: absolute; left: .75rem; bottom: .75rem; z-index: 2; min-height: 2rem; padding: 0 .875rem; border: 1px solid rgb(255 255 255 / .28); border-radius: var(--radius-pill); background: rgb(20 17 14 / .55); color: var(--on-solid); font-size: var(--text-sm); font-weight: 600; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); cursor: pointer; }
+.photo-note-pill:hover { background: rgb(20 17 14 / .7); }
+.photo-note-pill:focus-visible { outline: 2px solid var(--on-solid); outline-offset: 2px; }
+.photo-note { position: absolute; inset: auto .75rem 3.5rem .75rem; z-index: 2; max-height: 55%; overflow: auto; padding: .875rem 1rem; border: 1px solid rgb(255 255 255 / .2); border-radius: var(--radius-md); background: rgb(20 17 14 / .72); color: var(--on-solid); font-family: var(--font-display); font-size: var(--text-md); line-height: 1.45; white-space: pre-wrap; -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2); animation: note-in 220ms var(--ease-out) both; }
+@keyframes note-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .photo-note { animation: none; } }
