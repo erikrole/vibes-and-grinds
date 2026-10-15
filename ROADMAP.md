@@ -11,6 +11,7 @@
 - Server-enforced owner editing, private export, recoverable visits, and versioned/conflict-safe Vest saves.
 - Explicit Vest footer navigation. Browsing never saves games. Generated hype and outfit recommendations removed.
 - Missing locations have an owner repair flow; pins represent shops rather than duplicate visits.
+- Add visit offers Wisconsin games for the picked date (Sidearm iCal, ESPN fallback for men's basketball). Open: a home/away field, and track once the 2026–27 feed publishes.
 
 ## Verification and release gates
 

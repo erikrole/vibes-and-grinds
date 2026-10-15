@@ -2700,6 +2700,12 @@ button.insight-highlight:hover { background: var(--surface-muted); }
 .avf-select { appearance: none; cursor: pointer; }
 .avf-hint { color: var(--text-secondary); font-size: .8rem; overflow-wrap: anywhere; }
 .avf-error { color: var(--danger); font-size: .8rem; }
+.avf-games { display: grid; gap: .375rem; }
+.avf-game { display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-height: 2.5rem; padding: 0 .75rem; border-radius: var(--radius-md); background: var(--surface-muted); color: var(--text-primary); font-size: .875rem; text-align: left; }
+.avf-game span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.avf-game small { flex: none; color: var(--text-secondary); font-size: .75rem; font-weight: 600; }
+.avf-game:hover small, .avf-game:focus-visible small { color: var(--text-primary); }
+.avf-game:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .avf-ratings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
 .avf-rating { padding: .9rem 1rem 1rem; border-radius: var(--radius-lg); background: var(--surface-muted); border: 1px solid transparent; }
 .avf-rating.has-error { border-color: var(--danger); }

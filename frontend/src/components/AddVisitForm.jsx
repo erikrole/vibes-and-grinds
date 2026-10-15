@@ -4,6 +4,8 @@ import AutocompleteInput from './AutocompleteInput';
 import PlacesAutocomplete from './PlacesAutocomplete';
 import { formatDate, getTodayDateString } from '../utils/dates';
 import { getRepeatContext } from '../utils/repeats';
+import { fetchBadgerGames } from '../utils/api';
+import { gameFill, gameLabel } from '../utils/gameSuggestions';
 import { titleCaseOrder } from '../utils/display';
 import { HOME_CITY, VISIT_TYPES, getVisitType, isMadisonArea } from '../utils/visitTypes';
 
@@ -87,6 +89,28 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
 
   const visitType = getVisitType(formData);
   const isHomeStop = visitType === VISIT_TYPES.HOME;
+
+  // Wisconsin games on the picked date, offered as one-tap fills for new road visits.
+  const [games, setGames] = useState([]);
+  useEffect(() => {
+    if (isEditing || isHomeStop || !/^\d{4}-\d{2}-\d{2}$/.test(formData.date || '')) {
+      setGames([]);
+      return undefined;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      fetchBadgerGames(formData.date, controller.signal).then((found) => {
+        if (!controller.signal.aborted) setGames(found);
+      });
+    }, 250);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [formData.date, isEditing, isHomeStop]);
+
+  const useGame = (game) => {
+    setFormData((prev) => ({ ...prev, ...gameFill(prev, game) }));
+    setShowMore(true);
+  };
+  const gameChoices = games.filter((game) => Object.keys(gameFill(formData, game)).length > 0);
 
   // Madison-area locations tag themselves as home stops. Once the toggle is used
   // by hand that choice sticks, so detection can't undo a deliberate override.
@@ -342,6 +366,17 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
           </div>
         </div>
         {errors.date && <p id={`${fieldIds.date}-error`} className="avf-error" role="alert">{errors.date}</p>}
+
+        {gameChoices.length > 0 && (
+          <div className="avf-games" role="group" aria-label="Wisconsin games that day">
+            {gameChoices.map((game) => (
+              <button key={`${game.sport}-${game.opponent}`} type="button" className="avf-game" onClick={() => useGame(game)}>
+                <span>{gameLabel(game)}{game.city && game.location !== 'vs' ? ` · ${game.city}` : ''}</span>
+                <small>Fill in</small>
+              </button>
+            ))}
+          </div>
+        )}
 
         {repeatContext?.personalCount > 0 && (
           <RepeatContextPanel context={repeatContext} />

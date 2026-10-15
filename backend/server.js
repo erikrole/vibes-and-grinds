@@ -227,6 +227,11 @@ app.all('/api/vest/games', async (req, res) => {
   catch { res.status(500).json({ error: 'Could not save games. Please try again.' }); }
 });
 
+app.get('/api/badger-games', async (req, res) => {
+  try { const { gamesRoute } = await import('../shared/badger-schedule.mjs'); await sendResponse(res, await gamesRoute(webRequest(req))); }
+  catch { res.status(500).json({ error: 'Could not load games.', games: [] }); }
+});
+
 app.get('/api/vest/schedule', async (req, res) => {
   const season = String(req.query.season || '2025');
   const teamId = '275'; // Wisconsin
