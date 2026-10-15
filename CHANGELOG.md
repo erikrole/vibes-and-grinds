@@ -1,5 +1,9 @@
 # Change notes
 
+## 2026-10-15 — Design system audit
+
+Audited the design language (see `DESIGN_SYSTEM.md`) and fixed what was objectively wrong: light-theme text and rating colours that missed WCAG contrast, an accent colour used as text, radius tokens missing in dark mode, unused Tailwind palettes, and one-off easings/radii/font stacks. Added shared scales (type, space, radius, motion, layers), a global reduced-motion safety net, and tests that keep light/dark parity and contrast from regressing. Slight visible changes: light-theme secondary text and accent text are a little darker, and the mid/good rating colours are a touch deeper.
+
 ## 2026-10-15 — Livelier visit detail
 
 The visit detail ratings now count up, with a fill bar that shows each score against its maximum, and each score shows where the visit ranks in the journal ("#7 of 34 · +0.5 vs avg"). Highlight chips appear when earned: best stop yet, best cup or vibe yet, top 3 stop, first stop in a state, best in a city. Ranks need at least three visits, and everything is computed from saved visits (`visitStanding.js`). Animations honor reduced motion.

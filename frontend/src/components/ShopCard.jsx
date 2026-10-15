@@ -84,7 +84,7 @@ export default function ShopCard({ place: placeProp, placeId, userVisits = [], o
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
         {telephone && (
           <Field label="Phone">
-            <a href={`tel:${telephone}`} className="text-accent hover:underline">
+            <a href={`tel:${telephone}`} className="text-accent-text hover:underline">
               {formatPhone(telephone)}
             </a>
           </Field>
@@ -95,7 +95,7 @@ export default function ShopCard({ place: placeProp, placeId, userVisits = [], o
               href={website}
               target="_blank"
               rel="noopener noreferrer"
-              className="truncate text-accent hover:underline"
+              className="truncate text-accent-text hover:underline"
             >
               {prettyDomain(website)}
             </a>

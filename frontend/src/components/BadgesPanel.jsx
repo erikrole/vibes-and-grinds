@@ -149,7 +149,7 @@ function BadgeCard({ badge }) {
           )}
 
           {!badge.nextThreshold && isEarned && (
-            <p className="text-[10px] text-accent font-semibold mt-2">MAX LEVEL</p>
+            <p className="text-[10px] text-accent-text font-semibold mt-2">MAX LEVEL</p>
           )}
         </div>
       </div>
