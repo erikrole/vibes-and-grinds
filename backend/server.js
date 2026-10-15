@@ -574,15 +574,22 @@ app.get('/api/vest/scores', async (req, res) => {
     const events = Array.isArray(data.events) ? data.events : [];
     const parsed = events.map(parseEspnEvent).filter(Boolean);
 
+    const vestGamesByDate = new Map();
+    const vestGameRows = await db.all(
+      'SELECT game_id, date FROM vest_games WHERE date IS NOT NULL ORDER BY id ASC'
+    );
+    for (const row of vestGameRows) {
+      const dateKey = String(row.date);
+      if (!dateKey || vestGamesByDate.has(dateKey)) continue;
+      vestGamesByDate.set(dateKey, row.game_id);
+    }
+
     // Upsert into vest_game_stats
     for (const game of parsed) {
       if (!game.completed) continue;
 
-      // Try to match to a vest_game by date
-      const vestGame = await db.get(
-        'SELECT game_id FROM vest_games WHERE date = ? LIMIT 1',
-        [game.date?.slice(0, 10)]
-      );
+      const matchedGameId = vestGamesByDate.get(game.date?.slice(0, 10));
+      const vestGame = matchedGameId == null ? null : { game_id: matchedGameId };
 
       // Update vest_games espn_event_id if matched
       if (vestGame) {
@@ -861,6 +868,39 @@ function buildPlacesErrorResponse(prefix, upstreamStatus, payloadText) {
   };
 }
 
+const PLACES_MIN_INPUT_LENGTH = 3;
+const PLACES_CACHE_LIMIT = 50;
+const PLACES_CACHE_TTL_MS = 10 * 60 * 1000;
+const PLACES_SESSION_TOKEN_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const placesSuggestionCache = new Map();
+
+function readPlacesSessionToken(value) {
+  const token = `${value || ''}`.trim();
+  return PLACES_SESSION_TOKEN_PATTERN.test(token) ? token : '';
+}
+
+function readPlacesSuggestionCache(input) {
+  const entry = placesSuggestionCache.get(input);
+  if (!entry) return null;
+  if (Date.now() - entry.cachedAt > PLACES_CACHE_TTL_MS) {
+    placesSuggestionCache.delete(input);
+    return null;
+  }
+
+  placesSuggestionCache.delete(input);
+  placesSuggestionCache.set(input, entry);
+  return entry.suggestions;
+}
+
+function writePlacesSuggestionCache(input, suggestions) {
+  if (placesSuggestionCache.has(input)) placesSuggestionCache.delete(input);
+  placesSuggestionCache.set(input, { suggestions, cachedAt: Date.now() });
+  while (placesSuggestionCache.size > PLACES_CACHE_LIMIT) {
+    const oldest = placesSuggestionCache.keys().next().value;
+    placesSuggestionCache.delete(oldest);
+  }
+}
+
 app.get('/api/places-autocomplete', async (req, res) => {
   const input = `${req.query.input || ''}`.trim();
   const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -869,9 +909,16 @@ app.get('/api/places-autocomplete', async (req, res) => {
     return res.status(503).json({ error: 'Google Places is not configured on the server.' });
   }
 
-  if (input.length < 2) {
+  if (input.length < PLACES_MIN_INPUT_LENGTH) {
     return res.json({ suggestions: [] });
   }
+
+  const cachedSuggestions = readPlacesSuggestionCache(input);
+  if (cachedSuggestions) {
+    return res.json({ suggestions: cachedSuggestions });
+  }
+
+  const sessionToken = readPlacesSessionToken(req.query.sessionToken);
 
   try {
     const response = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
@@ -883,6 +930,7 @@ app.get('/api/places-autocomplete', async (req, res) => {
       body: JSON.stringify({
         input,
         includedPrimaryTypes: ['cafe', 'coffee_shop', 'restaurant'],
+        ...(sessionToken ? { sessionToken } : {}),
       }),
     });
 
@@ -907,6 +955,8 @@ app.get('/api/places-autocomplete', async (req, res) => {
       })
       .filter(Boolean);
 
+    writePlacesSuggestionCache(input, suggestions);
+
     return res.json({ suggestions });
   } catch (error) {
     console.error('Error fetching places autocomplete:', error);
@@ -929,8 +979,12 @@ app.get('/api/places-details', async (req, res) => {
     return res.status(400).json({ error: 'placeId is required.' });
   }
 
+  const sessionToken = readPlacesSessionToken(req.query.sessionToken);
+  const detailsUrl = new URL(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`);
+  if (sessionToken) detailsUrl.searchParams.set('sessionToken', sessionToken);
+
   try {
-    const response = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
+    const response = await fetch(detailsUrl, {
       headers: {
         'X-Goog-Api-Key': apiKey,
         'X-Goog-FieldMask': 'id,displayName,formattedAddress,location',

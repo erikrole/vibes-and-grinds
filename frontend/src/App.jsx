@@ -1,8 +1,8 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import AddVisitForm from './components/AddVisitForm';
 import VisitList from './components/VisitList';
 import FormModal from './components/FormModal';
 
+const AddVisitForm = lazy(() => import('./components/AddVisitForm'));
 const VisitDetailModal = lazy(() => import('./components/VisitDetailModal'));
 const MapExplorer = lazy(() => import('./components/MapExplorer'));
 const VestTrackerDashboard = lazy(() => import('./components/VestTrackerDashboard'));
@@ -774,18 +774,22 @@ export default function App() {
 
         {appMode === APP_MODES.VIBES && showForm && (
           <FormModal title={isReturnDraft ? 'Log Return Visit' : 'Add Visit'} onClose={handleCancelForm}>
-            <AddVisitForm
-              initialData={visitDraft}
-              mode={isReturnDraft ? 'return' : 'add'}
-              onSubmit={handleAddVisit}
-              visits={visits}
-            />
+            <Suspense fallback={null}>
+              <AddVisitForm
+                initialData={visitDraft}
+                mode={isReturnDraft ? 'return' : 'add'}
+                onSubmit={handleAddVisit}
+                visits={visits}
+              />
+            </Suspense>
           </FormModal>
         )}
 
         {appMode === APP_MODES.VIBES && editingVisit && (
           <FormModal title="Edit Visit" onClose={handleCancelForm}>
-            <AddVisitForm initialData={editingVisit} mode="edit" onSubmit={handleUpdateVisit} visits={visits} />
+            <Suspense fallback={null}>
+              <AddVisitForm initialData={editingVisit} mode="edit" onSubmit={handleUpdateVisit} visits={visits} />
+            </Suspense>
           </FormModal>
         )}
 

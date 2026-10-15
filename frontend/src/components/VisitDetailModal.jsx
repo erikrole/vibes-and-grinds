@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PhotoCropper from './PhotoCropper';
 import { getRatingColor, getCompositeColor } from '../utils/colors';
 import { formatDate, getRelativeLabel } from '../utils/dates';
 import { DEFAULT_VISITOR_NAME, getRepeatVisits } from '../utils/repeats';
-import ShareCardModal from './ShareCardModal';
 import useFocusTrap from '../hooks/useFocusTrap';
 import { formatEventContext, titleCaseOrder } from '../utils/display';
 import { getVisitCoordinates } from '../utils/coords';
+
+const ShareCardModal = lazy(() => import('./ShareCardModal'));
 
 export default function VisitDetailModal({ visit, visits, onClose, onNavigate, onUpdate, onEdit, onDelete, onLogReturnVisit }) {
   const modalRef = useRef(null);
@@ -556,7 +557,9 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
       )}
 
       {showShareCard && (
-        <ShareCardModal visit={visit} onClose={() => setShowShareCard(false)} />
+        <Suspense fallback={null}>
+          <ShareCardModal visit={visit} onClose={() => setShowShareCard(false)} />
+        </Suspense>
       )}
     </div>
   );
