@@ -2745,15 +2745,9 @@ button.insight-highlight:hover { background: var(--surface-muted); }
 .celebrate__confetti { position: absolute; inset: 0; overflow: hidden; }
 .celebrate__confetti i { position: absolute; top: -12px; width: 8px; height: 14px; border-radius: 2px; animation: confetti-fall 2.4s ease-in both; }
 @keyframes confetti-fall { to { transform: translateY(105vh) rotate(calc(var(--spin) + 540deg)); opacity: .9; } }
-.hero-steam { display: inline-flex; gap: .2rem; margin-left: .5rem; vertical-align: top; height: 1.5rem; }
-.hero-steam i { width: 3px; height: 1.25rem; border-radius: 3px; background: var(--accent-soft); opacity: 0; animation: steam 2.6s ease-in-out infinite; }
-.hero-steam i:nth-child(2) { animation-delay: .6s; }
-.hero-steam i:nth-child(3) { animation-delay: 1.2s; }
-@keyframes steam { 0% { transform: translateY(8px) scaleY(.6); opacity: 0; } 40% { opacity: .7; } 100% { transform: translateY(-10px) scaleY(1.1); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
   .award-face, .passport-grid li.is-lit, .celebrate__card { transition: none; animation: none; }
-  .trip-head, .hero-steam i { animation: none; }
-  .hero-steam { display: none; }
+  .trip-head { animation: none; }
 }
 
 .detail-score-rank { color: var(--text-secondary); font-size: var(--text-2xs); font-weight: 600; text-align: center; }

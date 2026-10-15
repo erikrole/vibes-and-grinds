@@ -34,8 +34,9 @@ export async function generateShareCard(visit) {
   } else {
     drawWatermarkCup(ctx);
   }
-  drawScrim(ctx);
-  drawContent(ctx, visit);
+  const layout = measureContent(ctx, visit);
+  drawScrim(ctx, layout.top);
+  drawContent(ctx, visit, layout);
 
   return await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
 }
@@ -115,35 +116,53 @@ function drawWatermarkCup(ctx) {
   ctx.restore();
 }
 
-function drawScrim(ctx) {
-  // Bottom-anchored darkening: opaque at the very bottom, gone by ~70% up.
-  const g = ctx.createLinearGradient(0, H, 0, 0);
-  g.addColorStop(0, 'rgba(0,0,0,0.80)');
-  g.addColorStop(0.46, 'rgba(0,0,0,0.22)');
-  g.addColorStop(0.70, 'rgba(0,0,0,0.0)');
+function drawScrim(ctx, contentTop) {
+  // Bottom-anchored darkening that only reaches as high as the text does, so the
+  // top of the photo stays untouched however long the note is.
+  const fadeTop = Math.max(0, contentTop - 260);
+  const g = ctx.createLinearGradient(0, H, 0, fadeTop);
+  const solidStop = Math.min(0.95, (H - contentTop) / (H - fadeTop));
+  g.addColorStop(0, 'rgba(0,0,0,0.82)');
+  g.addColorStop(solidStop, 'rgba(0,0,0,0.5)');
+  g.addColorStop(1, 'rgba(0,0,0,0.0)');
   ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillRect(0, fadeTop, W, H - fadeTop);
 }
 
-function drawContent(ctx, visit) {
+const NOTE_SIZE = 38;
+const NOTE_LINE_H = 52;
+const NOTE_MAX_LINES = 2;
+
+function measureContent(ctx, visit) {
   const maxTextW = W - PAD * 2;
 
-  // Pre-measure the wrapped shop name to anchor the whole block to the bottom.
   ctx.font = `700 94px ${SERIF}`;
   const shopLines = wrapLines(ctx, visit.coffee_shop_name || 'Coffee visit', maxTextW, 2);
   const shopLineH = 96;
 
   const pinText = [visit.city, formatEventContext(visit)].filter(Boolean).join(' · ');
   const subText = titleCaseOrder(visit.coffee_order);
+  const noteText = String(visit.notes || '').replace(/\s+/g, ' ').trim();
+
+  // The note sits in a quote block: an accent rule and up to three lines.
+  ctx.font = `500 ${NOTE_SIZE}px ${SERIF}`;
+  const noteLines = noteText ? wrapLines(ctx, `\u201C${noteText}\u201D`, maxTextW - 36, NOTE_MAX_LINES) : [];
 
   const pinH = pinText ? 36 + 20 : 0;
   const shopH = shopLines.length * shopLineH;
   const subH = subText ? 22 + 40 : 0;
+  const noteH = noteLines.length ? 36 + noteLines.length * NOTE_LINE_H : 0;
   const chipsH = 150;
   const footerH = 33;
-  const contentH = pinH + shopH + subH + 54 + chipsH + 48 + footerH;
+  const contentH = pinH + shopH + subH + noteH + 54 + chipsH + 48 + footerH;
 
-  let y = H - BOTTOM_PAD - contentH;
+  return { shopLines, shopLineH, pinText, subText, noteLines, pinH, subH, noteH, chipsH, top: H - BOTTOM_PAD - contentH };
+}
+
+function drawContent(ctx, visit, layout) {
+  const maxTextW = W - PAD * 2;
+  const { shopLines, shopLineH, pinText, subText, noteLines, pinH, noteH, chipsH } = layout;
+  let y = layout.top;
   ctx.textBaseline = 'top';
 
   // Pin.
@@ -151,7 +170,7 @@ function drawContent(ctx, visit) {
     ctx.font = `600 36px ${SANS}`;
     ctx.textAlign = 'left';
     ctx.fillStyle = '#ffd9b8';
-    ctx.fillText(`📍 ${pinText}`, PAD, y);
+    ctx.fillText(`\u{1F4CD} ${pinText}`, PAD, y);
     y += pinH;
   }
 
@@ -173,6 +192,19 @@ function drawContent(ctx, visit) {
     y += 40;
   }
 
+  // Note, as a quote with an accent rule.
+  if (noteLines.length) {
+    y += 36;
+    const blockH = noteLines.length * NOTE_LINE_H - (NOTE_LINE_H - NOTE_SIZE);
+    ctx.fillStyle = ACCENT;
+    roundRect(ctx, PAD, y + 4, 6, blockH - 4, 3);
+    ctx.fill();
+    ctx.font = `500 ${NOTE_SIZE}px ${SERIF}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.94)';
+    noteLines.forEach((line, i) => ctx.fillText(line, PAD + 36, y + i * NOTE_LINE_H));
+    y += noteLines.length * NOTE_LINE_H;
+  }
+
   // Rating chips.
   y += 54;
   drawChips(ctx, y, chipsH, [
@@ -187,7 +219,7 @@ function drawContent(ctx, visit) {
   ctx.font = `600 33px ${SANS}`;
   ctx.fillStyle = 'rgba(255,255,255,0.74)';
   ctx.textAlign = 'left';
-  ctx.fillText('☕ Vibes & Grinds', PAD, y);
+  ctx.fillText('\u2615 Vibes & Grinds', PAD, y);
   if (visit.date) {
     ctx.textAlign = 'right';
     ctx.fillText(formatDate(visit.date, { month: 'short', day: 'numeric', year: 'numeric' }), W - PAD, y);
@@ -293,13 +325,25 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+// Photos live on a public R2 host that sends no CORS headers, so a canvas can't read them
+// directly. Cross-origin photos go through the same-origin /api/photo stream instead.
+export function photoSource(src, origin = typeof location !== 'undefined' ? location.origin : '') {
+  try {
+    const url = new URL(src, origin || undefined);
+    if (origin && url.origin === origin) return src;
+    return `/api/photo?url=${encodeURIComponent(url.toString())}`;
+  } catch {
+    return src;
+  }
+}
+
 function loadImage(src) {
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null); // fall back to the gradient base
-    img.src = src;
+    img.src = photoSource(src);
   });
 }
 
@@ -309,6 +353,7 @@ async function ensureFontsReady() {
   const loads = Promise.all([
     document.fonts.load('700 94px Fraunces'),
     document.fonts.load('600 62px Fraunces'),
+    document.fonts.load('500 38px Fraunces'),
     document.fonts.load('600 40px Inter'),
     document.fonts.load('400 36px Inter'),
   ]).catch(() => {});
