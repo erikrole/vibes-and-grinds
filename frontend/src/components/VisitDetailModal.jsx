@@ -15,6 +15,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
   const modalRef = useRef(null);
   const closeRef = useRef(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [showNote, setShowNote] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [photoError, setPhotoError] = useState(null);
   const [cropping, setCropping] = useState(false);
@@ -266,6 +267,14 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
           {visit.photo_url && (
             <div className="visit-photo-stage">
               <img src={visit.photo_url} alt={visit.coffee_shop_name} className="visit-photo-image" />
+              {visit.notes && (
+                <>
+                  <button type="button" className="photo-note-pill" aria-expanded={showNote} aria-controls="photo-note" onClick={() => setShowNote((open) => !open)}>
+                    {showNote ? 'Hide note' : 'Note'}
+                  </button>
+                  {showNote && <div id="photo-note" className="photo-note" role="note">{visit.notes}</div>}
+                </>
+              )}
             </div>
           )}
 
@@ -303,7 +312,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
               </ul>
             )}
 
-            {(visit.coffee_order || visit.notes) && (
+            {(visit.coffee_order || (visit.notes && !visit.photo_url)) && (
               <dl className="vdm-facts">
                 {visit.coffee_order && (
                   <div>
@@ -311,7 +320,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                     <dd>{titleCaseOrder(visit.coffee_order)}</dd>
                   </div>
                 )}
-                {visit.notes && (
+                {visit.notes && !visit.photo_url && (
                   <div>
                     <dt>Notes</dt>
                     <dd className="vdm-notes">{visit.notes}</dd>

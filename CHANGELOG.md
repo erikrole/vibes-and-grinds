@@ -4,6 +4,10 @@
 
 The share card fell back to the placeholder cup because the R2 photo host sends no CORS headers, so the canvas couldn't read the image. Cross-origin photos now load through a same-origin `GET /api/photo?url=…` stream that only fetches the configured `R2_PUBLIC_URL` host (other hosts, plain http and look-alike hosts return 400). No bucket or Cloudflare setting changed; adding CORS to the bucket would be the alternative. Checked with the real happy coffee photo against a local backend.
 
+## 2026-10-15 — Note over the photo; steam removed
+
+In the visit detail, the note no longer sits as a separate block under a photo. The photo stays untouched by default with a small frosted "Note" pill in its corner; tapping it opens the note on a blurred glass panel over the lower part of the photo (max 55% of its height, scrollable), and "Hide note" closes it. Visits without a photo keep the Notes block. The animated steam next to the stop count is removed: it floated between the numeral and its label and read as a rendering glitch.
+
 ## 2026-10-15 — Color system pass
 
 Filled accent controls used white text on the accent (3.3:1 light, 2.5:1 dark). They now use `--accent-fill` with `--on-accent`. Recurring literals became tokens (`--on-solid`, `--cream`, `--scrim`, the Vest red), and cream/accent alpha literals became `color-mix()` so they follow the theme. Hex and `rgba()` literals outside the token block fell from 129 to 82; the rest are listed in `DESIGN_SYSTEM.md`. Vest checked in light and dark, journal Insights in light.
