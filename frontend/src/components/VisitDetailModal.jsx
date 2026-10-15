@@ -8,6 +8,7 @@ import CopyLink from './CopyLink';
 import useFocusTrap from '../hooks/useFocusTrap';
 import { formatEventContext, titleCaseOrder } from '../utils/display';
 import { getAppleMapsUrl } from '../utils/maps';
+import { visitStanding } from '../utils/visitStanding';
 
 export default function VisitDetailModal({ visit, visits, onClose, onNavigate, onUpdate, onEdit, onDelete, onLogReturnVisit, onShopClick, suspended = false }) {
   const modalRef = useRef(null);
@@ -22,6 +23,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
   const [closing, setClosing] = useState(false);
   const [draggingPhoto, setDraggingPhoto] = useState(false);
 
+  const standing = useMemo(() => visitStanding(visit, visits), [visit, visits]);
   const closeTimerRef = useRef(null);
   useEffect(() => () => clearTimeout(closeTimerRef.current), []);
 
@@ -413,10 +415,15 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
             {/* Ratings */}
             <div className="detail-score-grid">
-              <ScoreCell label="Vibe" score={visit.vibe_rating} />
-              <ScoreCell label="Coffee" score={visit.coffee_rating} />
-              <ScoreCell label="Total" score={visit.composite_score} isTotal />
+              <ScoreCell key={`v-${visit.id}`} label="Vibe" score={visit.vibe_rating} standing={standing.vibe} />
+              <ScoreCell key={`c-${visit.id}`} label="Coffee" score={visit.coffee_rating} standing={standing.coffee} />
+              <ScoreCell key={`t-${visit.id}`} label="Total" score={visit.composite_score} isTotal standing={standing.total} />
             </div>
+            {standing.chips.length > 0 && (
+              <ul className="detail-chips" aria-label="Highlights">
+                {standing.chips.map((chip, i) => <li key={chip} style={{ '--i': i }}>{chip}</li>)}
+              </ul>
+            )}
 
             {/* Order card */}
             {visit.coffee_order && (
@@ -551,12 +558,32 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
   );
 }
 
-function ScoreCell({ label, score, isTotal = false }) {
+function useCountUp(target) {
+  const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const [value, setValue] = useState(reduced ? target : 0);
+  useEffect(() => {
+    if (reduced) { setValue(target); return undefined; }
+    let frame;
+    const start = performance.now();
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / 800);
+      setValue(target * (1 - (1 - t) ** 3));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, reduced]);
+  return value;
+}
+
+function ScoreCell({ label, score, isTotal = false, standing = null }) {
   const accent = isTotal ? getCompositeColor(score) : getRatingColor(score);
   const maxVal = isTotal ? 20 : 10;
+  const shown = useCountUp(Number(score) || 0);
+  const delta = standing?.delta;
 
   return (
-    <div className="detail-score-cell" style={{ '--score-accent': accent }}>
+    <div className="detail-score-cell" style={{ '--score-accent': accent, '--fill': `${Math.min(100, Math.max(0, (Number(score) / maxVal) * 100))}%` }}>
       <p className="eyebrow text-[0.65rem]">{label}</p>
       <span
         className="detail-score-value tabular-nums"
@@ -572,9 +599,14 @@ function ScoreCell({ label, score, isTotal = false }) {
         aria-valuemin={0}
         aria-valuemax={maxVal}
       >
-        {score.toFixed(1)}
+        {shown.toFixed(1)}
       </span>
       <span className="detail-score-scale">/ {maxVal}</span>
+      {standing && (
+        <span className="detail-score-rank" title={`Average ${standing.average}`}>
+          #{standing.rank} of {standing.of}{delta ? ` · ${delta > 0 ? '+' : '−'}${Math.abs(delta).toFixed(1)} vs avg` : ''}
+        </span>
+      )}
     </div>
   );
 }

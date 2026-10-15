@@ -1,5 +1,9 @@
 # Change notes
 
+## 2026-10-15 — Livelier visit detail
+
+The visit detail ratings now count up, with a fill bar that shows each score against its maximum, and each score shows where the visit ranks in the journal ("#7 of 34 · +0.5 vs avg"). Highlight chips appear when earned: best stop yet, best cup or vibe yet, top 3 stop, first stop in a state, best in a city. Ranks need at least three visits, and everything is computed from saved visits (`visitStanding.js`). Animations honor reduced motion.
+
 ## 2026-10-15 — More coffee fun
 
 Built on the animated stats: a save celebration card (stop number, confetti at 18+ out of 20, milestone note at 25/50/75/100/150/200 stops, new-badge callout or a "next badge" hint); flip-open awards (best cup, best vibe, most visited, furthest from Madison, biggest comeback); a 50-state passport grid; a counts-only personality line; best coffee by sport and game-day stats from the saved sport field; a road-trip replay on the Map tab with a running straight-line mile counter; a "Share season wrapped" image; and a bit of steam by the stop count. Everything is computed from saved visits (`funExtras.js`, `funStats.js`), nothing is stored or generated, and animations honor reduced motion. Checked on read-only production data and a local test database at desktop and 375px in dark and light.
