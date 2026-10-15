@@ -4,6 +4,7 @@ import { getRatingColor, getCompositeColor } from '../utils/colors';
 import { formatDate, getRelativeLabel } from '../utils/dates';
 import { DEFAULT_VISITOR_NAME, getRepeatVisits } from '../utils/repeats';
 import ShareCardModal from './ShareCardModal';
+import ConfirmDialog from './ConfirmDialog';
 import CopyLink from './CopyLink';
 import useFocusTrap from '../hooks/useFocusTrap';
 import { formatEventContext, titleCaseOrder } from '../utils/display';
@@ -358,46 +359,15 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
         </div>
       </div>
 
-      {/* Confirmation dialog */}
       {confirmAction && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 dark:bg-black/80 backdrop-blur-sm"
-          role="alertdialog"
-          aria-modal="true"
-          aria-labelledby="confirm-dialog-title"
-          aria-describedby="confirm-dialog-message"
-          onClick={() => setConfirmAction(null)}
-        >
-          <div
-            className="rounded-xl shadow-xl max-w-sm w-full p-7 border border-rule"
-            style={{ backgroundColor: 'var(--paper-2)' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 id="confirm-dialog-title" className="text-xl mb-2" style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
-              {confirmAction.title}
-            </h3>
-            <p id="confirm-dialog-message" className="text-ink-soft text-sm leading-relaxed mb-7">{confirmAction.message}</p>
-            <div className="space-y-2">
-              <button
-                onClick={confirmAction.onConfirm}
-                className="w-full py-3.5 rounded-lg font-semibold text-[15px] transition-colors"
-                style={
-                  confirmAction.type === 'delete'
-                    ? { backgroundColor: '#dc2626', color: '#fff' }
-                    : { backgroundColor: 'var(--ink)', color: 'var(--paper)' }
-                }
-              >
-                {confirmAction.confirmText}
-              </button>
-              <button
-                onClick={() => setConfirmAction(null)}
-                className="w-full py-3 text-ink-faint hover:text-ink font-medium text-sm transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title={confirmAction.title}
+          message={confirmAction.message}
+          confirmText={confirmAction.confirmText}
+          danger={confirmAction.type === 'delete'}
+          onConfirm={confirmAction.onConfirm}
+          onCancel={() => setConfirmAction(null)}
+        />
       )}
 
       {cropping && imageToCrop && (
