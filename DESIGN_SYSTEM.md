@@ -43,3 +43,12 @@ Remaining, in rough priority order:
 5. Mixed styling: components mix Tailwind utilities and BEM-ish classes for the same patterns (card, chip, button). Extract `.surface-card`, `.chip` and one button set (`btn-primary/secondary/ghost`) and use them in the fun-stats, awards and modal code.
 6. 17 `!important` uses, mostly Tailwind overrides.
 7. Vest and journal share a shell but not a spacing/type scale; align when the Vest page is next reworked.
+
+## Components and naming (sweep)
+
+- **One name per colour.** The old `--ink`, `--ink-soft`, `--ink-faint`, `--rule`, `--paper`, `--paper-2` and `--paper-tint` are gone. Use `--text-primary/secondary/tertiary`, `--border-subtle`, `--canvas`, `--surface`, `--surface-muted`. Tailwind class names (`text-ink`, `border-rule`, `bg-paper-tint`) still work and map to the same tokens.
+- **Buttons:** `btn-primary`, `btn-secondary`, `btn-danger` (all 44px tall, `--radius-md`), `btn-sm`, `text-action` for quiet links, `vdm-icon-btn` for round icon buttons.
+- **Dialogs:** use `ConfirmDialog` for every yes/no prompt. The safe choice gets focus, Escape and the backdrop cancel, destructive confirms use `danger`.
+- **Feedback:** `alert-error` for inline errors, `toast toast-error|toast-success` for toasts. No raw Tailwind reds or greens.
+- **Type:** font-size values below 1.2rem use `--text-2xs/xs/sm/base/md/lg`. Larger display sizes stay as `clamp()`.
+- **Still open:** Year-in-Review keeps its own dark poster colours; the share-card canvas code keeps literal brand colours; touch targets under 44px on a few icon buttons; the remaining `!important` rules (Vest overrides and the reduced-motion net).

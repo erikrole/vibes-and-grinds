@@ -16,16 +16,16 @@ export default {
         },
         field: 'var(--field)',
         ink: {
-          DEFAULT: 'var(--ink)',
-          soft: 'var(--ink-soft)',
-          faint: 'var(--ink-faint)',
+          DEFAULT: 'var(--text-primary)',
+          soft: 'var(--text-secondary)',
+          faint: 'var(--text-tertiary)',
         },
         paper: {
-          DEFAULT: 'var(--paper)',
-          2: 'var(--paper-2)',
-          tint: 'var(--paper-tint)',
+          DEFAULT: 'var(--canvas)',
+          2: 'var(--surface)',
+          tint: 'var(--surface-muted)',
         },
-        rule: 'var(--rule)',
+        rule: 'var(--border-subtle)',
         latte: {
           DEFAULT: 'var(--latte)',
           deep: 'var(--latte-deep)',

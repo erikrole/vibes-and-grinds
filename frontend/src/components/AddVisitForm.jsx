@@ -573,7 +573,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
         </div>
 
         <div className="avf-actions safe-bottom">
-          {errors.submit && <p className="form-save-error" role="alert">{errors.submit}</p>}
+          {errors.submit && <p className="alert-error" role="alert">{errors.submit}</p>}
           <div className="avf-save-row">
             <div className="avf-total" aria-live="polite">
               <strong>{total ?? '–'}</strong><small>/ 20</small>

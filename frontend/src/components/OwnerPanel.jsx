@@ -21,7 +21,7 @@ export default function OwnerPanel({ owner, contributor, onSignedIn, onSignedOut
   };
   return <section className="owner-panel">
     <h2 className="type-title">{owner ? 'Manage journal' : contributor ? 'Signed in' : 'Sign in'}</h2>
-    {error && <p className="form-error" role="alert">{error}</p>}
+    {error && <p className="alert-error" role="alert">{error}</p>}
     {!owner && contributor ? <>
       <p className="type-meta my-4">You can add visits and photos. Ask Erik to edit or delete an entry.</p>
       <button type="button" className="text-action" disabled={busy} onClick={() => run(async () => { await ownerRequest('session', 'DELETE'); onSignedOut(); })}>Sign out</button>

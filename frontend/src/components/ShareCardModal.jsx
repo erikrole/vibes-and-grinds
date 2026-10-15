@@ -63,13 +63,13 @@ export default function ShareCardModal({ visit, onClose }) {
       <div
         ref={modalRef}
         className="relative w-full max-w-sm rounded-xl shadow-xl border border-rule p-6 sm:p-7"
-        style={{ backgroundColor: 'var(--paper-2)' }}
+        style={{ backgroundColor: 'var(--surface)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
           <h3
             className="text-xl"
-            style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--ink)' }}
+            style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}
           >
             Share card
           </h3>
@@ -87,7 +87,7 @@ export default function ShareCardModal({ visit, onClose }) {
         {/* Preview */}
         <div
           className="relative w-full overflow-hidden rounded-lg"
-          style={{ aspectRatio: '1080 / 1350', backgroundColor: 'var(--paper-tint)' }}
+          style={{ aspectRatio: '1080 / 1350', backgroundColor: 'var(--surface-muted)' }}
         >
           {status === 'ready' && previewUrl && (
             <img src={previewUrl} alt={`Share card preview for ${visit.coffee_shop_name}`} className="absolute inset-0 w-full h-full object-cover" />
@@ -112,7 +112,7 @@ export default function ShareCardModal({ visit, onClose }) {
               onClick={handleShare}
               disabled={status !== 'ready' || busy}
               className="w-full py-3.5 rounded-lg font-semibold text-[15px] transition-colors disabled:opacity-50"
-              style={{ backgroundColor: 'var(--ink)', color: 'var(--paper)' }}
+              style={{ backgroundColor: 'var(--text-primary)', color: 'var(--canvas)' }}
             >
               {busy ? 'Sharing…' : 'Share'}
             </button>
@@ -123,8 +123,8 @@ export default function ShareCardModal({ visit, onClose }) {
             className="w-full py-3.5 rounded-lg font-semibold text-[15px] transition-colors disabled:opacity-50"
             style={
               shareSupported
-                ? { backgroundColor: 'var(--paper-tint)', color: 'var(--ink)' }
-                : { backgroundColor: 'var(--ink)', color: 'var(--paper)' }
+                ? { backgroundColor: 'var(--surface-muted)', color: 'var(--text-primary)' }
+                : { backgroundColor: 'var(--text-primary)', color: 'var(--canvas)' }
             }
           >
             Download PNG

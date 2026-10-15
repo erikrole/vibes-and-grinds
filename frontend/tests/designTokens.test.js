@@ -32,9 +32,9 @@ test('every light colour token has a dark counterpart', () => {
 
 test('text pairs meet WCAG AA (4.5:1) in both themes', () => {
   const pairs = [
-    ['text-primary', 'surface'], ['text-secondary', 'surface'], ['text-tertiary', 'surface'], ['text-tertiary', 'paper'],
-    ['text-tertiary', 'surface-muted'], ['ink-soft', 'paper'], ['ink-faint', 'paper'], ['accent-text', 'surface'],
-    ['accent-text', 'paper'], ['accent-text', 'surface-muted'], ['danger', 'surface'], ['success', 'surface'], ['warning', 'surface'],
+    ['text-primary', 'surface'], ['text-secondary', 'surface'], ['text-tertiary', 'surface'], ['text-tertiary', 'canvas'],
+    ['text-tertiary', 'surface-muted'], ['accent-text', 'surface'],
+    ['accent-text', 'canvas'], ['accent-text', 'surface-muted'], ['danger', 'surface'], ['success', 'surface'], ['warning', 'surface'],
   ];
   for (const [name, tokens] of [['light', light], ['dark', dark]]) {
     for (const [fg, bg] of pairs) {

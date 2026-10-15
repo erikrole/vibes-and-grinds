@@ -335,7 +335,7 @@ export default function CoffeeJournalShell({
           <section className="recovery-panel max-w-2xl" role="alert">
             <p className="eyebrow mb-3">Connection problem</p>
             <h2 className="text-2xl sm:text-3xl font-semibold mb-3">Couldn’t load the coffee journal</h2>
-            <p className="text-sm mb-6" style={{ color: 'var(--ink-soft)' }}>{error}</p>
+            <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{error}</p>
             <button type="button" onClick={loadVisits} className="btn-primary">Try again</button>
           </section>
         </main>

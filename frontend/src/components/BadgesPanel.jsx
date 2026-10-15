@@ -141,7 +141,7 @@ function BadgeCard({ badge }) {
                   className="h-full rounded-full transition-all duration-500"
                   style={{
                     width: `${badge.progress * 100}%`,
-                    backgroundColor: isEarned ? TIER_COLORS[badge.tier].hex : 'var(--ink-faint)',
+                    backgroundColor: isEarned ? TIER_COLORS[badge.tier].hex : 'var(--text-tertiary)',
                   }}
                 />
               </div>

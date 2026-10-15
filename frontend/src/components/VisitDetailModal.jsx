@@ -217,7 +217,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
         <div
           ref={modalRef}
           className={`${closing ? 'animate-modal-out' : 'animate-modal-in'} dialog-panel visit-detail-panel vdm max-w-2xl ${draggingPhoto ? 'vdm-dragging' : ''}`}
-          style={{ backgroundColor: 'var(--paper-2)' }}
+          style={{ backgroundColor: 'var(--surface)' }}
           onClick={(e) => e.stopPropagation()}
           onDrop={canPhoto && !visit.photo_url ? handlePhotoDrop : undefined}
           onDragOver={canPhoto && !visit.photo_url ? (e) => { e.preventDefault(); setDraggingPhoto(true); } : undefined}
@@ -271,7 +271,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
           <div className="vdm-body">
             {photoError && (
-              <div className="vdm-error" role="alert">
+              <div className="alert-error" role="alert">
                 <span>{photoError}</span>
                 <button onClick={() => setPhotoError(null)} aria-label="Dismiss">&times;</button>
               </div>

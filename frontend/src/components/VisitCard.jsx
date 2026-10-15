@@ -66,7 +66,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                   fontFamily: 'Fraunces, Georgia, serif',
                   fontWeight: 600,
                   letterSpacing: '-0.02em',
-                  color: 'var(--ink)',
+                  color: 'var(--text-primary)',
                 }}
                 >
                   {visit.coffee_shop_name}
@@ -158,7 +158,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
             <span className="inline-flex items-center gap-1.5">
               {relativeLabel ? (
                 <>
-                  <span className="font-medium" style={{ color: 'var(--ink)' }}>{relativeLabel}</span>
+                  <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{relativeLabel}</span>
                   <span className="text-ink-faint">{formattedDate}</span>
                 </>
               ) : (
