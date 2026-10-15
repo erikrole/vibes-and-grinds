@@ -86,6 +86,18 @@ export async function syncVestGames(games, revision) {
   return response.json();
 }
 
+/** Wisconsin games on one date. Suggestions are optional, so any failure is just "no games". */
+export async function fetchBadgerGames(date, signal) {
+  try {
+    const response = await fetch(`${API_URL}/api/badger-games?${new URLSearchParams({ date })}`, { signal });
+    if (!response.ok) return [];
+    const payload = await response.json();
+    return Array.isArray(payload.games) ? payload.games : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchVestSchedule(season) {
   const query = `?${new URLSearchParams({ season: String(season) })}`;
   try {

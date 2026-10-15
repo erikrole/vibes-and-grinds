@@ -12,7 +12,7 @@ export default function RatingBadge({ rating, label, maxRating = 10 }) {
           style={{
             fontFamily: 'Fraunces, Georgia, serif',
             fontWeight: 600,
-            color: 'var(--ink)',
+            color: 'var(--text-primary)',
             letterSpacing: '-0.02em',
           }}
           role="meter"

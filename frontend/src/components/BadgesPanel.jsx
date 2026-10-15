@@ -141,7 +141,7 @@ function BadgeCard({ badge }) {
                   className="h-full rounded-full transition-all duration-500"
                   style={{
                     width: `${badge.progress * 100}%`,
-                    backgroundColor: isEarned ? TIER_COLORS[badge.tier].hex : 'var(--ink-faint)',
+                    backgroundColor: isEarned ? TIER_COLORS[badge.tier].hex : 'var(--text-tertiary)',
                   }}
                 />
               </div>
@@ -149,7 +149,7 @@ function BadgeCard({ badge }) {
           )}
 
           {!badge.nextThreshold && isEarned && (
-            <p className="text-[10px] text-accent font-semibold mt-2">MAX LEVEL</p>
+            <p className="text-[10px] text-accent-text font-semibold mt-2">MAX LEVEL</p>
           )}
         </div>
       </div>

@@ -17,6 +17,8 @@ import AppChrome from './AppChrome';
 
 const VisitDetailModal = lazy(() => import('../components/VisitDetailModal'));
 const MapExplorer = lazy(() => import('../components/MapExplorer'));
+import SaveCelebration from '../components/SaveCelebration';
+import { saveCelebration } from '../utils/funExtras';
 const InsightsPanel = lazy(() => import('../components/InsightsPanel'));
 const YearInReview = lazy(() => import('../components/YearInReview'));
 
@@ -47,6 +49,7 @@ export default function CoffeeJournalShell({
   onBlockingUiChange,
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [celebration, setCelebration] = useState(null);
   const [visitDraft, setVisitDraft] = useState(null);
   const [editingVisit, setEditingVisit] = useState(null);
   const viewingVisit = visits.find((visit) => String(visit.id) === route.visit) || null;
@@ -162,6 +165,7 @@ export default function CoffeeJournalShell({
   const handleAddVisit = async (visitData) => {
     try {
       const newVisit = await createVisit(visitData);
+      setCelebration(saveCelebration(visits, newVisit));
       setVisits((prev) => [newVisit, ...prev]);
       setShowForm(false);
       setVisitDraft(null);
@@ -331,7 +335,7 @@ export default function CoffeeJournalShell({
           <section className="recovery-panel max-w-2xl" role="alert">
             <p className="eyebrow mb-3">Connection problem</p>
             <h2 className="text-2xl sm:text-3xl font-semibold mb-3">Couldn’t load the coffee journal</h2>
-            <p className="text-sm mb-6" style={{ color: 'var(--ink-soft)' }}>{error}</p>
+            <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{error}</p>
             <button type="button" onClick={loadVisits} className="btn-primary">Try again</button>
           </section>
         </main>
@@ -469,6 +473,7 @@ export default function CoffeeJournalShell({
           <YearInReview visits={visits} initialSeason={route.season} onSeasonChange={(season) => navigate({ season }, { replace: true })} onVisitClick={(visit) => navigate({ season: null, visit: String(visit.id) }, { replace: true })} onClose={() => setShowYearReview(false)} />
         </Suspense>
       )}
+      <SaveCelebration celebration={celebration} onClose={() => setCelebration(null)} />
     </AppChrome>
   );
 }

@@ -1,5 +1,6 @@
 import { cloneElement, useCallback, useEffect, useRef, useState } from 'react';
 import useFocusTrap from '../hooks/useFocusTrap';
+import ConfirmDialog from './ConfirmDialog';
 
 export default function FormModal({ title, onClose, children, active = true, topmost = false }) {
   const modalRef = useRef(null);
@@ -56,20 +57,19 @@ export default function FormModal({ title, onClose, children, active = true, top
             </svg>
           </button>
           <div className="dialog-body p-4 sm:p-7 md:p-9">{cloneElement(children, { onDirtyChange: setDirty, onSavingChange: setSaving })}</div>
-          {confirmDiscard && <DiscardPrompt onKeep={() => setConfirmDiscard(false)} onDiscard={close} />}
+          {confirmDiscard && (
+            <ConfirmDialog
+              title="Discard this entry?"
+              message="You have unsaved changes. Keep editing to finish your visit."
+              confirmText="Discard changes"
+              cancelText="Keep editing"
+              danger
+              onConfirm={close}
+              onCancel={() => setConfirmDiscard(false)}
+            />
+          )}
         </div>
       </div>
     </div>
   );
-}
-
-function DiscardPrompt({ onKeep, onDiscard }) {
-  const ref = useRef(null);
-  const keepRef = useRef(null);
-  useFocusTrap(ref, { onEscape: onKeep, initialFocusRef: keepRef });
-  return <div className="discard-overlay"><div ref={ref} className="discard-panel" role="alertdialog" aria-modal="true" aria-labelledby="discard-title" aria-describedby="discard-copy">
-    <h3 id="discard-title">Discard this entry?</h3>
-    <p id="discard-copy">You have unsaved changes. Keep editing to finish your visit.</p>
-    <div><button ref={keepRef} type="button" className="btn-primary" onClick={onKeep}>Keep editing</button><button type="button" className="btn-secondary" onClick={onDiscard}>Discard changes</button></div>
-  </div></div>;
 }

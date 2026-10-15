@@ -98,11 +98,7 @@ export default function App() {
           }}
         >
           <div
-            className={`flex items-center gap-3 px-4 py-3 rounded-2xl shadow-lg border text-sm cursor-pointer select-none transition-opacity hover:opacity-80 ${
-              toastBag.toast.type === 'error'
-                ? 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/30 dark:border-red-700 dark:text-red-200'
-                : 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-200'
-            }`}
+            className={`toast ${toastBag.toast.type === 'error' ? 'toast-error' : 'toast-success'}`}
           >
             <span>{toastBag.toast.onUndo ? 'Moved to deleted visits.' : toastBag.toast.message}</span>
             {toastBag.toast.onUndo && (
