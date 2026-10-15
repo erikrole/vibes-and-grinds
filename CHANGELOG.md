@@ -1,5 +1,9 @@
 # Change notes
 
+## 2026-10-15 — Color system pass
+
+Filled accent controls used white text on the accent (3.3:1 light, 2.5:1 dark). They now use `--accent-fill` with `--on-accent`. Recurring literals became tokens (`--on-solid`, `--cream`, `--scrim`, the Vest red), and cream/accent alpha literals became `color-mix()` so they follow the theme. Hex and `rgba()` literals outside the token block fell from 129 to 82; the rest are listed in `DESIGN_SYSTEM.md`. Vest checked in light and dark, journal Insights in light.
+
 ## 2026-10-15 — Design system audit
 
 Audited the design language (see `DESIGN_SYSTEM.md`) and fixed what was objectively wrong: light-theme text and rating colours that missed WCAG contrast, an accent colour used as text, radius tokens missing in dark mode, unused Tailwind palettes, and one-off easings/radii/font stacks. Added shared scales (type, space, radius, motion, layers), a global reduced-motion safety net, and tests that keep light/dark parity and contrast from regressing. Slight visible changes: light-theme secondary text and accent text are a little darker, and the mid/good rating colours are a touch deeper.

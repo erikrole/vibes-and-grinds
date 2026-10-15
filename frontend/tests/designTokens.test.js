@@ -61,3 +61,16 @@ test('shared scales exist and the one-off literals do not creep back', () => {
   assert.equal((body.match(/border-radius:\s*999px/g) || []).length, 0);
   assert.equal((body.match(/cubic-bezier\(/g) || []).length, 0);
 });
+
+test('filled accent controls keep readable text in both themes', () => {
+  for (const [name, tokens] of [['light', light], ['dark', dark]]) {
+    const ratio = contrast(resolve(tokens, tokens['on-accent']), resolve(tokens, tokens['accent-fill']));
+    assert.ok(ratio >= 4.5, `${name}: on-accent on accent-fill is ${ratio.toFixed(2)}:1`);
+  }
+});
+
+test('white text is never set directly on the accent (use --on-accent over --accent-fill)', () => {
+  const body = css.slice(css.indexOf('  body {'));
+  const bad = body.split('\n').filter((line) => /background:\s*var\(--accent\)/.test(line) && /color:\s*(#fff|var\(--on-solid\))/.test(line));
+  assert.deepEqual(bad, []);
+});
