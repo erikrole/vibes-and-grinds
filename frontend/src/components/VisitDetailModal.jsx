@@ -4,6 +4,7 @@ import { getRatingColor, getCompositeColor } from '../utils/colors';
 import { formatDate, getRelativeLabel } from '../utils/dates';
 import { DEFAULT_VISITOR_NAME, getRepeatVisits } from '../utils/repeats';
 import ShareCardModal from './ShareCardModal';
+import ConfirmDialog from './ConfirmDialog';
 import CopyLink from './CopyLink';
 import useFocusTrap from '../hooks/useFocusTrap';
 import { formatEventContext, titleCaseOrder } from '../utils/display';
@@ -199,6 +200,9 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
   ), null);
 
   const mapUrl = getAppleMapsUrl(visit);
+  const eventContext = formatEventContext(visit);
+  const whenLine = [relativeLabel, formattedDate].filter(Boolean).join(' · ');
+  const canPhoto = Boolean(onUpdate);
 
   return (
     <div
@@ -212,208 +216,82 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
       <div className="dialog-positioner">
         <div
           ref={modalRef}
-          className={`${closing ? 'animate-modal-out' : 'animate-modal-in'} dialog-panel visit-detail-panel max-w-2xl`}
+          className={`${closing ? 'animate-modal-out' : 'animate-modal-in'} dialog-panel visit-detail-panel vdm max-w-2xl ${draggingPhoto ? 'vdm-dragging' : ''}`}
           style={{ backgroundColor: 'var(--paper-2)' }}
           onClick={(e) => e.stopPropagation()}
+          onDrop={canPhoto && !visit.photo_url ? handlePhotoDrop : undefined}
+          onDragOver={canPhoto && !visit.photo_url ? (e) => { e.preventDefault(); setDraggingPhoto(true); } : undefined}
+          onDragLeave={canPhoto && !visit.photo_url ? () => setDraggingPhoto(false) : undefined}
         >
-          {/* Photo or decorative header */}
-          <div className="relative">
-            {uploading && (
-              <div className="absolute inset-0 z-20 flex items-center justify-center bg-surface-raised/60/60 backdrop-blur-sm">
-                <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface-raised shadow-lg border border-rule">
-                  <div className="w-5 h-5 border-2 border-rule border-t-ink rounded-full animate-spin" />
-                  <span className="text-sm font-medium text-ink">Uploading...</span>
-                </div>
-              </div>
+          <div className="vdm-controls">
+            {onEdit && (
+              <button onClick={() => setShowMenu((prev) => !prev)} className="vdm-icon-btn" aria-label="Visit actions" aria-expanded={showMenu}>
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
+              </button>
             )}
-            {visit.photo_url ? (
-              <div className="visit-photo-stage">
-                <img src={visit.photo_url} alt={visit.coffee_shop_name} className="visit-photo-image" />
-              </div>
-            ) : (
-              <div
-                className={`detail-header-accent h-28 sm:h-32 relative overflow-hidden transition-colors ${draggingPhoto ? 'ring-2 ring-inset ring-accent' : ''}`}
-                onDrop={onUpdate ? handlePhotoDrop : undefined}
-                onDragOver={onUpdate ? (e) => { e.preventDefault(); setDraggingPhoto(true); } : undefined}
-                onDragLeave={onUpdate ? () => setDraggingPhoto(false) : undefined}
-              >
-                <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '20px 20px' }} />
-                {draggingPhoto ? (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <p className="text-sm font-medium text-ink-soft">Drop photo here</p>
-                  </div>
-                ) : onUpdate ? (
-                  <button
-                    onClick={handleAddPhoto}
-                    disabled={uploading}
-                    className="absolute bottom-3 left-6 sm:left-7 flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium text-ink-faint hover:text-ink bg-surface-raised backdrop-blur-sm border border-rule hover:border-latte-deep transition-all shadow-sm"
-                    aria-label="Add photo to this visit"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    {uploading ? 'Uploading...' : 'Add photo'}
-                  </button>
-                ) : null}
-              </div>
+            <button ref={closeRef} onClick={handleClose} className="vdm-icon-btn" aria-label="Close">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            {showMenu && (
+              <>
+                <div className="fixed inset-0" onClick={() => setShowMenu(false)} />
+                <div className="vdm-menu" role="menu">
+                  {visit.photo_url ? (
+                    <>
+                      <MenuItem icon={MENU_ICONS.crop} onClick={handleRecropPhoto}>Crop photo</MenuItem>
+                      <MenuItem icon={MENU_ICONS.replace} onClick={handleReplacePhoto}>Replace photo</MenuItem>
+                      <MenuItem icon={MENU_ICONS.trash} onClick={handleDeletePhoto} danger>Remove photo</MenuItem>
+                    </>
+                  ) : (
+                    <MenuItem icon={MENU_ICONS.camera} onClick={handleReplacePhoto} disabled={uploading}>Add photo</MenuItem>
+                  )}
+                  <div className="vdm-menu-rule" />
+                  <MenuItem icon={MENU_ICONS.edit} onClick={handleEdit}>Edit visit</MenuItem>
+                  <div className="vdm-menu-rule" />
+                  <MenuItem icon={MENU_ICONS.trash} onClick={handleDelete} danger>Move to deleted visits</MenuItem>
+                </div>
+              </>
             )}
           </div>
 
-          {/* Body */}
-          <div className="p-4 sm:p-6 md:p-7">
-            {/* Top-right controls */}
-            <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex items-center gap-1.5 z-10">
-              {onEdit && <button
-                onClick={() => setShowMenu((prev) => !prev)}
-                className="bg-surface-raised text-ink-soft hover:text-ink p-3 rounded-full backdrop-blur-sm transition-all shadow-lg"
-                aria-label="Visit actions"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                </svg>
-              </button>}
-              <button
-                ref={closeRef}
-                onClick={handleClose}
-                className="bg-surface-raised text-ink-soft hover:text-ink p-3 rounded-full backdrop-blur-sm transition-all shadow-lg"
-                aria-label="Close"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              {showMenu && (
-                <>
-                  <div className="fixed inset-0" onClick={() => setShowMenu(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-52 bg-surface-raised rounded-2xl shadow-xl z-20 border border-rule overflow-hidden">
-                    {!visit.photo_url && (
-                      <button
-                        onClick={handleReplacePhoto}
-                        disabled={uploading}
-                        className="w-full text-left px-4 py-3 text-sm text-ink hover:bg-surface-muted transition-colors flex items-center gap-3"
-                      >
-                        <svg className="w-4 h-4 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                        Add Photo
-                      </button>
-                    )}
-                    {visit.photo_url && (
-                      <>
-                        <button
-                          onClick={handleRecropPhoto}
-                          className="w-full text-left px-4 py-3 text-sm text-ink hover:bg-surface-muted transition-colors flex items-center gap-3"
-                        >
-                          <svg className="w-4 h-4 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                          Crop Photo
-                        </button>
-                        <button
-                          onClick={handleReplacePhoto}
-                          className="w-full text-left px-4 py-3 text-sm text-ink hover:bg-surface-muted transition-colors flex items-center gap-3"
-                        >
-                          <svg className="w-4 h-4 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                          Replace Photo
-                        </button>
-                        <button
-                          onClick={handleDeletePhoto}
-                          className="w-full text-left px-4 py-3 text-sm text-danger hover:bg-surface-muted transition-colors flex items-center gap-3"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                          Remove Photo
-                        </button>
-                      </>
-                    )}
-                    <div className="border-t border-rule" />
-                    <button
-                      onClick={handleEdit}
-                      className="w-full text-left px-4 py-3 text-sm text-ink hover:bg-surface-muted transition-colors flex items-center gap-3"
-                    >
-                      <svg className="w-4 h-4 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                      Edit visit
-                    </button>
-                    <button
-                      onClick={handleShare}
-                      className="w-full text-left px-4 py-3 text-sm text-ink hover:bg-surface-muted transition-colors flex items-center gap-3"
-                    >
-                      <svg className="w-4 h-4 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-                      Share image
-                    </button>
-                    <button
-                      onClick={handleLogReturnVisit}
-                      className="w-full text-left px-4 py-3 text-sm text-ink hover:bg-surface-muted transition-colors flex items-center gap-3"
-                    >
-                      <svg className="w-4 h-4 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                      Log return visit
-                    </button>
-                    <div className="border-t border-rule" />
-                    <button
-                      onClick={handleDelete}
-                      className="w-full text-left px-4 py-3 text-sm text-danger hover:bg-surface-muted transition-colors flex items-center gap-3"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      Move to deleted visits
-                    </button>
-                  </div>
-                </>
-              )}
+          {uploading && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-surface-raised/60 backdrop-blur-sm">
+              <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface-raised shadow-lg border border-rule">
+                <div className="w-5 h-5 border-2 border-rule border-t-ink rounded-full animate-spin" />
+                <span className="text-sm font-medium text-ink">Uploading…</span>
+              </div>
             </div>
+          )}
 
+          {visit.photo_url && (
+            <div className="visit-photo-stage">
+              <img src={visit.photo_url} alt={visit.coffee_shop_name} className="visit-photo-image" />
+            </div>
+          )}
+
+          <div className="vdm-body">
             {photoError && (
-              <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm rounded-xl flex items-center justify-between">
+              <div className="vdm-error" role="alert">
                 <span>{photoError}</span>
-                <button onClick={() => setPhotoError(null)} className="ml-2 text-red-500 hover:text-red-700">&times;</button>
+                <button onClick={() => setPhotoError(null)} aria-label="Dismiss">&times;</button>
               </div>
             )}
 
-            {/* Title */}
-            <h2
-              className="text-2xl sm:text-3xl md:text-4xl pr-24 leading-tight"
-              style={{
-                fontFamily: 'Fraunces, Georgia, serif',
-                fontWeight: 600,
-                letterSpacing: '-0.025em',
-                color: 'var(--ink)',
-              }}
-            >
-              {visit.coffee_shop_name ? (
-                <a className="detail-shop-map-link" href={mapUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${visit.coffee_shop_name} in Maps`}>
-                  <span>{visit.coffee_shop_name}</span>
-                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5h5v5m0-5L10 14M19 13v5a1 1 0 01-1 1H6a1 1 0 01-1-1V6a1 1 0 011-1h5" /></svg>
-                </a>
-              ) : visit.coffee_shop_name}
-            </h2>
-
-            {/* Inline metadata */}
-            <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-soft">
-              {relativeLabel && (
-                <>
-                  <span className="font-medium" style={{ color: 'var(--ink)' }}>{relativeLabel}</span>
-                  <span className="text-ink-faint">·</span>
-                </>
+            <header className="vdm-header">
+              {whenLine && <p className="vdm-kicker">{whenLine}</p>}
+              <h2 className="vdm-title">
+                {visit.coffee_shop_name ? (
+                  <a className="detail-shop-map-link" href={mapUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${visit.coffee_shop_name} in Maps`}>
+                    <span>{visit.coffee_shop_name}</span>
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5h5v5m0-5L10 14M19 13v5a1 1 0 01-1 1H6a1 1 0 01-1-1V6a1 1 0 011-1h5" /></svg>
+                  </a>
+                ) : visit.coffee_shop_name}
+              </h2>
+              {(visit.city || eventContext) && (
+                <p className="vdm-meta">{[visit.city, eventContext].filter(Boolean).join(' · ')}</p>
               )}
-              <span className="text-ink-soft">{formattedDate}</span>
-              {visit.city && (
-                <>
-                  <span className="text-ink-faint">·</span>
-                  <span>{visit.city}</span>
-                </>
-              )}
-              {formatEventContext(visit) && (
-                <>
-                  <span className="text-ink-faint">·</span>
-                  <span className="text-ink-soft">{formatEventContext(visit)}</span>
-                </>
-              )}
-            </div>
+            </header>
 
-            <div className="detail-quick-actions">
-              {onLogReturnVisit && <button type="button" className="btn-primary" onClick={handleLogReturnVisit}>Log return visit</button>}
-              <a className="btn-secondary" href={mapUrl} target="_blank" rel="noopener noreferrer">Open in Apple Maps ↗</a>
-              {onEdit && <button type="button" className="text-action" onClick={handleEdit}>Edit visit</button>}
-              {visit.shop_id && <button type="button" className="text-action" onClick={() => onShopClick(visit)}>Shop history</button>}
-              <CopyLink />
-              <button type="button" className="text-action" onClick={handleShare}>Share image</button>
-            </div>
-
-            {/* Ratings */}
             <div className="detail-score-grid">
               <ScoreCell key={`v-${visit.id}`} label="Vibe" score={visit.vibe_rating} standing={standing.vibe} />
               <ScoreCell key={`c-${visit.id}`} label="Coffee" score={visit.coffee_rating} standing={standing.coffee} />
@@ -425,126 +303,71 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
               </ul>
             )}
 
-            {/* Order card */}
-            {visit.coffee_order && (
-              <div
-                className="mt-5 flex items-center gap-4 p-4 sm:p-5 rounded-2xl"
-                style={{ backgroundColor: 'var(--paper-tint)' }}
-              >
-                <div
-                  className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg"
-                  style={{ backgroundColor: 'var(--accent-soft)' }}
-                >
-                  ☕
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="eyebrow mb-0.5 text-[0.65rem]">Order</p>
-                  <p className="text-lg font-semibold truncate" style={{ color: 'var(--ink)' }}>
-                    {titleCaseOrder(visit.coffee_order)}
-                  </p>
-                </div>
-              </div>
+            {(visit.coffee_order || visit.notes) && (
+              <dl className="vdm-facts">
+                {visit.coffee_order && (
+                  <div>
+                    <dt>Order</dt>
+                    <dd>{titleCaseOrder(visit.coffee_order)}</dd>
+                  </div>
+                )}
+                {visit.notes && (
+                  <div>
+                    <dt>Notes</dt>
+                    <dd className="vdm-notes">{visit.notes}</dd>
+                  </div>
+                )}
+              </dl>
             )}
 
             {shopRepeatVisits.length > 1 && (
               <RepeatHistoryCard
                 visit={visit}
-                visits={shopRepeatVisits}
                 visitNumber={shopRepeatIndex + 1}
+                total={shopRepeatVisits.length}
                 previousVisit={previousShopVisit}
                 bestVisit={bestShopVisit}
-                onLogReturnVisit={onLogReturnVisit}
               />
             )}
 
-            {visit.notes && (
-              <blockquote className="visit-note-card">
-                <p className="eyebrow mb-2 text-[0.65rem]">Notes</p>
-                <p className="visit-note-copy">
-                  {visit.notes}
-                </p>
-              </blockquote>
-            )}
+            <div className="vdm-actions">
+              {onLogReturnVisit && <button type="button" className="btn-primary" onClick={handleLogReturnVisit}>Log return visit</button>}
+              <a className="text-action" href={mapUrl} target="_blank" rel="noopener noreferrer">Open in Maps</a>
+              {visit.shop_id && <button type="button" className="text-action" onClick={() => onShopClick(visit)}>Shop history</button>}
+              <CopyLink />
+              <button type="button" className="text-action" onClick={handleShare}>Share image</button>
+              {canPhoto && !visit.photo_url && <button type="button" className="text-action" onClick={handleAddPhoto} disabled={uploading}>Add photo</button>}
+            </div>
 
-            {/* Prev/Next navigation */}
             {(prevVisit || nextVisit) && (
-              <div className="mt-6 pt-5 grid grid-cols-2 gap-3" style={{ borderTop: '1px solid var(--rule)' }}>
+              <nav className="vdm-pager" aria-label="Other visits">
                 {prevVisit ? (
-                  <button
-                    onClick={() => onNavigate(prevVisit)}
-                    className="flex items-center gap-2.5 px-4 py-3 rounded-2xl text-left transition-all group hover:-translate-y-0.5"
-                    style={{ backgroundColor: 'var(--paper-tint)' }}
-                  >
-                    <svg className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform flex-shrink-0" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                    <div className="min-w-0">
-                      <p className="eyebrow text-[0.65rem]">Previous</p>
-                      <p className="text-sm font-medium truncate" style={{ color: 'var(--ink)' }}>{prevVisit.coffee_shop_name}</p>
-                    </div>
+                  <button onClick={() => onNavigate(prevVisit)} className="vdm-pager-prev">
+                    <span aria-hidden="true">←</span>
+                    <span className="min-w-0"><small>Previous</small><b>{prevVisit.coffee_shop_name}</b></span>
                   </button>
-                ) : <div />}
+                ) : <span />}
                 {nextVisit ? (
-                  <button
-                    onClick={() => onNavigate(nextVisit)}
-                    className="flex items-center justify-end gap-2.5 px-4 py-3 rounded-2xl text-right transition-all group hover:-translate-y-0.5"
-                    style={{ backgroundColor: 'var(--paper-tint)' }}
-                  >
-                    <div className="min-w-0">
-                      <p className="eyebrow text-[0.65rem]">Next</p>
-                      <p className="text-sm font-medium truncate" style={{ color: 'var(--ink)' }}>{nextVisit.coffee_shop_name}</p>
-                    </div>
-                    <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform flex-shrink-0" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                  <button onClick={() => onNavigate(nextVisit)} className="vdm-pager-next">
+                    <span className="min-w-0"><small>Next</small><b>{nextVisit.coffee_shop_name}</b></span>
+                    <span aria-hidden="true">→</span>
                   </button>
-                ) : <div />}
-              </div>
+                ) : <span />}
+              </nav>
             )}
           </div>
         </div>
       </div>
 
-      {/* Confirmation dialog */}
       {confirmAction && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 dark:bg-black/80 backdrop-blur-sm"
-          role="alertdialog"
-          aria-modal="true"
-          aria-labelledby="confirm-dialog-title"
-          aria-describedby="confirm-dialog-message"
-          onClick={() => setConfirmAction(null)}
-        >
-          <div
-            className="rounded-xl shadow-xl max-w-sm w-full p-7 border border-rule"
-            style={{ backgroundColor: 'var(--paper-2)' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 id="confirm-dialog-title" className="text-xl mb-2" style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
-              {confirmAction.title}
-            </h3>
-            <p id="confirm-dialog-message" className="text-ink-soft text-sm leading-relaxed mb-7">{confirmAction.message}</p>
-            <div className="space-y-2">
-              <button
-                onClick={confirmAction.onConfirm}
-                className="w-full py-3.5 rounded-lg font-semibold text-[15px] transition-colors"
-                style={
-                  confirmAction.type === 'delete'
-                    ? { backgroundColor: '#dc2626', color: '#fff' }
-                    : { backgroundColor: 'var(--ink)', color: 'var(--paper)' }
-                }
-              >
-                {confirmAction.confirmText}
-              </button>
-              <button
-                onClick={() => setConfirmAction(null)}
-                className="w-full py-3 text-ink-faint hover:text-ink font-medium text-sm transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title={confirmAction.title}
+          message={confirmAction.message}
+          confirmText={confirmAction.confirmText}
+          danger={confirmAction.type === 'delete'}
+          onConfirm={confirmAction.onConfirm}
+          onCancel={() => setConfirmAction(null)}
+        />
       )}
 
       {cropping && imageToCrop && (
@@ -611,80 +434,57 @@ function ScoreCell({ label, score, isTotal = false, standing = null }) {
   );
 }
 
-function RepeatHistoryCard({ visit, visits, visitNumber, previousVisit, bestVisit, onLogReturnVisit }) {
+function RepeatHistoryCard({ visit, visitNumber, total, previousVisit, bestVisit }) {
   const previousDelta = previousVisit
     ? Number(visit.composite_score) - Number(previousVisit.composite_score)
     : null;
-  const deltaLabel = previousDelta == null
-    ? null
-    : `${previousDelta >= 0 ? '+' : ''}${previousDelta.toFixed(1)}`;
   const bestScore = Number(bestVisit?.composite_score);
-  const bestDate = bestVisit?.date ? formatDate(bestVisit.date) : null;
+  const isBest = bestVisit && String(bestVisit.id) === String(visit.id);
+  const summary = [
+    `${total} visits`,
+    bestVisit && !isBest ? `best ${bestScore.toFixed(1)}/20` : isBest ? 'your best here' : null,
+    previousDelta != null ? `${previousDelta >= 0 ? '+' : '−'}${Math.abs(previousDelta).toFixed(1)} since last time` : null,
+  ].filter(Boolean).join(' · ');
 
   return (
-    <div className="mt-5 rounded-2xl p-4 sm:p-5" style={{ backgroundColor: 'var(--paper-tint)' }}>
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-        <div>
-          <p className="eyebrow mb-1 text-[0.65rem]">Repeat history</p>
-          <p className="text-lg font-semibold" style={{ color: 'var(--ink)' }}>
-            {DEFAULT_VISITOR_NAME}'s visit #{visitNumber} here
-          </p>
-        </div>
-        {onLogReturnVisit && <button
-          type="button"
-          onClick={() => onLogReturnVisit?.(visit)}
-          className="self-start rounded-xl px-3 py-2 text-xs font-semibold transition-colors bg-surface-raised text-ink hover:bg-surface-raised border border-rule"
-        >
-          Log return visit
-        </button>}
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <RepeatMetric label="Total visits" value={visits.length} />
-        {bestVisit && (
-          <RepeatMetric
-            label="Best here"
-            value={`${bestScore.toFixed(1)}/20`}
-            detail={bestDate}
-            accent={getCompositeColor(bestScore)}
-          />
-        )}
-        {previousVisit && (
-          <RepeatMetric
-            label="Since previous"
-            value={deltaLabel}
-            detail={`${Number(previousVisit.composite_score).toFixed(1)}/20 last time`}
-            accent={previousDelta >= 0 ? '#16a34a' : '#dc2626'}
-          />
-        )}
-      </div>
+    <section className="vdm-repeat" aria-label="Repeat history">
+      <h3>{DEFAULT_VISITOR_NAME}&rsquo;s visit #{visitNumber} here</h3>
+      <p>{summary}</p>
       {previousVisit && (
-        <div className="repeat-comparison" role="table" aria-label="Previous and current visit ratings">
-          <div role="row"><span role="columnheader">Rating</span><span role="columnheader">Previous</span><span role="columnheader">Current</span><span role="columnheader">Change</span></div>
-          {[
-            ['Vibe', 'vibe_rating'],
-            ['Coffee', 'coffee_rating'],
-            ['Overall', 'composite_score'],
-          ].map(([label, field]) => {
-            const delta = Number(visit[field]) - Number(previousVisit[field]);
-            return <div role="row" key={field}><strong role="cell">{label}</strong><span role="cell">{Number(previousVisit[field]).toFixed(1)}</span><span role="cell">{Number(visit[field]).toFixed(1)}</span><b role="cell" data-direction={delta >= 0 ? 'up' : 'down'}>{delta >= 0 ? '+' : ''}{delta.toFixed(1)}</b></div>;
-          })}
-        </div>
+        <details>
+          <summary>Compare with last visit</summary>
+          <div className="repeat-comparison" role="table" aria-label="Previous and current visit ratings">
+            <div role="row"><span role="columnheader">Rating</span><span role="columnheader">Previous</span><span role="columnheader">Current</span><span role="columnheader">Change</span></div>
+            {[
+              ['Vibe', 'vibe_rating'],
+              ['Coffee', 'coffee_rating'],
+              ['Overall', 'composite_score'],
+            ].map(([label, field]) => {
+              const delta = Number(visit[field]) - Number(previousVisit[field]);
+              return <div role="row" key={field}><strong role="cell">{label}</strong><span role="cell">{Number(previousVisit[field]).toFixed(1)}</span><span role="cell">{Number(visit[field]).toFixed(1)}</span><b role="cell" data-direction={delta >= 0 ? 'up' : 'down'}>{delta >= 0 ? '+' : ''}{delta.toFixed(1)}</b></div>;
+            })}
+          </div>
+        </details>
       )}
-    </div>
+    </section>
   );
 }
 
-function RepeatMetric({ label, value, detail, accent }) {
+const MENU_ICONS = {
+  camera: ['M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z', 'M15 13a3 3 0 11-6 0 3 3 0 016 0z'],
+  crop: ['M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'],
+  replace: ['M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12'],
+  edit: ['M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'],
+  trash: ['M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'],
+};
+
+function MenuItem({ icon, onClick, children, danger = false, disabled = false }) {
   return (
-    <div className="rounded-xl bg-surface-raised px-3.5 py-3 border border-rule">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-faint mb-1">
-        {label}
-      </p>
-      <p className="text-lg font-black" style={{ color: accent || 'var(--ink)' }}>
-        {value}
-      </p>
-      {detail && <p className="text-[11px] text-ink-soft mt-0.5">{detail}</p>}
-    </div>
+    <button type="button" role="menuitem" onClick={onClick} disabled={disabled} className={`vdm-menu-item${danger ? ' is-danger' : ''}`}>
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        {icon.map((d) => <path key={d} strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={d} />)}
+      </svg>
+      {children}
+    </button>
   );
 }
