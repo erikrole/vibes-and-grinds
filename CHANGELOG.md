@@ -1,5 +1,9 @@
 # Change notes
 
+## 2026-10-15 — Coffee by the numbers
+
+The Insights tab opens with an animated "Coffee by the numbers" section: count-up tiles (stops, shops, cities, states, straight-line road miles, perfect 10 cups), a few facts (farthest cup from Madison, go-to order, busiest month) and animated bars for stops by sport, average coffee rating by weekday and how the cups rated. Everything is computed from saved visits (`frontend/src/utils/funStats.js`); nothing is stored or invented. Animations start when the section scrolls into view and are off under reduced motion. Hand-typed shops without coordinates are left out of the distance stats. Verified on read-only production data at desktop and 375px mobile.
+
 ## 2026-10-14 — Game-day suggestions in Add visit
 
 Picking a date in a new road-trip visit now looks up Wisconsin games that day and offers a one-tap fill for sport, opponent and the game's city. It reads Sidearm's public iCal feeds on uwbadgers.com (football, men's basketball, men's hockey, men's track and field, cross country) through `GET /api/badger-games?date=YYYY-MM-DD`, and falls back to ESPN for men's basketball when that feed is down. Typed values are never overwritten, Madison games don't fill the city (that would flip the visit to a home stop), and a failed lookup just shows no suggestion. Visits still have no home/away field; the suggestion shows at, vs or neutral but only saves sport, opponent and city. The men's track feed still shows the 2025–26 season, so it matches no 2026–27 dates yet. Nothing writes to the database and no Cloudflare settings changed.

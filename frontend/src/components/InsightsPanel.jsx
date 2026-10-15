@@ -3,6 +3,7 @@ import { titleCaseOrder } from '../utils/display';
 import { formatDate } from '../utils/dates';
 
 import { buildComparisons } from '../utils/comparisons';
+import CoffeeFunStats from './CoffeeFunStats';
 
 export default function InsightsPanel({ visits, onVisitClick, onShopClick }) {
   const [groupBy, setGroupBy] = useState('shop');
@@ -18,6 +19,7 @@ export default function InsightsPanel({ visits, onVisitClick, onShopClick }) {
   const detail = comparisons.find((item) => item.key === selectedGroup);
   if (!visits.length) return <p className="empty-state">Ratings and comparisons will appear after the first visit.</p>;
   return <div className="insights-workbench">
+    <CoffeeFunStats visits={visits} />
     <header className="section-intro"><h2>Find a good cup</h2><p>Compare the places and orders in AJ’s journal. Each rating is a personal take.</p></header>
     <section className="insight-highlight-grid useful-highlights" aria-label="Journal highlights">
       {best && <button type="button" className="insight-highlight text-left" onClick={() => onVisitClick(best)}><p className="eyebrow">Highest coffee rating{city ? ` · ${city}` : ''}</p><h3>{best.coffee_shop_name}</h3><p>{titleCaseOrder(best.coffee_order)} · {Number(best.coffee_rating).toFixed(1)} / 10</p></button>}
