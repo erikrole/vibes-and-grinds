@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
-import VisitsMap from './VisitsMap';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { titleCaseOrder } from '../utils/display';
 import { hasVisitCoordinates } from '../utils/coords';
+
+const VisitsMap = lazy(() => import('./VisitsMap'));
 
 // Flags visits the map can't pin, so a row that never highlights isn't a mystery.
 function describeVisit(visit) {
@@ -49,7 +50,9 @@ export default function MapExplorer({ visits, onVisitClick }) {
       </header>
       <div className="map-explorer-layout">
         <div className="map-canvas">
-          <VisitsMap visits={visibleVisits} selectedVisitId={selectedVisitId} onVisitSelect={selectVisit} onVisitClick={openVisit} />
+          <Suspense fallback={<div className="flex h-full items-center justify-center text-stone-400 animate-pulse">Loading map...</div>}>
+            <VisitsMap visits={visibleVisits} selectedVisitId={selectedVisitId} onVisitSelect={selectVisit} onVisitClick={openVisit} />
+          </Suspense>
         </div>
         <div className="map-result-list" aria-label="Mapped visits">
           {visibleVisits.map((visit) => (

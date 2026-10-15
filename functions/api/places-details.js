@@ -1,3 +1,10 @@
+const SESSION_TOKEN_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function readSessionToken(value) {
+  const token = `${value || ''}`.trim();
+  return SESSION_TOKEN_PATTERN.test(token) ? token : '';
+}
+
 function buildPlacesErrorResponse(prefix, upstreamStatus, payloadText) {
   let parsed;
 
@@ -55,8 +62,12 @@ export async function onRequestGet({ request, env }) {
     });
   }
 
+  const sessionToken = readSessionToken(url.searchParams.get('sessionToken'));
+  const detailsUrl = new URL(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`);
+  if (sessionToken) detailsUrl.searchParams.set('sessionToken', sessionToken);
+
   try {
-    const response = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
+    const response = await fetch(detailsUrl, {
       headers: {
         'X-Goog-Api-Key': apiKey,
         'X-Goog-FieldMask': 'id,displayName,formattedAddress,location',

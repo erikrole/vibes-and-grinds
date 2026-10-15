@@ -1,6 +1,46 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-const MIN_QUERY_LENGTH = 2;
+const MIN_QUERY_LENGTH = 3;
+const DEBOUNCE_MS = 300;
+const SUGGESTION_CACHE_LIMIT = 30;
+const SUGGESTION_CACHE_TTL_MS = 10 * 60 * 1000;
+
+// Survives remounts of the add-visit form for this page session.
+const suggestionCache = new Map();
+
+function createSessionToken() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
+    const random = (Math.random() * 16) | 0;
+    const value = char === 'x' ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
+function readSuggestionCache(query) {
+  const hit = suggestionCache.get(query);
+  if (!hit) return null;
+  if (Date.now() - hit.cachedAt > SUGGESTION_CACHE_TTL_MS) {
+    suggestionCache.delete(query);
+    return null;
+  }
+
+  suggestionCache.delete(query);
+  suggestionCache.set(query, hit);
+  return hit.suggestions.slice();
+}
+
+function writeSuggestionCache(query, suggestions) {
+  if (suggestionCache.has(query)) suggestionCache.delete(query);
+  suggestionCache.set(query, { suggestions: suggestions.slice(), cachedAt: Date.now() });
+  while (suggestionCache.size > SUGGESTION_CACHE_LIMIT) {
+    const oldest = suggestionCache.keys().next().value;
+    suggestionCache.delete(oldest);
+  }
+}
 
 async function parseApiError(response, fallbackMessage) {
   try {
@@ -40,6 +80,7 @@ export default function PlacesAutocomplete({
   const [debugInfo, setDebugInfo] = useState(null);
   const containerRef = useRef(null);
   const requestIdRef = useRef(0);
+  const sessionTokenRef = useRef('');
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -58,6 +99,7 @@ export default function PlacesAutocomplete({
     const query = (value || '').trim();
 
     if (query.length < MIN_QUERY_LENGTH) {
+      sessionTokenRef.current = '';
       setSuggestions([]);
       setIsLoading(false);
       setStatusMessage('');
@@ -65,8 +107,22 @@ export default function PlacesAutocomplete({
       return;
     }
 
-    const controller = new AbortController();
+    if (!sessionTokenRef.current) {
+      sessionTokenRef.current = createSessionToken();
+    }
+
     const currentRequestId = ++requestIdRef.current;
+    const cachedSuggestions = readSuggestionCache(query);
+    if (cachedSuggestions) {
+      setSuggestions(cachedSuggestions);
+      setIsLoading(false);
+      setStatusMessage(cachedSuggestions.length ? '' : 'No Google Places matches yet. Keep typing or enter manually.');
+      setDebugInfo(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    const sessionToken = sessionTokenRef.current;
 
     const timer = setTimeout(async () => {
       setIsLoading(true);
@@ -74,7 +130,8 @@ export default function PlacesAutocomplete({
       setDebugInfo(null);
 
       try {
-        const response = await fetch(`/api/places-autocomplete?input=${encodeURIComponent(query)}`, {
+        const params = new URLSearchParams({ input: query, sessionToken });
+        const response = await fetch(`/api/places-autocomplete?${params}`, {
           signal: controller.signal,
         });
 
@@ -90,6 +147,7 @@ export default function PlacesAutocomplete({
         if (requestIdRef.current !== currentRequestId) return;
 
         const nextSuggestions = data.suggestions || [];
+        writeSuggestionCache(query, nextSuggestions);
         setSuggestions(nextSuggestions);
 
         if (!nextSuggestions.length) {
@@ -111,7 +169,7 @@ export default function PlacesAutocomplete({
           setIsLoading(false);
         }
       }
-    }, 250);
+    }, DEBOUNCE_MS);
 
     return () => {
       clearTimeout(timer);
@@ -138,8 +196,13 @@ export default function PlacesAutocomplete({
       return;
     }
 
+    const sessionToken = sessionTokenRef.current;
+    sessionTokenRef.current = '';
+
     try {
-      const response = await fetch(`/api/places-details?placeId=${encodeURIComponent(suggestion.placeId)}`);
+      const params = new URLSearchParams({ placeId: suggestion.placeId });
+      if (sessionToken) params.set('sessionToken', sessionToken);
+      const response = await fetch(`/api/places-details?${params}`);
       if (!response.ok) {
         const parsedError = await parseApiError(response, 'Could not load full place details. You can still save manually.');
         throw parsedError;
