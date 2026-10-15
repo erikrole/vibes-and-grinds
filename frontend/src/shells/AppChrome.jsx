@@ -13,6 +13,7 @@ export default function AppChrome({
   headerActions = null,
   showFooter = true,
   owner,
+  contributor,
   onOwner,
   onBrand,
   showBrand = true,
@@ -62,7 +63,7 @@ export default function AppChrome({
               <p>Wisconsin outfit log.</p>
               <div className="vp-foot-links">
                 <a href={productSwitchHref(APP_MODES.VIBES)}>{MODE_LABELS[APP_MODES.VIBES].outcome} ↗</a>
-                <button type="button" onClick={onOwner}>{owner ? 'Manage journal' : 'Owner sign-in'}</button>
+                <button type="button" onClick={onOwner}>{owner ? 'Manage journal' : contributor ? 'Signed in' : 'Sign in'}</button>
               </div>
             </div>
           </footer>
@@ -109,7 +110,7 @@ export default function AppChrome({
           <p className="text-ink-soft text-sm">AJ Harrison’s coffee journal</p>
           <div className="footer-links">
             <a href={productSwitchHref(APP_MODES.VEST)}>{MODE_LABELS[APP_MODES.VEST].outcome} ↗</a>
-            <button type="button" onClick={onOwner}>{owner ? 'Manage journal' : 'Owner sign-in'}</button>
+            <button type="button" onClick={onOwner}>{owner ? 'Manage journal' : contributor ? 'Signed in' : 'Sign in'}</button>
           </div>
         </footer>
       )}

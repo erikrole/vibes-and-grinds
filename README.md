@@ -87,3 +87,7 @@ Vest score loading derives the ESPN season end year from the latest saved game (
 Older immutable Pages deployments must be retired or access-restricted before owner-only editing is considered complete; their old code can still reach shared production data. All 251 older unguarded copies were retired with explicit approval on 2026-10-04; every retired API URL returned 404 and every remaining deployment rejected guest writes. Saved records remained unchanged. Wrangler shows only the first 25 deployments, so audit the complete API history. See [DEPLOYMENT.md](DEPLOYMENT.md).
 
 See [ROADMAP.md](ROADMAP.md) for remaining work and [CHANGELOG.md](CHANGELOG.md) for change notes.
+
+### Contributor key (add-only)
+
+An optional second key, with only its SHA-256 digest in `CONTRIB_KEY_HASH`, signs in a session that can add visits and photos (`POST /api/visits`, `POST /api/upload`) and nothing else: no edit, delete, export, restore, or Vest saves. It uses the same footer Sign in and the same throttling. It can be short and easy to type, so treat it as low-security: anyone who has it can add visits. Make the digest with `printf '%s' 'the-key' | shasum -a 256`. Unset `CONTRIB_KEY_HASH` to turn it off; rotating it signs contributors out.
