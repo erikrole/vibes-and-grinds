@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { funStats } from '../utils/funStats';
 import { titleCaseOrder } from '../utils/display';
+import { awards as buildAwards, gameDayStats, personality as buildPersonality, statePassport } from '../utils/funExtras';
+import { generateWrappedCard } from '../utils/wrappedCard';
+import AwardsGrid from './AwardsGrid';
+import StatePassport from './StatePassport';
 
 const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -56,8 +60,28 @@ function Bars({ title, note, rows, format = (v) => v, play }) {
   );
 }
 
-export default function CoffeeFunStats({ visits }) {
+export default function CoffeeFunStats({ visits, onVisitClick }) {
   const stats = useMemo(() => funStats(visits), [visits]);
+  const extras = useMemo(() => ({
+    awards: buildAwards(visits),
+    passport: statePassport(visits),
+    line: buildPersonality(visits),
+    game: gameDayStats(visits),
+  }), [visits]);
+  const [sharing, setSharing] = useState(false);
+  const shareWrapped = async () => {
+    setSharing(true);
+    try {
+      const blob = await generateWrappedCard(stats, { personality: extras.line });
+      if (!blob) return;
+      const file = new File([blob], 'season-wrapped.png', { type: 'image/png' });
+      if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: 'Season wrapped' }); return; }
+      const url = URL.createObjectURL(blob);
+      const link = Object.assign(document.createElement('a'), { href: url, download: 'season-wrapped.png' });
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch { /* a cancelled share sheet is fine */ } finally { setSharing(false); }
+  };
   const [ref, play] = useInView();
   if (!stats.stops) return null;
 
@@ -73,6 +97,7 @@ export default function CoffeeFunStats({ visits }) {
   return (
     <section className="fun-stats" ref={ref} aria-label="Fun coffee stats">
       <header className="section-intro"><h2>Coffee by the numbers</h2><p>Just for fun, counted from the journal.</p></header>
+      {extras.line && <p className="fun-personality">{extras.line}</p>}
       <ul className="fun-tiles">
         {tiles.map((tile, index) => (
           <li key={tile.label} className={play ? 'fun-tile is-in' : 'fun-tile'} style={{ '--i': index }}>
@@ -84,13 +109,18 @@ export default function CoffeeFunStats({ visits }) {
       <div className="fun-facts">
         {stats.farthest && <p className="fun-fact"><span aria-hidden="true">📍</span> Farthest cup: <b>{stats.farthest.shop}</b>{stats.farthest.city ? `, ${stats.farthest.city}` : ''}, about {stats.farthest.miles.toLocaleString()} miles from Madison.</p>}
         {stats.topOrder && <p className="fun-fact"><span aria-hidden="true">☕</span> Go-to order: <b>{titleCaseOrder(stats.topOrder.order)}</b>, {stats.topOrder.count} {stats.topOrder.count === 1 ? 'time' : 'times'}.</p>}
+        {extras.game.gameDays > 0 && <p className="fun-fact"><span aria-hidden="true">🏟️</span> Game days: <b>{extras.game.gameDays}</b> of {stats.stops} stops{extras.game.streak > 1 ? `, longest run ${extras.game.streak} in a row` : ''}.</p>}
         {stats.busiestMonth && <p className="fun-fact"><span aria-hidden="true">🗓️</span> Busiest month: <b>{stats.busiestMonth.label}</b> with {stats.busiestMonth.count} {stats.busiestMonth.count === 1 ? 'stop' : 'stops'}.</p>}
       </div>
       <div className="fun-grid">
         {stats.sports.length > 0 && <Bars title="Stops by sport" rows={stats.sports} play={play} />}
         {stats.weekdayCoffee.length > 1 && <Bars title="Best coffee day" note="Average coffee rating by weekday" rows={stats.weekdayCoffee} format={(v) => v.toFixed(1)} play={play} />}
+        {extras.game.bySport.length > 1 && <Bars title="Best coffee by sport" note="Average coffee rating on game days" rows={extras.game.bySport} format={(v) => v.toFixed(1)} play={play} />}
         <Bars title="How the cups rated" note="Coffee rating out of 10" rows={stats.spread} play={play} />
+        <StatePassport passport={extras.passport} />
       </div>
+      <AwardsGrid awards={extras.awards} onVisitClick={onVisitClick} />
+      <button type="button" className="btn-secondary fun-share" onClick={shareWrapped} disabled={sharing}>{sharing ? 'Making your card…' : 'Share season wrapped'}</button>
     </section>
   );
 }

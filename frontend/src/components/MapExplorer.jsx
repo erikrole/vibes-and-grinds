@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import VisitsMap from './VisitsMap';
+import TripReplay from './TripReplay';
 import { titleCaseOrder } from '../utils/display';
 import { getAppleMapsUrl } from '../utils/maps';
 import { hasVisitCoordinates } from '../utils/coords';
@@ -37,6 +38,7 @@ export default function MapExplorer({ visits, onVisitClick, onShopClick, onRepai
       </div>
       <div className="map-filters"><input className="control-field" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a shop or order" aria-label="Search shops on map" /><select className="control-field" value={city} onChange={(event) => setCity(event.target.value)} aria-label="Filter map by city"><option value="">All cities</option>{cities.map((name) => <option value={name} key={name}>{name}</option>)}</select></div>
     </header>
+    <TripReplay visits={visits} />
     <div className="map-explorer-layout">
       <div className="map-canvas"><VisitsMap visits={pins} selectedVisitId={selected?.pin?.id} onVisitSelect={select} onVisitClick={onVisitClick} /></div>
       <div className="map-result-list" aria-label="Coffee shops">

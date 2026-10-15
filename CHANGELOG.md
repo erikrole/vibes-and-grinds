@@ -1,5 +1,9 @@
 # Change notes
 
+## 2026-10-15 — More coffee fun
+
+Built on the animated stats: a save celebration card (stop number, confetti at 18+ out of 20, milestone note at 25/50/75/100/150/200 stops, new-badge callout or a "next badge" hint); flip-open awards (best cup, best vibe, most visited, furthest from Madison, biggest comeback); a 50-state passport grid; a counts-only personality line; best coffee by sport and game-day stats from the saved sport field; a road-trip replay on the Map tab with a running straight-line mile counter; a "Share season wrapped" image; and a bit of steam by the stop count. Everything is computed from saved visits (`funExtras.js`, `funStats.js`), nothing is stored or generated, and animations honor reduced motion. Checked on read-only production data and a local test database at desktop and 375px in dark and light.
+
 ## 2026-10-15 — Coffee by the numbers
 
 The Insights tab opens with an animated "Coffee by the numbers" section: count-up tiles (stops, shops, cities, states, straight-line road miles, perfect 10 cups), a few facts (farthest cup from Madison, go-to order, busiest month) and animated bars for stops by sport, average coffee rating by weekday and how the cups rated. Everything is computed from saved visits (`frontend/src/utils/funStats.js`); nothing is stored or invented. Animations start when the section scrolls into view and are off under reduced motion. Hand-typed shops without coordinates are left out of the distance stats. Verified on read-only production data at desktop and 375px mobile.

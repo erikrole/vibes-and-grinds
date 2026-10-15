@@ -2794,3 +2794,59 @@ button.insight-highlight:hover { background: var(--surface-muted); }
   .fun-tile, .fun-tile.is-in { opacity: 1; transform: none; transition: none; }
   .fun-bar-fill { transition: none; }
 }
+
+/* Fun extras */
+.fun-personality { margin: 0; font-family: 'Fraunces', serif; font-size: 1.15rem; color: var(--text-primary); }
+.fun-share { justify-self: start; }
+.fun-awards h3 { margin: 0 0 .5rem; font-size: .95rem; }
+.fun-awards ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr)); gap: .625rem; margin: 0; padding: 0; list-style: none; }
+.award-card { position: relative; display: block; width: 100%; min-height: 7.5rem; padding: 0; border: 0; background: none; perspective: 700px; text-align: left; cursor: pointer; }
+.award-face { position: absolute; inset: 0; display: grid; align-content: center; gap: .25rem; padding: .875rem 1rem; border-radius: var(--radius-lg); background: var(--surface-muted); backface-visibility: hidden; transition: transform 550ms cubic-bezier(.2,.8,.2,1); }
+.award-front b { font-family: 'Fraunces', serif; font-size: 1.05rem; color: var(--accent); }
+.award-front small, .award-back small { color: var(--text-secondary); font-size: .75rem; }
+.award-back { transform: rotateY(180deg); background: color-mix(in srgb, var(--accent) 16%, var(--surface-muted)); }
+.award-back strong { font-size: .95rem; color: var(--text-primary); }
+.award-back em { font-style: normal; font-size: .8rem; color: var(--text-secondary); }
+.award-card.is-flipped .award-front { transform: rotateY(-180deg); }
+.award-card.is-flipped .award-back { transform: none; }
+.award-card:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-lg); }
+.award-open { margin-top: .25rem; font-size: .8rem; }
+.passport-grid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: .25rem; margin: .75rem 0 0; padding: 0; list-style: none; }
+.passport-grid li { display: grid; place-items: center; aspect-ratio: 1; border-radius: .375rem; background: color-mix(in srgb, var(--text-tertiary) 18%, transparent); color: var(--text-tertiary); font-size: .6rem; font-weight: 600; }
+.passport-grid li.is-lit { background: var(--accent); color: #fff; animation: passport-pop 420ms cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i) * 18ms); }
+@keyframes passport-pop { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+.trip-replay { display: grid; gap: .5rem; padding: .875rem; border-radius: var(--radius-lg); background: var(--surface-muted); margin-bottom: 1rem; }
+.trip-replay__bar { display: flex; align-items: center; gap: .75rem; }
+.trip-replay__scrub { flex: 1; min-width: 0; }
+.trip-replay__scrub input { width: 100%; accent-color: var(--accent); }
+.trip-replay__miles { min-width: 5.5rem; text-align: right; font-family: 'Fraunces', serif; font-variant-numeric: tabular-nums; color: var(--accent); }
+.trip-replay svg { width: 100%; height: auto; max-height: 16rem; }
+.trip-line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.trip-dot { fill: color-mix(in srgb, var(--text-tertiary) 60%, transparent); }
+.trip-dot.is-on { fill: var(--accent); }
+.trip-head { fill: var(--accent); opacity: .35; animation: trip-pulse 1.4s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes trip-pulse { from { transform: scale(.6); opacity: .6; } to { transform: scale(1.8); opacity: 0; } }
+.trip-replay__now { margin: 0; color: var(--text-secondary); font-size: .8rem; }
+.celebrate { position: fixed; inset: 0; z-index: 1005; display: grid; place-items: center; pointer-events: none; }
+.celebrate__card { pointer-events: auto; display: grid; gap: .375rem; min-width: min(18rem, 88vw); padding: 1.25rem 1.5rem; border-radius: var(--radius-lg); background: var(--surface); color: var(--text-primary); box-shadow: 0 18px 50px rgb(0 0 0 / .35); text-align: center; animation: celebrate-in 380ms cubic-bezier(.2,.9,.3,1.2) both; }
+.celebrate__card.is-milestone { outline: 2px solid var(--accent); }
+.celebrate__card p { margin: 0; }
+.celebrate__stop { font-size: .9rem; color: var(--text-secondary); }
+.celebrate__stop b { font-family: 'Fraunces', serif; font-size: 2.25rem; color: var(--accent); }
+.celebrate__line, .celebrate__badge { font-weight: 600; }
+.celebrate__score { font-family: 'Fraunces', serif; font-size: 1.5rem; }
+.celebrate__score small, .celebrate__next { color: var(--text-secondary); font-size: .8rem; }
+@keyframes celebrate-in { from { transform: translateY(14px) scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
+.celebrate__confetti { position: absolute; inset: 0; overflow: hidden; }
+.celebrate__confetti i { position: absolute; top: -12px; width: 8px; height: 14px; border-radius: 2px; animation: confetti-fall 2.4s ease-in both; }
+@keyframes confetti-fall { to { transform: translateY(105vh) rotate(calc(var(--spin) + 540deg)); opacity: .9; } }
+.hero-steam { display: inline-flex; gap: .2rem; margin-left: .5rem; vertical-align: top; height: 1.5rem; }
+.hero-steam i { width: 3px; height: 1.25rem; border-radius: 3px; background: var(--accent-soft); opacity: 0; animation: steam 2.6s ease-in-out infinite; }
+.hero-steam i:nth-child(2) { animation-delay: .6s; }
+.hero-steam i:nth-child(3) { animation-delay: 1.2s; }
+@keyframes steam { 0% { transform: translateY(8px) scaleY(.6); opacity: 0; } 40% { opacity: .7; } 100% { transform: translateY(-10px) scaleY(1.1); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .award-face, .passport-grid li.is-lit, .celebrate__card { transition: none; animation: none; }
+  .trip-head, .hero-steam i { animation: none; }
+  .hero-steam { display: none; }
+}

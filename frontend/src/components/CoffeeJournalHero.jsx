@@ -37,6 +37,7 @@ export default function CoffeeJournalHero({
       <div className="journal-hero__summary" aria-label="Journal summary">
         <div className="journal-hero__count">
           <p className="hero-numeral journal-hero__numeral">{visitCount}</p>
+          <span className="hero-steam" aria-hidden="true"><i /><i /><i /></span>
           <p className="journal-hero__count-label">
             {visitCount === 1 ? 'stop logged' : 'stops logged'}
           </p>
