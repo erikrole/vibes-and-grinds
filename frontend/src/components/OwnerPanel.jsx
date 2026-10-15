@@ -29,9 +29,9 @@ export default function OwnerPanel({ owner, contributor, onSignedIn, onSignedOut
       const session = await ownerRequest('session', 'POST', { key }); setKey(''); onSignedIn(session);
     }); }}>
       <p className="type-meta my-4">Enter your access key to add visits.</p>
-      <label htmlFor="owner-key" className="block text-sm font-medium mb-2">Access key</label>
-      <input id="owner-key" name="password" type="password" autoComplete="current-password" value={key} onChange={(event) => setKey(event.target.value)} className="control-field w-full" required />
-      <button type="submit" disabled={busy} className="btn-primary mt-4">{busy ? 'Signing in…' : 'Sign in'}</button>
+      <div className="avf-field"><label htmlFor="owner-key">Access key</label>
+      <input id="owner-key" name="password" type="password" autoComplete="current-password" value={key} onChange={(event) => setKey(event.target.value)} className="avf-input" required /></div>
+      <button type="submit" disabled={busy} className="avf-submit mt-4 w-full">{busy ? 'Signing in…' : 'Sign in'}</button>
     </form> : <>
       <p className="type-meta my-4">Your changes are saved to the journal. Deleted visits stay here until you restore them.</p>
       <div className="flex flex-wrap gap-3 mb-7">

@@ -105,7 +105,32 @@ function VestGameForm({ enabled = true, editingGame, existingOutfits, onSave, on
       <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-3">
         {error && <p role="alert">{error}</p>}
         <fieldset disabled={saving || !enabled} className="space-y-3">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Field label="Opponent">
+          <input
+            value={formState.opponent}
+            onChange={(e) => setFormState((p) => ({ ...p, opponent: e.target.value }))}
+            className="text-base"
+            placeholder="e.g. Indiana"
+            required
+          />
+        </Field>
+
+        <div className="vgf-row">
+          <Segmented
+            label="Location"
+            value={formState.location}
+            onChange={(location) => setFormState((p) => ({ ...p, location }))}
+            options={[{ value: 'vs', label: 'Home' }, { value: '@', label: 'Away' }, { value: 'N', label: 'Neutral' }]}
+          />
+          <Segmented
+            label="Result"
+            value={formState.result}
+            onChange={(result) => setFormState((p) => ({ ...p, result }))}
+            options={[{ value: 'W', label: 'Win' }, { value: 'L', label: 'Loss' }, { value: '', label: 'Upcoming' }]}
+          />
+        </div>
+
+        <div className="vgf-row vgf-row-3">
           <Field label="Date">
             <input
               type="date"
@@ -115,29 +140,7 @@ function VestGameForm({ enabled = true, editingGame, existingOutfits, onSave, on
             />
           </Field>
 
-          <Field label="Location">
-            <select
-              value={formState.location}
-              onChange={(e) => setFormState((p) => ({ ...p, location: e.target.value }))}
-              className="text-sm cursor-pointer"
-            >
-              <option value="vs">Home · vs</option>
-              <option value="@">Away · @</option>
-              <option value="N">Neutral · N</option>
-            </select>
-          </Field>
-
-          <Field label="Opponent">
-            <input
-              value={formState.opponent}
-              onChange={(e) => setFormState((p) => ({ ...p, opponent: e.target.value }))}
-              className="text-sm"
-              placeholder="e.g. Indiana"
-              required
-            />
-          </Field>
-
-          <Field label="AP Rank">
+          <Field label="AP rank">
             <input
               type="number"
               min="1"
@@ -145,76 +148,58 @@ function VestGameForm({ enabled = true, editingGame, existingOutfits, onSave, on
               value={formState.ranking}
               onChange={(e) => setFormState((p) => ({ ...p, ranking: e.target.value }))}
               className="text-sm"
-              placeholder="#"
+              placeholder="Unranked"
             />
           </Field>
-        </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Field label="Outfit" className="sm:col-span-2">
-            {addingOutfit ? (
-              <input
-                autoFocus
-                value={formState.outfit}
-                onChange={(e) => setFormState((p) => ({ ...p, outfit: e.target.value }))}
-                className="text-sm"
-                placeholder="e.g. Red Vest"
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
-                    e.stopPropagation();
-                    setAddingOutfit(false);
-                    setFormState((p) => ({ ...p, outfit: '' }));
-                  }
-                }}
-              />
-            ) : (
-              <select
-                value={formState.outfit}
-                onChange={(e) => {
-                  if (e.target.value === '__add__') {
-                    setAddingOutfit(true);
-                    setFormState((p) => ({ ...p, outfit: '' }));
-                  } else {
-                    setFormState((p) => ({ ...p, outfit: e.target.value }));
-                  }
-                }}
-                className="text-sm cursor-pointer"
-              >
-                <option value="">Select outfit</option>
-                {existingOutfits.map((o) => (
-                  <option key={o} value={o}>{o}</option>
-                ))}
-                <option value="__add__">+ New outfit</option>
-              </select>
-            )}
-          </Field>
-
-          <Field label="Result">
-            <select
-              value={formState.result}
-              onChange={(e) => setFormState((p) => ({ ...p, result: e.target.value }))}
-              className="text-sm cursor-pointer"
-            >
-              <option value="W">Win</option>
-              <option value="L">Loss</option>
-              <option value="">Upcoming</option>
-            </select>
-          </Field>
-
-          <label className="flex items-end">
-            <div className="flex items-center gap-2.5 w-full vt-card-inset px-3 py-2.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formState.overtime}
-                onChange={(e) => setFormState((p) => ({ ...p, overtime: e.target.checked }))}
-                className="accent-[color:var(--vt-red)]"
-              />
-              <span className="vt-condensed text-sm tracking-[0.12em] uppercase text-[color:var(--vt-ink-dim)]">
-                Overtime
-              </span>
-            </div>
+          <label className="vgf-toggle">
+            <input
+              type="checkbox"
+              checked={formState.overtime}
+              onChange={(e) => setFormState((p) => ({ ...p, overtime: e.target.checked }))}
+              className="accent-[color:var(--vt-red)]"
+            />
+            <span>Overtime</span>
           </label>
         </div>
+
+        <Field label="Outfit">
+          {addingOutfit ? (
+            <input
+              autoFocus
+              value={formState.outfit}
+              onChange={(e) => setFormState((p) => ({ ...p, outfit: e.target.value }))}
+              className="text-sm"
+              placeholder="e.g. Red Vest"
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.stopPropagation();
+                  setAddingOutfit(false);
+                  setFormState((p) => ({ ...p, outfit: '' }));
+                }
+              }}
+            />
+          ) : (
+            <select
+              value={formState.outfit}
+              onChange={(e) => {
+                if (e.target.value === '__add__') {
+                  setAddingOutfit(true);
+                  setFormState((p) => ({ ...p, outfit: '' }));
+                } else {
+                  setFormState((p) => ({ ...p, outfit: e.target.value }));
+                }
+              }}
+              className="text-sm cursor-pointer"
+            >
+              <option value="">Select outfit</option>
+              {existingOutfits.map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+              <option value="__add__">+ New outfit</option>
+            </select>
+          )}
+        </Field>
 
         <div className="flex flex-wrap items-center gap-2 pt-2">
           <button type="submit" className="vt-btn-primary text-sm">
@@ -246,6 +231,21 @@ function VestGameForm({ enabled = true, editingGame, existingOutfits, onSave, on
         </fieldset>
       </form>
       </section>
+      </div>
+    </div>
+  );
+}
+
+function Segmented({ label, value, onChange, options }) {
+  return (
+    <div className="vgf-field">
+      <span className="vt-label" id={`vgf-${label}`}>{label}</span>
+      <div className="vgf-seg" role="group" aria-labelledby={`vgf-${label}`}>
+        {options.map((option) => (
+          <button key={option.label} type="button" aria-pressed={value === option.value} onClick={() => onChange(option.value)}>
+            {option.label}
+          </button>
+        ))}
       </div>
     </div>
   );
