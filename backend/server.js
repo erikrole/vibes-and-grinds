@@ -227,6 +227,11 @@ app.all('/api/vest/games', async (req, res) => {
   catch { res.status(500).json({ error: 'Could not save games. Please try again.' }); }
 });
 
+app.get('/api/photo', async (req, res) => {
+  try { const { photoProxyRoute } = await import('../shared/photo-proxy.mjs'); await sendResponse(res, await photoProxyRoute(webRequest(req), { R2_PUBLIC_URL: process.env.R2_PUBLIC_URL || '' })); }
+  catch { res.status(500).json({ error: 'Could not load photo.' }); }
+});
+
 app.get('/api/badger-games', async (req, res) => {
   try { const { gamesRoute } = await import('../shared/badger-schedule.mjs'); await sendResponse(res, await gamesRoute(webRequest(req))); }
   catch { res.status(500).json({ error: 'Could not load games.', games: [] }); }

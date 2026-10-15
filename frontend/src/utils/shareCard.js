@@ -293,13 +293,25 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+// Photos live on a public R2 host that sends no CORS headers, so a canvas can't read them
+// directly. Cross-origin photos go through the same-origin /api/photo stream instead.
+export function photoSource(src, origin = typeof location !== 'undefined' ? location.origin : '') {
+  try {
+    const url = new URL(src, origin || undefined);
+    if (origin && url.origin === origin) return src;
+    return `/api/photo?url=${encodeURIComponent(url.toString())}`;
+  } catch {
+    return src;
+  }
+}
+
 function loadImage(src) {
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null); // fall back to the gradient base
-    img.src = src;
+    img.src = photoSource(src);
   });
 }
 
