@@ -7,6 +7,11 @@ const SORT_OPTIONS = [
   { value: 'composite', label: 'Total' },
 ];
 
+function sortDirectionPhrase(sortBy, sortAsc) {
+  if (sortBy === 'date') return sortAsc ? 'newest first' : 'oldest first';
+  return sortAsc ? 'highest first' : 'lowest first';
+}
+
 export default function VisitToolbar({
   searchRef,
   searchQuery,
@@ -29,7 +34,9 @@ export default function VisitToolbar({
   return (
     <section className="log-toolbar mb-5">
       <div className="relative search-glow rounded-lg transition-shadow mb-5">
+        <label htmlFor="journal-search" className="sr-only">Search visits</label>
         <input
+          id="journal-search"
           ref={searchRef}
           type="search"
           placeholder="Search shops, cities, opponents, or orders"
@@ -95,7 +102,7 @@ export default function VisitToolbar({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              aria-label="Sort visits"
+              aria-label={`Sort visits, ${sortDirectionPhrase(sortBy, sortAsc)}`}
               className="control-field flex-1"
             >
               <option value="date">Sort: Date</option>
@@ -103,6 +110,14 @@ export default function VisitToolbar({
               <option value="coffee">Sort: Coffee</option>
               <option value="composite">Sort: Total</option>
             </select>
+            <button
+              type="button"
+              className="control-field px-3"
+              onClick={() => setSortBy(sortBy)}
+              aria-label={`Reverse sort direction, currently ${sortDirectionPhrase(sortBy, sortAsc)}`}
+            >
+              <span aria-hidden="true">{sortAsc ? '↑' : '↓'}</span>
+            </button>
             <button
               type="button"
               onClick={() => setShowMobileFilters((value) => !value)}
@@ -113,14 +128,18 @@ export default function VisitToolbar({
               Filters{(sportFilter || repeatFilter || scopeFilter) ? ' (active)' : ''}
             </button>
           </div>
-          <div className="hidden sm:flex items-end gap-4 sm:gap-5 border-b border-stone-900/10 dark:border-stone-100/10 pb-0">
+          <div role="group" aria-label="Sort visits" className="hidden sm:flex items-end gap-4 sm:gap-5 border-b border-stone-900/10 dark:border-stone-100/10 pb-0">
             <span className="eyebrow pb-2.5">Sort</span>
             {SORT_OPTIONS.map((option) => (
               <button
                 key={option.value}
+                type="button"
                 onClick={() => setSortBy(option.value)}
                 className="tab-edge text-sm sm:text-base flex items-center gap-1"
                 aria-pressed={sortBy === option.value}
+                aria-label={sortBy === option.value
+                  ? `Sort by ${option.label}, ${sortDirectionPhrase(sortBy, sortAsc)}`
+                  : `Sort by ${option.label}`}
               >
                 {option.label}
                 {sortBy === option.value && (

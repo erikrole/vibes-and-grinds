@@ -12,6 +12,7 @@ export default function AppHeader({
   const [showModeMenu, setShowModeMenu] = useState(false);
   const modeMenuRef = useRef(null);
   const modeTriggerRef = useRef(null);
+  const modeListRef = useRef(null);
   const modeLabel = appMode === APP_MODES.VEST ? 'VEST TRACKER' : 'VIBES & GRINDS';
 
   useEffect(() => {
@@ -37,6 +38,11 @@ export default function AppHeader({
     };
   }, [showModeMenu]);
 
+  useEffect(() => {
+    if (!showModeMenu) return;
+    modeListRef.current?.querySelector('[aria-checked="true"]')?.focus();
+  }, [showModeMenu]);
+
   return (
     <header className={`safe-top transition-colors duration-200 ${
       appMode === APP_MODES.VEST
@@ -48,11 +54,13 @@ export default function AppHeader({
           <div className="relative flex-1 min-w-0" ref={modeMenuRef}>
             <button
               ref={modeTriggerRef}
+              type="button"
               onClick={() => setShowModeMenu((prev) => !prev)}
               className="flex max-w-full items-center gap-2 sm:gap-4 text-left hover:opacity-80 transition-opacity min-w-0"
               aria-label={`${appMode === APP_MODES.VIBES ? 'vibes & grinds' : modeLabel} — toggle app mode`}
               aria-expanded={showModeMenu}
               aria-haspopup="menu"
+              aria-controls="app-mode-menu"
             >
               {appMode === APP_MODES.VEST && <span className="brand-mark" aria-hidden="true">VT</span>}
               <h1 className={`text-xl sm:text-3xl leading-none ${
@@ -69,14 +77,39 @@ export default function AppHeader({
               >
                 {appMode === APP_MODES.VIBES ? 'vibes & grinds' : modeLabel}
               </h1>
-              <svg className="w-4 h-4 text-stone-500 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+              <svg className="w-4 h-4 shrink-0 text-[color:var(--ink-soft)]" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z" />
               </svg>
             </button>
 
             {showModeMenu && (
-              <div className="absolute left-0 mt-2 w-56 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 shadow-lg z-20 overflow-hidden" role="menu">
+              <div
+                id="app-mode-menu"
+                ref={modeListRef}
+                className="absolute left-0 mt-2 w-56 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 shadow-lg z-20 overflow-hidden"
+                role="menu"
+                aria-label="App mode"
+                onKeyDown={(event) => {
+                  const items = [...event.currentTarget.querySelectorAll('[role="menuitemradio"]')];
+                  const current = items.indexOf(document.activeElement);
+                  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    const delta = event.key === 'ArrowDown' ? 1 : -1;
+                    const next = current === -1 ? 0 : (current + delta + items.length) % items.length;
+                    items[next]?.focus();
+                  } else if (event.key === 'Home') {
+                    event.preventDefault();
+                    items[0]?.focus();
+                  } else if (event.key === 'End') {
+                    event.preventDefault();
+                    items[items.length - 1]?.focus();
+                  } else if (event.key === 'Tab') {
+                    setShowModeMenu(false);
+                  }
+                }}
+              >
                 <button
+                  type="button"
                   onClick={() => {
                     setShowModeMenu(false);
                     setAppMode(APP_MODES.VIBES);
@@ -92,6 +125,7 @@ export default function AppHeader({
                   Vibes & Grinds
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     setShowModeMenu(false);
                     setAppMode(APP_MODES.VEST);
@@ -112,6 +146,7 @@ export default function AppHeader({
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
+              type="button"
               onClick={toggleDarkMode}
               className="p-2.5 rounded-xl text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
               aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
