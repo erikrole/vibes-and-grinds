@@ -8,6 +8,8 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
   const [showMenu, setShowMenu] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const menuRef = useRef(null);
+  const triggerRef = useRef(null);
+  const deleteButtonRef = useRef(null);
 
   const formattedDate = formatDate(visit.date);
   const relativeLabel = getRelativeLabel(visit.date);
@@ -20,8 +22,28 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
 
     const onKeyDown = (event) => {
       if (event.key === 'Escape') {
+        event.preventDefault();
         setShowMenu(false);
+        triggerRef.current?.focus();
+        return;
       }
+
+      if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'Home' && event.key !== 'End') return;
+      const items = [...menuRef.current?.querySelectorAll('button') || []];
+      if (!items.length) return;
+      event.preventDefault();
+      const current = items.indexOf(document.activeElement);
+      if (event.key === 'Home') {
+        items[0].focus();
+        return;
+      }
+      if (event.key === 'End') {
+        items[items.length - 1].focus();
+        return;
+      }
+      const delta = event.key === 'ArrowDown' ? 1 : -1;
+      const next = current === -1 ? 0 : (current + delta + items.length) % items.length;
+      items[next].focus();
     };
 
     const onPointerDown = (event) => {
@@ -38,6 +60,17 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
       document.removeEventListener('mousedown', onPointerDown);
     };
   }, [showMenu]);
+
+  useEffect(() => {
+    if (!showMenu) return undefined;
+    const frame = requestAnimationFrame(() => {
+      const target = confirmingDelete
+        ? deleteButtonRef.current
+        : menuRef.current?.querySelector('[role="menuitem"]');
+      target?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [showMenu, confirmingDelete]);
 
   return (
     <article className="visit-row group p-5 sm:px-6 sm:py-5 transition-colors">
@@ -61,6 +94,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                 <button
                   type="button"
                   onClick={() => onViewDetails(visit)}
+                  aria-label={`View details for ${visit.coffee_shop_name}`}
                   className="text-left text-xl sm:text-2xl md:text-[1.65rem] leading-tight hover:underline decoration-1 underline-offset-4"
                 style={{
                   fontFamily: 'Fraunces, Georgia, serif',
@@ -85,8 +119,10 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
             </div>
             <div className="relative ml-4 flex-shrink-0" ref={menuRef}>
               <button
+                ref={triggerRef}
+                type="button"
                 onClick={(e) => { e.stopPropagation(); setShowMenu((prev) => !prev); }}
-                className="text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 p-3 -m-2 rounded-xl transition-colors"
+                className="p-3 -m-2 rounded-xl text-[color:var(--ink-soft)] hover:text-[color:var(--ink)] transition-colors"
                 aria-label={`Open actions for ${visit.coffee_shop_name}`}
                 aria-expanded={showMenu}
                 aria-haspopup="menu"
@@ -101,6 +137,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                   role="menu"
                 >
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       onEdit(visit);
@@ -112,6 +149,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                     Edit Visit
                   </button>
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       onLogReturnVisit?.(visit);
@@ -127,12 +165,15 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                       <p className="text-xs text-stone-500 dark:text-stone-400 mb-2.5">Delete this visit?</p>
                       <div className="flex gap-2">
                         <button
+                          ref={deleteButtonRef}
+                          type="button"
                           onClick={(e) => { e.stopPropagation(); onDelete(visit.id); setShowMenu(false); }}
                           className="flex-1 text-xs py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors"
                         >
                           Delete
                         </button>
                         <button
+                          type="button"
                           onClick={(e) => { e.stopPropagation(); setConfirmingDelete(false); }}
                           className="flex-1 text-xs py-2 bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200 rounded-xl font-medium transition-colors"
                         >
@@ -142,6 +183,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                     </div>
                   ) : (
                     <button
+                      type="button"
                       onClick={(e) => { e.stopPropagation(); setConfirmingDelete(true); }}
                       className="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                       role="menuitem"
@@ -159,7 +201,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
               {relativeLabel ? (
                 <>
                   <span className="font-medium" style={{ color: 'var(--ink)' }}>{relativeLabel}</span>
-                  <span className="text-stone-400 dark:text-stone-500">{formattedDate}</span>
+                  <span className="text-[color:var(--ink-soft)]">{formattedDate}</span>
                 </>
               ) : (
                 <span>{formattedDate}</span>

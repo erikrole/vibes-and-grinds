@@ -121,7 +121,7 @@
 .form-rating-input { width: 5.2rem; border: 0; background: transparent; color: var(--text-primary); font-family: Fraunces, Georgia, serif; font-size: 2.4rem; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1; outline: 0; }
 .form-rating-input::placeholder { color: var(--text-tertiary); opacity: .45; }
 .form-submit { width: 100%; min-height: 3rem; border-radius: var(--radius-md); background: var(--text-primary); color: var(--canvas); font-size: .95rem; font-weight: 700; transition: background 150ms ease, transform 150ms ease; }
-.form-submit:hover { background: var(--accent); color: #fff; }
+.form-submit:hover { background: #b4531a; color: #fff; }
 .form-submit:active { transform: translateY(1px); }
 .form-submit:disabled { opacity: .45; }
 
@@ -187,7 +187,7 @@
 .year-report-hero h1 span { color: #f48a54; }
 .year-report-deck { max-width: 42rem; color: rgba(245,239,228,.72); font-size: clamp(1.05rem, 2vw, 1.35rem); line-height: 1.55; }
 .year-report-stat-row { display: flex; flex-wrap: wrap; gap: 2rem clamp(2rem, 8vw, 7rem); margin-top: 3rem; }
-.year-report-stat-row dt { color: rgba(245,239,228,.48); font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; }
+.year-report-stat-row dt { color: rgba(245,239,228,.78); font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; }
 .year-report-stat-row dd { margin: .35rem 0 0; font-family: Fraunces, Georgia, serif; font-size: 2.2rem; }
 .year-report-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-bottom: 1px solid rgba(245,239,228,.14); }
 .year-report-card { min-height: 25rem; padding: clamp(1.5rem, 4vw, 3.5rem); border-right: 1px solid rgba(245,239,228,.14); border-bottom: 1px solid rgba(245,239,228,.14); }
@@ -203,15 +203,15 @@
 .year-report-rating-pair b { display: block; margin-top: .25rem; color: #251d17; font-family: Fraunces, Georgia, serif; font-size: 2rem; }
 .year-report-favorites { background: #8d3f24; }
 .year-report-order { margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid rgba(255,255,255,.25); }
-.year-report-order span, .year-report-order small { display: block; color: rgba(255,255,255,.58); font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; }
+.year-report-order span, .year-report-order small { display: block; color: rgba(255,255,255,.86); font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; }
 .year-report-order strong { display: block; margin: .5rem 0; font-size: 1.4rem; }
 .year-report-rhythm { display: grid; grid-template-columns: minmax(15rem, .7fr) 1.3fr; gap: 3rem; padding: clamp(3rem, 7vw, 6rem) clamp(1.25rem, 6vw, 6rem); border-bottom: 1px solid rgba(245,239,228,.14); }
 .year-report-chart { display: flex; height: 16rem; align-items: end; gap: clamp(.3rem, 1vw, .8rem); }
 .year-report-month { display: grid; grid-template-rows: 1.2rem 1fr 1.2rem; align-items: end; width: 100%; height: 100%; text-align: center; }
-.year-report-month span, .year-report-month small { color: rgba(245,239,228,.52); font-size: .68rem; }
+.year-report-month span, .year-report-month small { color: rgba(245,239,228,.78); font-size: .68rem; }
 .year-report-month i { display: block; width: 100%; min-height: .3rem; border-radius: .35rem .35rem 0 0; background: #f48a54; }
 .year-report-footer { padding: clamp(4rem, 9vw, 8rem) clamp(1.25rem, 6vw, 6rem); text-align: center; }
-.year-report-footer p { color: rgba(245,239,228,.48); font-size: .8rem; text-transform: uppercase; letter-spacing: .12em; }
+.year-report-footer p { color: rgba(245,239,228,.78); font-size: .8rem; text-transform: uppercase; letter-spacing: .12em; }
 .year-report-footer button, .year-report-empty button { margin-top: 2rem; border-radius: 999px; background: #f48a54; color: #211711; padding: .85rem 1.3rem; font-weight: 800; }
 .year-report-empty { display: grid; min-height: 100vh; place-content: center; text-align: center; }
 
@@ -232,8 +232,8 @@
     letter-spacing: -0.005em;
   }
   .btn-primary:hover { background: var(--accent); }
-  .dark .btn-primary { background: var(--accent); color: #fff; }
-  .dark .btn-primary:hover { box-shadow: 0 8px 20px -8px rgba(236, 138, 79, 0.45); }
+  .dark .btn-primary { background: #b4531a; color: #fff; }
+  .dark .btn-primary:hover { background: #9a3e12; box-shadow: 0 8px 20px -8px rgba(180, 83, 26, 0.45); }
 
   .btn-secondary {
     @apply px-5 py-2.5 rounded-full transition-all font-medium;
@@ -312,11 +312,13 @@
     transition: color 200ms ease;
   }
   .tab-edge:hover { color: var(--ink); }
-  .tab-edge[aria-pressed="true"] {
+  .tab-edge[aria-pressed="true"],
+  .tab-edge[aria-selected="true"] {
     color: var(--ink);
     font-weight: 600;
   }
-  .tab-edge[aria-pressed="true"]::after {
+  .tab-edge[aria-pressed="true"]::after,
+  .tab-edge[aria-selected="true"]::after {
     content: '';
     position: absolute;
     left: 0; right: 0; bottom: -1px;
@@ -361,6 +363,25 @@
   border-bottom: 1px solid var(--rule);
 }
 
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  z-index: 1100;
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 700;
+  transform: translateY(-200%);
+}
+.skip-link:focus {
+  transform: none;
+}
+.skip-target:focus {
+  outline: none;
+}
+
 .season-link {
   align-items: center;
   gap: 0.45rem;
@@ -397,6 +418,10 @@
   outline: none;
   color: var(--ink);
   background: var(--paper-tint);
+}
+.journal-search::placeholder {
+  color: var(--ink-soft);
+  opacity: 1;
 }
 .journal-search:focus {
   border-color: var(--accent);
@@ -649,7 +674,17 @@ a:focus-visible,
 .dark button:focus-visible,
 .dark a:focus-visible,
 .dark [tabindex]:focus-visible {
-  outline-color: #a8a29e;
+  outline-color: #f09a66;
+}
+
+/* stone-500 (#78716c) is about 3.7:1 on dark paper, under the 4.5:1 text minimum.
+   The utility is emitted later and with higher specificity, so this has to win outright. */
+.dark\:text-stone-500:is(.dark *) {
+  color: var(--ink-soft) !important;
+}
+/* stone-600 is darker still, and it was used for separators and icons on dark paper. */
+.dark\:text-stone-600:is(.dark *) {
+  color: var(--ink-faint) !important;
 }
 
 /* Date picker calendar icon in dark mode */

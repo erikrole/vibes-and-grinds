@@ -1,6 +1,4 @@
 import { lazy, Suspense, useRef, useState } from 'react';
-import FormModal from './components/FormModal';
-import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import AppHeader from './components/AppHeader';
 import AppFooter from './components/AppFooter';
@@ -15,6 +13,8 @@ import useJournalDerived from './hooks/useJournalDerived';
 import useJournalShortcuts from './hooks/useJournalShortcuts';
 
 const AddVisitForm = lazy(() => import('./components/AddVisitForm'));
+const FormModal = lazy(() => import('./components/FormModal'));
+const KeyboardShortcutsModal = lazy(() => import('./components/KeyboardShortcutsModal'));
 const VisitDetailModal = lazy(() => import('./components/VisitDetailModal'));
 const VestTrackerDashboard = lazy(() => import('./components/VestTrackerDashboard'));
 const YearInReview = lazy(() => import('./components/YearInReview'));
@@ -45,6 +45,7 @@ export default function App() {
   return (
     <ErrorBoundary>
     <div className={`min-h-screen transition-colors duration-200 ${prefs.appMode === APP_MODES.VEST ? 'vest-tracker-page' : ''}`}>
+        <a className="skip-link" href="#app-main">Skip to content</a>
         <AppHeader
           appMode={prefs.appMode}
           setAppMode={prefs.setAppMode}
@@ -54,6 +55,7 @@ export default function App() {
           onAddVisit={journal.handleOpenNewVisit}
         />
 
+        <div id="app-main" tabIndex={-1} className="skip-target">
         {prefs.appMode === APP_MODES.VEST ? (
           <Suspense fallback={<div className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading...</div>}>
             <VestTrackerDashboard showToast={toastBag.show} />
@@ -108,6 +110,7 @@ export default function App() {
           topCoffeeOrders={derived.topCoffeeOrders}
         />
         )}
+        </div>
 
         {!journal.loading && !journal.error && (
           <AppFooter appMode={prefs.appMode} />
@@ -129,30 +132,32 @@ export default function App() {
         )}
 
         {prefs.appMode === APP_MODES.VIBES && journal.showForm && (
-          <FormModal title={journal.isReturnDraft ? 'Log Return Visit' : 'Add Visit'} onClose={journal.handleCancelForm}>
-            <Suspense fallback={null}>
+          <Suspense fallback={null}>
+            <FormModal title={journal.isReturnDraft ? 'Log Return Visit' : 'Add Visit'} onClose={journal.handleCancelForm}>
               <AddVisitForm
                 initialData={journal.visitDraft}
                 mode={journal.isReturnDraft ? 'return' : 'add'}
                 onSubmit={journal.handleAddVisit}
                 visits={journal.visits}
               />
-            </Suspense>
-          </FormModal>
+            </FormModal>
+          </Suspense>
         )}
 
         {prefs.appMode === APP_MODES.VIBES && journal.editingVisit && (
-          <FormModal title="Edit Visit" onClose={journal.handleCancelForm}>
-            <Suspense fallback={null}>
+          <Suspense fallback={null}>
+            <FormModal title="Edit Visit" onClose={journal.handleCancelForm}>
               <AddVisitForm initialData={journal.editingVisit} mode="edit" onSubmit={journal.handleUpdateVisit} visits={journal.visits} />
-            </Suspense>
-          </FormModal>
+            </FormModal>
+          </Suspense>
         )}
 
         <AppToast toast={toastBag.toast} exiting={toastBag.exiting} dismiss={toastBag.dismiss} />
 
         {showShortcuts && (
-          <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />
+          <Suspense fallback={null}>
+            <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />
+          </Suspense>
         )}
 
         {showYearReview && (

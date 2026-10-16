@@ -6,12 +6,10 @@
 import { computeBadges } from './badges';
 import { detectStreak } from './insights';
 import { titleCaseOrder } from './display';
-import { isHomeVisit } from './visitTypes';
 import { parseLocalDate } from './dates';
+import { getSeasonForDate, getSeasonVisits } from './seasons';
 
-export function getSeasonVisits(visits = []) {
-  return visits.filter((visit) => !isHomeVisit(visit));
-}
+export { getAvailableSeasons, getCurrentSeason, getSeasonForDate, getSeasonVisits } from './seasons';
 
 const PERSONAS = [
   { id: 'explorer', name: 'The Explorer', emoji: '🧭', description: 'You chase the new — always discovering a different shop.', test: (d) => d.uniqueShops / d.totalVisits > 0.7 },
@@ -27,33 +25,6 @@ const PERSONAS = [
 // Month indices in season order (Jul through Jun)
 const SEASON_MONTH_INDICES = [6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5];
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-/**
- * Map a date to its season label. Seasons roll over July 1.
- * e.g. Sep 2025 → "2025-26", Feb 2026 → "2025-26"
- */
-function getSeasonForDate(date) {
-  const d = parseLocalDate(date);
-  const month = d.getMonth(); // 0-indexed: 0=Jan, 6=Jul
-  const year = d.getFullYear();
-  const startYear = month >= 6 ? year : year - 1;
-  return `${startYear}-${String(startYear + 1).slice(-2)}`;
-}
-
-/**
- * Get the current season label.
- */
-export function getCurrentSeason() {
-  return getSeasonForDate(new Date());
-}
-
-/**
- * Get available seasons from visits, sorted most recent first.
- */
-export function getAvailableSeasons(visits) {
-  const seasons = new Set(getSeasonVisits(visits).map(v => getSeasonForDate(v.date)));
-  return [...seasons].sort((a, b) => b.localeCompare(a));
-}
 
 /**
  * Compute season-in-review data for a specific season (e.g. "2025-26").

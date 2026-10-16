@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { titleCaseOrder } from '../utils/display';
-import { getAvailableSeasons, getCurrentSeason, getSeasonVisits } from '../utils/yearReview';
+import { getAvailableSeasons, getCurrentSeason, getSeasonVisits } from '../utils/seasons';
 import { getShopRepeatKey, getShopVisitCounts } from '../utils/repeats';
 import { getVisitType } from '../utils/visitTypes';
 

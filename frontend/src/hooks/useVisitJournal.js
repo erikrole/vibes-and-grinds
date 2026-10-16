@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from '../utils/api';
-import { computeBadges, detectNewBadges } from '../utils/badges';
 import { buildReturnVisitDraft } from '../utils/repeats';
 import { HOME_CITY, VISIT_TYPES } from '../utils/visitTypes';
 
@@ -32,17 +31,25 @@ export default function useVisitJournal(showToast, scopeFilter) {
     loadVisits();
   }, []);
 
-  // Badge unlock notifications
+  // Badge unlock notifications. Loaded on demand so insights stay out of the entry.
   useEffect(() => {
-    if (!visits.length) return;
-    const newBadges = computeBadges(visits);
-    if (prevBadgesRef.current) {
-      const unlocked = detectNewBadges(prevBadgesRef.current, newBadges);
-      unlocked.forEach(b => {
-        showToast(`${b.icon} Badge: ${b.name} (${b.tier})`);
-      });
-    }
-    prevBadgesRef.current = newBadges;
+    if (!visits.length) return undefined;
+    let cancelled = false;
+
+    import('../utils/badges').then(({ computeBadges, detectNewBadges }) => {
+      if (cancelled) return;
+      const newBadges = computeBadges(visits);
+      if (prevBadgesRef.current) {
+        detectNewBadges(prevBadgesRef.current, newBadges).forEach((badge) => {
+          showToast(`${badge.icon} Badge: ${badge.name} (${badge.tier})`);
+        });
+      }
+      prevBadgesRef.current = newBadges;
+    }).catch((err) => console.error(err));
+
+    return () => {
+      cancelled = true;
+    };
   }, [visits]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAddVisit = async (visitData) => {

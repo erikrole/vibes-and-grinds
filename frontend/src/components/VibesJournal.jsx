@@ -12,6 +12,22 @@ const TABS = [
   { id: 'insights', label: 'Insights' },
 ];
 
+function onTabKeyDown(event, setViewTab) {
+  const tabs = [...event.currentTarget.parentElement.querySelectorAll('[role="tab"]')];
+  const index = tabs.indexOf(event.currentTarget);
+  if (index < 0) return;
+  let next = index;
+  if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+  else if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
+  else if (event.key === 'Home') next = 0;
+  else if (event.key === 'End') next = tabs.length - 1;
+  else return;
+
+  event.preventDefault();
+  tabs[next].focus();
+  setViewTab(TABS[next].id);
+}
+
 export default function VibesJournal({
   visits,
   sortedVisits,
@@ -57,26 +73,37 @@ export default function VibesJournal({
       />
 
       <div className="flex items-center justify-between gap-5 mb-6 border-b border-stone-900/10 dark:border-stone-100/10">
-        <div className="flex items-end gap-7 sm:gap-9">
+        <div className="flex items-end gap-7 sm:gap-9" role="tablist" aria-label="Journal sections">
           {TABS.map(tab => (
             <button
               key={tab.id}
+              id={`journal-tab-${tab.id}`}
+              type="button"
+              role="tab"
+              aria-selected={viewTab === tab.id}
+              aria-controls={`journal-panel-${tab.id}`}
+              tabIndex={viewTab === tab.id ? 0 : -1}
               onClick={() => setViewTab(tab.id)}
+              onKeyDown={(event) => onTabKeyDown(event, setViewTab)}
               className="tab-edge text-base sm:text-lg"
-              aria-pressed={viewTab === tab.id}
             >
               {tab.label}
             </button>
           ))}
         </div>
         {seasonVisitCount >= 3 && (
-          <button onClick={onOpenSeason} className="season-link hidden sm:inline-flex">
+          <button type="button" onClick={onOpenSeason} className="season-link hidden sm:inline-flex">
             {reviewSeason} review
             <span aria-hidden="true">↗</span>
           </button>
         )}
       </div>
 
+      <div
+        role="tabpanel"
+        id={`journal-panel-${viewTab}`}
+        aria-labelledby={`journal-tab-${viewTab}`}
+      >
       {viewTab === 'insights' ? (
         <Suspense fallback={<div className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading insights...</div>}>
           <InsightsPanel visits={visits} />
@@ -133,6 +160,7 @@ export default function VibesJournal({
           </div>
         </>
       )}
+      </div>
     </main>
   );
 }
