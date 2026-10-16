@@ -42,6 +42,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
     cities: [...new Set(visits.map((v) => v.city).filter(Boolean))].sort(),
     opponents: [...new Set(visits.map((v) => v.opponent).filter(Boolean))].sort(),
     orders: [...new Set(visits.map((v) => v.coffee_order).filter(Boolean))].sort(),
+    recentOrders: [...new Set([...visits].sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).map((v) => v.coffee_order).filter(Boolean))].slice(0, 4),
   }), [visits]);
 
   const [formData, setFormData] = useState({ ...getDefaultVisitData(), ...(initialData || {}) });
@@ -424,6 +425,21 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
             enterKeyHint="next"
             autoCapitalize="words"
           />
+          {suggestions.recentOrders.length > 0 && (
+            <div className="avf-chips" role="group" aria-label="Recent orders">
+              {suggestions.recentOrders.map((order) => (
+                <button
+                  key={order}
+                  type="button"
+                  className={`avf-chip ${formData.coffee_order === order ? 'is-active' : ''}`}
+                  aria-pressed={formData.coffee_order === order}
+                  onClick={() => handleInputChange({ target: { name: 'coffee_order', value: order, type: 'text' } })}
+                >
+                  {titleCaseOrder(order)}
+                </button>
+              ))}
+            </div>
+          )}
         </Field>
 
         <div className="avf-ratings">
@@ -449,7 +465,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
                       max="10"
                       inputMode="decimal"
                       autoComplete="off"
-                      placeholder="–"
+                      placeholder="Rate"
                       aria-invalid={Boolean(errors[key])}
                       aria-describedby={errors[key] ? `${fieldIds[key]}-error` : undefined}
                       enterKeyHint={key === 'coffee_rating' ? 'done' : 'next'}
@@ -576,7 +592,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
           {errors.submit && <p className="alert-error" role="alert">{errors.submit}</p>}
           <div className="avf-save-row">
             <div className="avf-total" aria-live="polite">
-              <strong>{total ?? '–'}</strong><small>/ 20</small>
+              <span>Total</span><strong>{total ?? '–'}</strong><small>/ 20</small>
             </div>
             <button type="submit" disabled={uploading || locating} className="avf-submit">
               {uploading ? 'Saving…' : locating ? 'Finding the shop…' : isEditing ? 'Save changes' : 'Save visit'}
