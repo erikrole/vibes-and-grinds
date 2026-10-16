@@ -59,23 +59,46 @@ const TOKEN_CANONICAL = {
   western: 'west',
 };
 
+// Tokens that name a different school, not a mascot or campus nickname.
+// "Iowa" must not inherit "Iowa State's" rank, and "Texas" is not "Texas A&M".
+const DISTINGUISHING_TOKENS = new Set([
+  'state', 'north', 'south', 'east', 'west', 'central', 'tech', 'a', 'm',
+]);
+
 const MONTHS = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'Jun.', 'Jul.', 'Aug.', 'Sep.', 'Oct.', 'Nov.', 'Dec.'];
 
 export const formatDate = (dateStr) => {
   if (!dateStr) return null;
-  const parts = dateStr.split('-');
+  const parts = String(dateStr).split('-');
   if (parts.length < 3) return dateStr;
   const month = MONTHS[parseInt(parts[1], 10) - 1];
   const day = parseInt(parts[2], 10);
+  if (!month || !Number.isFinite(day)) return dateStr;
   return `${month} ${day}, ${parts[0]}`;
 };
 
 export const toIsoDate = (value) => {
   if (!value) return '';
-  if (value.length >= 10 && value[4] === '-') return value.slice(0, 10);
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return '';
-  return parsed.toISOString().slice(0, 10);
+  if (typeof value === 'string') {
+    const text = value.trim();
+    if (text.length >= 10 && text[4] === '-' && text[7] === '-') return text.slice(0, 10);
+    const parsed = new Date(text);
+    if (Number.isNaN(parsed.getTime())) return '';
+    return localIsoDate(parsed);
+  }
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return '';
+    return localIsoDate(value);
+  }
+  return '';
+};
+
+// Local calendar fields, not UTC. toISOString() rolls a US evening back a day.
+const localIsoDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 export const toSuperscript = (num) => {
@@ -109,22 +132,55 @@ export const buildNetLookup = (rankings) => {
   const exact = new Map();
   const byTokenSet = [];
   rankings.forEach((entry) => {
-    exact.set(entry.key, entry.rank);
+    exact.set(entry.key || normalizeTeamName(entry.team), entry.rank);
     byTokenSet.push({ tokens: new Set(normalizeTokens(entry.team)), rank: entry.rank });
   });
-  return { exact, byTokenSet };
+  return { exact, byTokenSet, cache: new Map() };
+};
+
+const tokenSetIsSubset = (smaller, larger) => {
+  for (const token of smaller) {
+    if (!larger.has(token)) return false;
+  }
+  return true;
 };
 
 export const findNetRankForOpponent = (lookup, opponentName) => {
+  if (!lookup) return null;
+  const cacheKey = String(opponentName ?? '').trim().toLowerCase();
+  if (lookup.cache?.has(cacheKey)) return lookup.cache.get(cacheKey);
+
   const key = normalizeTeamName(opponentName);
   const exact = lookup.exact.get(key);
-  if (Number.isFinite(exact)) return exact;
-  const tokens = normalizeTokens(opponentName);
-  if (!tokens.length) return null;
-  for (const candidate of lookup.byTokenSet) {
-    if (tokens.every((t) => candidate.tokens.has(t))) return candidate.rank;
+  let rank = Number.isFinite(exact) ? exact : null;
+
+  if (rank == null) {
+    const tokens = new Set(normalizeTokens(opponentName));
+    if (tokens.size) {
+      let best = null;
+      let bestExtra = Infinity;
+      for (const candidate of lookup.byTokenSet) {
+        const queryInCandidate = tokenSetIsSubset(tokens, candidate.tokens);
+        const candidateInQuery = tokenSetIsSubset(candidate.tokens, tokens);
+        if (!queryInCandidate && !candidateInQuery) continue;
+        const longer = queryInCandidate ? candidate.tokens : tokens;
+        const shorter = queryInCandidate ? tokens : candidate.tokens;
+        const extras = [];
+        for (const token of longer) {
+          if (!shorter.has(token)) extras.push(token);
+        }
+        if (extras.some((token) => DISTINGUISHING_TOKENS.has(token))) continue;
+        if (extras.length < bestExtra) {
+          best = candidate.rank;
+          bestExtra = extras.length;
+        }
+      }
+      rank = best;
+    }
   }
-  return null;
+
+  lookup.cache?.set(cacheKey, rank);
+  return rank;
 };
 
 export const getQuadrant = (location, netRank) => {
@@ -452,11 +508,26 @@ export const buildWhySentence = (rec, scoutingReport) => {
 
 const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
-// Per-game quality score normalized by sample size. Positive = above
-// expectation (good wins / avoided bad losses), negative = below.
-export const normalizedQualityScore = (stat) => {
-  if (!stat.games) return 0;
-  return Math.round((stat.winsAboveExpected / stat.games) * 100) / 100;
+// Home / road / neutral records in one pass. Games without a W/L, and games
+// whose location is missing, stay out of every split.
+export const locationSplits = (games = []) => {
+  const counts = {
+    vs: { wins: 0, losses: 0 },
+    '@': { wins: 0, losses: 0 },
+    N: { wins: 0, losses: 0 },
+  };
+  for (const game of games) {
+    if (game.result !== 'W' && game.result !== 'L') continue;
+    const bucket = counts[game.location];
+    if (!bucket) continue;
+    if (game.result === 'W') bucket.wins += 1;
+    else bucket.losses += 1;
+  }
+  return [
+    ['Home', 'vs'],
+    ['Road', '@'],
+    ['Neutral', 'N'],
+  ].map(([label, location]) => ({ label, location, ...counts[location] }));
 };
 
 // Pull NET payload through several worker shapes.

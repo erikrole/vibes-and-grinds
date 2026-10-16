@@ -93,12 +93,23 @@ function parseNetRankingsHtml(html = '') {
 
 // ── Shared helpers ──
 
+function isIsoDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value ?? '').trim());
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+}
+
 /**
  * Validate the required fields for a coffee visit.
  * Returns an error string if invalid, or null if valid.
  */
 function validateVisit({ date, coffee_shop_name, vibe_rating, coffee_rating }) {
   if (!date || !String(date).trim()) return 'Date is required';
+  if (!isIsoDate(date)) return 'Date must be a real YYYY-MM-DD day';
   if (!coffee_shop_name || !String(coffee_shop_name).trim()) return 'Coffee shop name is required';
 
   // Coerce before range-checking: a string like "abc" passes `< 0 || > 10`

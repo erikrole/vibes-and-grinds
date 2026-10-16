@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fetchVestScores, fetchVestGameStats } from '../utils/api';
+import { computeFunStats } from '../utils/gameStats';
+import { locationSplits } from '../utils/vestTrackerMath';
 
 const MONTHS = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'Jun.', 'Jul.', 'Aug.', 'Sep.', 'Oct.', 'Nov.', 'Dec.'];
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
-  const parts = (dateStr || '').slice(0, 10).split('-');
-  if (parts.length < 3) return dateStr;
-  return `${MONTHS[parseInt(parts[1], 10) - 1]} ${parseInt(parts[2], 10)}`;
+  const parts = String(dateStr).slice(0, 10).split('-');
+  const month = MONTHS[parseInt(parts[1], 10) - 1];
+  const day = parseInt(parts[2], 10);
+  if (!month || !Number.isFinite(day)) return String(dateStr);
+  return `${month} ${day}`;
 };
 
-const locLabel = (loc) => (loc === '@' ? '@ ' : loc === 'N' ? 'vs ' : 'vs ');
+const locLabel = (loc) => (loc === '@' ? '@ ' : loc === 'N' ? 'N ' : 'vs ');
 
 // ── Stat card helpers ──
 
@@ -48,191 +52,6 @@ function BarStat({ label, wi, opp, format = 'pct' }) {
       </div>
     </div>
   );
-}
-
-// ── Fun Stats Computation ──
-
-function computeFunStats(games, vestGames) {
-  if (!games.length) return null;
-
-  const completed = games.filter((g) => g.wisconsin_score != null && g.opponent_score != null);
-  if (!completed.length) return null;
-
-  // Build outfit map from vest games
-  const outfitByDate = {};
-  for (const vg of vestGames) {
-    if (vg.date && vg.outfit) outfitByDate[vg.date] = vg.outfit;
-  }
-
-  // Basic aggregates
-  let totalWiScore = 0, totalOppScore = 0;
-  let biggestWin = null, biggestWinMargin = 0;
-  let closestGame = null, closestMargin = 999;
-  let biggestLoss = null, biggestLossMargin = 0;
-  let comebackWins = 0, blownLeads = 0;
-  let leadsAtHalf = 0, trailsAtHalf = 0, tiedAtHalf = 0;
-  let winsWhenLeadingAtHalf = 0, winsWhenTrailingAtHalf = 0;
-
-  // By broadcast
-  const broadcastStats = {};
-  // By outfit + scoring
-  const outfitScoring = {};
-  // Player leader counts
-  const playerPtsCount = {};
-  const playerRebCount = {};
-  const playerAstCount = {};
-  // Score distribution
-  const margins = [];
-
-  for (const g of completed) {
-    const wiScore = g.wisconsin_score;
-    const oppScore = g.opponent_score;
-    const margin = wiScore - oppScore;
-    const isWin = margin > 0;
-    const absMargin = Math.abs(margin);
-    const date = g.date?.slice(0, 10);
-
-    totalWiScore += wiScore;
-    totalOppScore += oppScore;
-    margins.push(margin);
-
-    // Biggest / closest
-    if (isWin && absMargin > biggestWinMargin) {
-      biggestWinMargin = absMargin;
-      biggestWin = g;
-    }
-    if (!isWin && absMargin > biggestLossMargin) {
-      biggestLossMargin = absMargin;
-      biggestLoss = g;
-    }
-    if (absMargin < closestMargin) {
-      closestMargin = absMargin;
-      closestGame = g;
-    }
-
-    // Half-time analysis
-    if (g.wisconsin_h1 != null && g.opponent_h1 != null) {
-      const h1Lead = g.wisconsin_h1 - g.opponent_h1;
-      if (h1Lead > 0) {
-        leadsAtHalf++;
-        if (isWin) winsWhenLeadingAtHalf++;
-        if (!isWin) blownLeads++;
-      } else if (h1Lead < 0) {
-        trailsAtHalf++;
-        if (isWin) { comebackWins++; winsWhenTrailingAtHalf++; }
-      } else {
-        tiedAtHalf++;
-      }
-    }
-
-    // Broadcast
-    if (g.broadcast) {
-      if (!broadcastStats[g.broadcast]) broadcastStats[g.broadcast] = { wins: 0, losses: 0 };
-      if (isWin) broadcastStats[g.broadcast].wins++;
-      else broadcastStats[g.broadcast].losses++;
-    }
-
-    // Outfit scoring
-    const outfit = outfitByDate[date] || g.outfit;
-    if (outfit) {
-      if (!outfitScoring[outfit]) outfitScoring[outfit] = { scored: 0, allowed: 0, games: 0, margins: [] };
-      outfitScoring[outfit].scored += wiScore;
-      outfitScoring[outfit].allowed += oppScore;
-      outfitScoring[outfit].games++;
-      outfitScoring[outfit].margins.push(margin);
-    }
-
-    // Player leaders
-    if (g.wi_leader_pts_name) {
-      playerPtsCount[g.wi_leader_pts_name] = (playerPtsCount[g.wi_leader_pts_name] || 0) + 1;
-    }
-    if (g.wi_leader_reb_name) {
-      playerRebCount[g.wi_leader_reb_name] = (playerRebCount[g.wi_leader_reb_name] || 0) + 1;
-    }
-    if (g.wi_leader_ast_name) {
-      playerAstCount[g.wi_leader_ast_name] = (playerAstCount[g.wi_leader_ast_name] || 0) + 1;
-    }
-  }
-
-  const avgScored = Math.round((totalWiScore / completed.length) * 10) / 10;
-  const avgAllowed = Math.round((totalOppScore / completed.length) * 10) / 10;
-  const avgMargin = Math.round(((totalWiScore - totalOppScore) / completed.length) * 10) / 10;
-
-  // Blowout rate (wins by 15+)
-  const blowouts = margins.filter((m) => m >= 15).length;
-  const blowoutRate = Math.round((blowouts / completed.length) * 100);
-
-  // Nail-biters (decided by 5 or less)
-  const nailBiters = margins.filter((m) => Math.abs(m) <= 5).length;
-
-  // TV curse
-  const tvStats = Object.entries(broadcastStats)
-    .map(([network, s]) => ({ network, ...s, total: s.wins + s.losses, winRate: Math.round((s.wins / (s.wins + s.losses)) * 100) }))
-    .filter((s) => s.total >= 2)
-    .sort((a, b) => b.winRate - a.winRate);
-
-  // Outfit scoring leaders
-  const outfitScoringList = Object.entries(outfitScoring)
-    .map(([outfit, s]) => ({
-      outfit,
-      avgScored: Math.round((s.scored / s.games) * 10) / 10,
-      avgAllowed: Math.round((s.allowed / s.games) * 10) / 10,
-      avgMargin: Math.round(((s.scored - s.allowed) / s.games) * 10) / 10,
-      games: s.games,
-    }))
-    .filter((s) => s.games >= 2)
-    .sort((a, b) => b.avgMargin - a.avgMargin);
-
-  // Top players
-  const topScorer = Object.entries(playerPtsCount).sort((a, b) => b[1] - a[1])[0];
-  const topRebounder = Object.entries(playerRebCount).sort((a, b) => b[1] - a[1])[0];
-  const topAssist = Object.entries(playerAstCount).sort((a, b) => b[1] - a[1])[0];
-
-  // Player-outfit combos: which player leads scoring most often in each outfit
-  const outfitPlayerMap = {};
-  for (const g of completed) {
-    const date = g.date?.slice(0, 10);
-    const outfit = outfitByDate[date] || g.outfit;
-    if (!outfit || !g.wi_leader_pts_name) continue;
-    if (!outfitPlayerMap[outfit]) outfitPlayerMap[outfit] = {};
-    outfitPlayerMap[outfit][g.wi_leader_pts_name] = (outfitPlayerMap[outfit][g.wi_leader_pts_name] || 0) + 1;
-  }
-  const outfitPlayerCombos = Object.entries(outfitPlayerMap)
-    .map(([outfit, players]) => {
-      const [name, count] = Object.entries(players).sort((a, b) => b[1] - a[1])[0] || [];
-      return { outfit, player: name, count };
-    })
-    .filter((c) => c.count >= 2)
-    .sort((a, b) => b.count - a.count);
-
-  return {
-    gamesWithScores: completed.length,
-    avgScored,
-    avgAllowed,
-    avgMargin,
-    biggestWin,
-    biggestWinMargin,
-    biggestLoss,
-    biggestLossMargin,
-    closestGame,
-    closestMargin,
-    comebackWins,
-    blownLeads,
-    leadsAtHalf,
-    trailsAtHalf,
-    tiedAtHalf,
-    winsWhenLeadingAtHalf,
-    winsWhenTrailingAtHalf,
-    blowouts,
-    blowoutRate,
-    nailBiters,
-    tvStats,
-    outfitScoringList,
-    topScorer: topScorer ? { name: topScorer[0], count: topScorer[1] } : null,
-    topRebounder: topRebounder ? { name: topRebounder[0], count: topRebounder[1] } : null,
-    topAssist: topAssist ? { name: topAssist[0], count: topAssist[1] } : null,
-    outfitPlayerCombos,
-  };
 }
 
 // ── Main Component ──
@@ -593,15 +412,7 @@ export default function GameStatsPanel({ games: vestGames }) {
 function LocalSeasonStats({ games, scoreStatus }) {
   const completed = games.filter((game) => game.result === 'W' || game.result === 'L');
   const wins = completed.filter((game) => game.result === 'W').length;
-  const splits = [
-    ['Home', 'vs'],
-    ['Road', '@'],
-    ['Neutral', 'N'],
-  ].map(([label, location]) => {
-    const subset = completed.filter((game) => game.location === location);
-    const subsetWins = subset.filter((game) => game.result === 'W').length;
-    return { label, wins: subsetWins, losses: subset.length - subsetWins };
-  });
+  const splits = locationSplits(games);
   const recent = completed.slice(-10).reverse();
   const outfitCounts = Object.entries(completed.reduce((counts, game) => {
     if (game.outfit) counts[game.outfit] = (counts[game.outfit] || 0) + 1;

@@ -22,14 +22,12 @@ export default function InsightsPanel({ visits }) {
   const [compareBy, setCompareBy] = useState('coffee_shop_name');
   const [minimumSample, setMinimumSample] = useState(2);
 
-  const recent = useMemo(
-    () => [...visits].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5),
+  const newestFirst = useMemo(
+    () => [...visits].sort((a, b) => String(b.date).localeCompare(String(a.date))),
     [visits]
   );
-  const previous = useMemo(
-    () => [...visits].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(5, 10),
-    [visits]
-  );
+  const recent = newestFirst.slice(0, 5);
+  const previous = newestFirst.slice(5, 10);
   const comparisons = useMemo(
     () => normalizedLeaderboard(visits, compareBy, minimumSample).slice(0, 12),
     [visits, compareBy, minimumSample]
@@ -38,7 +36,9 @@ export default function InsightsPanel({ visits }) {
   const trend = useMemo(() => trendComparison(visits), [visits]);
   const repeat = useMemo(() => repeatShopInsights(visits), [visits]);
   const best = useMemo(
-    () => visits.reduce((winner, visit) => !winner || visit.composite_score > winner.composite_score ? visit : winner, null),
+    () => visits.reduce((winner, visit) => (
+      !winner || Number(visit.composite_score) > Number(winner.composite_score) ? visit : winner
+    ), null),
     [visits]
   );
 

@@ -45,14 +45,15 @@ export function formatDate(dateStr, options) {
  * Returns "Today", "Yesterday", or null for older dates.
  */
 export function getRelativeLabel(dateStr) {
+  const key = String(dateStr ?? '').slice(0, 10);
   const today = getTodayDateString();
-  if (dateStr === today) return 'Today';
+  if (key === today) return 'Today';
 
   const [y, m, d] = today.split('-').map(Number);
   const yesterday = new Date(y, m - 1, d);
   yesterday.setDate(yesterday.getDate() - 1);
   const yStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
-  if (dateStr === yStr) return 'Yesterday';
+  if (key === yStr) return 'Yesterday';
 
   return null;
 }

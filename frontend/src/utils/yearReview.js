@@ -40,12 +40,16 @@ export function computeSeasonReview(visits, season) {
   const uniqueCities = new Set(seasonVisits.map(v => v.city).filter(Boolean)).size;
   const uniqueOrders = new Set(seasonVisits.map(v => titleCaseOrder(v.coffee_order)).filter(Boolean)).size;
 
-  const avgVibe = +(seasonVisits.reduce((s, v) => s + v.vibe_rating, 0) / totalVisits).toFixed(1);
-  const avgCoffee = +(seasonVisits.reduce((s, v) => s + v.coffee_rating, 0) / totalVisits).toFixed(1);
-  const avgComposite = +(seasonVisits.reduce((s, v) => s + v.composite_score, 0) / totalVisits).toFixed(1);
+  const score = (visit) => {
+    const num = Number(visit.composite_score);
+    return Number.isFinite(num) ? num : 0;
+  };
+  const avgVibe = +(seasonVisits.reduce((s, v) => s + (Number(v.vibe_rating) || 0), 0) / totalVisits).toFixed(1);
+  const avgCoffee = +(seasonVisits.reduce((s, v) => s + (Number(v.coffee_rating) || 0), 0) / totalVisits).toFixed(1);
+  const avgComposite = +(seasonVisits.reduce((s, v) => s + score(v), 0) / totalVisits).toFixed(1);
 
-  const bestVisit = seasonVisits.reduce((a, b) => a.composite_score >= b.composite_score ? a : b);
-  const worstVisit = seasonVisits.reduce((a, b) => a.composite_score <= b.composite_score ? a : b);
+  const bestVisit = seasonVisits.reduce((a, b) => score(a) >= score(b) ? a : b);
+  const worstVisit = seasonVisits.reduce((a, b) => score(a) <= score(b) ? a : b);
 
   // Most visited shop
   const shopCounts = {};
@@ -67,8 +71,9 @@ export function computeSeasonReview(visits, season) {
   for (const m of SEASON_MONTH_INDICES) months[m] = { count: 0, totalComposite: 0 };
   seasonVisits.forEach(v => {
     const m = parseLocalDate(v.date).getMonth();
+    if (!months[m]) return;
     months[m].count++;
-    months[m].totalComposite += v.composite_score;
+    months[m].totalComposite += score(v);
   });
   const monthlyBreakdown = SEASON_MONTH_INDICES.map(m => ({
     month: MONTH_NAMES[m],
@@ -99,7 +104,7 @@ export function computeSeasonReview(visits, season) {
 
   return {
     season,
-    dateRange: `July 1, ${season.split('-')[0]} to July 1, ${Number(season.split('-')[0]) + 1}`,
+    dateRange: `July 1, ${season.split('-')[0]} to June 30, ${Number(season.split('-')[0]) + 1}`,
     totalVisits,
     uniqueShops,
     uniqueCities,
