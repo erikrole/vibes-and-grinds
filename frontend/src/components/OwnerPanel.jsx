@@ -4,6 +4,7 @@ import { formatDate } from '../utils/dates';
 
 export default function OwnerPanel({ owner, contributor, onSignedIn, onSignedOut, onRestored, onSavingChange }) {
   const [key, setKey] = useState('');
+  const [showKey, setShowKey] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [trash, setTrash] = useState(null);
@@ -30,7 +31,7 @@ export default function OwnerPanel({ owner, contributor, onSignedIn, onSignedOut
     }); }}>
       <p className="type-meta my-4">Enter your access key to add visits.</p>
       <div className="avf-field"><label htmlFor="owner-key">Access key</label>
-      <input id="owner-key" name="password" type="password" autoComplete="current-password" value={key} onChange={(event) => setKey(event.target.value)} className="avf-input" required /></div>
+      <div className="avf-key-wrap"><input id="owner-key" name="password" type={showKey ? 'text' : 'password'} autoComplete="current-password" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={key} onChange={(event) => setKey(event.target.value)} className="avf-input" required /><button type="button" className="avf-key-toggle" aria-pressed={showKey} aria-controls="owner-key" onClick={() => setShowKey((shown) => !shown)}>{showKey ? 'Hide' : 'Show'}<span className="sr-only"> access key</span></button></div></div>
       <button type="submit" disabled={busy} className="avf-submit mt-4 w-full">{busy ? 'Signing in…' : 'Sign in'}</button>
     </form> : <>
       <p className="type-meta my-4">Your changes are saved to the journal. Deleted visits stay here until you restore them.</p>
