@@ -11,6 +11,7 @@ import {
   formatDate,
   formatLocationLabel,
   getQuadrant,
+  locationSplits,
   normalizeNetResponse,
   normalizeTeamName,
   toIsoDate,
@@ -200,19 +201,18 @@ export default function VestTrackerDashboard({ showToast }) {
     [completedGames, selectedOutfit]
   );
 
+  const splits = useMemo(() => locationSplits(completedGames), [completedGames]);
+
   // Secondary scoreboard pills — only when not filtered.
   const scoreboardSecondary = useMemo(() => {
     if (selectedOutfit) return [];
-    const road = completedGames.filter((g) => g.location === '@');
-    const roadW = road.filter((g) => g.result === 'W').length;
-    const neutral = completedGames.filter((g) => g.location === 'N');
-    const neutralW = neutral.filter((g) => g.result === 'W').length;
+    const pills = [];
+    for (const split of splits) {
+      if (split.location === 'vs' || split.wins + split.losses === 0) continue;
+      pills.push({ label: split.label, value: `${split.wins}–${split.losses}` });
+    }
     const ot = completedGames.filter((g) => g.overtime);
     const otW = ot.filter((g) => g.result === 'W').length;
-
-    const pills = [];
-    if (road.length) pills.push({ label: 'Road', value: `${roadW}–${road.length - roadW}` });
-    if (neutral.length) pills.push({ label: 'Neutral', value: `${neutralW}–${neutral.length - neutralW}` });
     if (ot.length) pills.push({ label: 'OT', value: `${otW}–${ot.length - otW}` });
 
     if (netStatus === 'loaded') {
@@ -224,7 +224,7 @@ export default function VestTrackerDashboard({ showToast }) {
       if (q1q2.length) pills.push({ label: 'Q1+Q2', value: `${q1q2W}–${q1q2.length - q1q2W}` });
     }
     return pills;
-  }, [completedGames, selectedOutfit, netLookup, netStatus]);
+  }, [completedGames, selectedOutfit, netLookup, netStatus, splits]);
 
   // Per-outfit stats with smoothing + WoE.
   const outfitStats = useMemo(
@@ -298,12 +298,19 @@ export default function VestTrackerDashboard({ showToast }) {
     if (!scoutingReport?.quadrant) return [];
     const q = scoutingReport.quadrant;
     const loc = scoutingReport.location;
+    const gamesByOutfitLocation = new Map();
+    for (const game of completedGames) {
+      const key = `${game.outfit}\0${game.location}`;
+      const list = gamesByOutfitLocation.get(key);
+      if (list) list.push(game);
+      else gamesByOutfitLocation.set(key, [game]);
+    }
     return outfitStats
       .map((stat) => {
         const qW = stat.quadrants[q].wins;
         const qL = stat.quadrants[q].losses;
         const qGames = qW + qL;
-        const locGames = completedGames.filter((g) => g.outfit === stat.outfit && g.location === loc);
+        const locGames = gamesByOutfitLocation.get(`${stat.outfit}\0${loc}`) || [];
         const locW = locGames.filter((g) => g.result === 'W').length;
         let confidence = 'unknown';
         if (qGames === 0) confidence = 'untested';

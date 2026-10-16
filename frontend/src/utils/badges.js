@@ -95,7 +95,7 @@ const BADGE_DEFS = [
     name: 'Vibe Master',
     description: 'Get perfect 10 vibe ratings',
     levels: [1, 3, 5, 10, 20],
-    compute: (visits) => visits.filter(v => v.vibe_rating === 10).length,
+    compute: (visits) => visits.filter(v => Number(v.vibe_rating) === 10).length,
   },
   {
     id: 'coffee-connoisseur',
@@ -104,7 +104,7 @@ const BADGE_DEFS = [
     name: 'Coffee Connoisseur',
     description: 'Get perfect 10 coffee ratings',
     levels: [1, 3, 5, 10, 20],
-    compute: (visits) => visits.filter(v => v.coffee_rating === 10).length,
+    compute: (visits) => visits.filter(v => Number(v.coffee_rating) === 10).length,
   },
   {
     id: 'perfect-cup',
@@ -113,7 +113,7 @@ const BADGE_DEFS = [
     name: 'The Perfect Cup',
     description: 'Achieve perfect 20/20 scores',
     levels: [1, 3, 5, 10, 20],
-    compute: (visits) => visits.filter(v => v.composite_score === 20).length,
+    compute: (visits) => visits.filter(v => Number(v.composite_score) === 20).length,
   },
   {
     id: 'high-standards',
@@ -124,7 +124,7 @@ const BADGE_DEFS = [
     levels: [13, 14, 15, 16, 17],
     compute: (visits) => {
       if (visits.length < 5) return 0;
-      return +(visits.reduce((s, v) => s + v.composite_score, 0) / visits.length).toFixed(1);
+      return +(visits.reduce((s, v) => s + (Number(v.composite_score) || 0), 0) / visits.length).toFixed(1);
     },
   },
 

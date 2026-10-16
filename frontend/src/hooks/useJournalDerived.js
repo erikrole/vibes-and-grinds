@@ -59,25 +59,23 @@ export default function useJournalDerived(visits, {
 
   const hasActiveFilters = Boolean(searchQuery || sportFilter || repeatFilter || scopeFilter);
 
-  const avgVibe = useMemo(
-    () =>
-      visits.length ? (visits.reduce((sum, visit) => sum + visit.vibe_rating, 0) / visits.length).toFixed(1) : '0.0',
-    [visits]
-  );
-  const avgCoffee = useMemo(
-    () =>
-      visits.length
-        ? (visits.reduce((sum, visit) => sum + visit.coffee_rating, 0) / visits.length).toFixed(1)
-        : '0.0',
-    [visits]
-  );
-  const avgComposite = useMemo(
-    () =>
-      visits.length
-        ? (visits.reduce((sum, visit) => sum + visit.composite_score, 0) / visits.length).toFixed(1)
-        : '0.0',
-    [visits]
-  );
+  const averages = useMemo(() => {
+    if (!visits.length) return { avgVibe: '0.0', avgCoffee: '0.0', avgComposite: '0.0' };
+    let vibe = 0;
+    let coffee = 0;
+    let composite = 0;
+    for (const visit of visits) {
+      vibe += Number(visit.vibe_rating) || 0;
+      coffee += Number(visit.coffee_rating) || 0;
+      composite += Number(visit.composite_score) || 0;
+    }
+    const count = visits.length;
+    return {
+      avgVibe: (vibe / count).toFixed(1),
+      avgCoffee: (coffee / count).toFixed(1),
+      avgComposite: (composite / count).toFixed(1),
+    };
+  }, [visits]);
 
   const topCoffeeOrders = useMemo(() => {
     const orderCounts = {};
@@ -101,9 +99,9 @@ export default function useJournalDerived(visits, {
     shopVisitCounts,
     sortedVisits,
     hasActiveFilters,
-    avgVibe,
-    avgCoffee,
-    avgComposite,
+    avgVibe: averages.avgVibe,
+    avgCoffee: averages.avgCoffee,
+    avgComposite: averages.avgComposite,
     topCoffeeOrders,
     reviewSeason,
     seasonVisitCount,

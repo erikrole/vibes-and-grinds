@@ -207,7 +207,7 @@ function parseGenericRankingsTable(html) {
         const rawTeam = item.team || item.name || item.school || item.SCHOOL || '';
         const team = normalizeTeamName(rawTeam.trim());
         const record = item.record || item.rec || item.RECORD || null;
-        if (rank && team && rank >= 1 && rank <= 363) {
+        if (rank && team && rank >= 1 && rank <= 365) {
           results.push({ team, rank, record });
         }
       }
@@ -251,7 +251,7 @@ function parseGenericRankingsTable(html) {
 
     const rank = parseInt(cells[rankCol], 10);
     const team = normalizeTeamName(cells[teamCol] || '');
-    if (!rank || !team || rank < 1 || rank > 363) continue;
+    if (!rank || !team || rank < 1 || rank > 365) continue;
 
     let record = recordCol >= 0 && recordCol < cells.length ? cells[recordCol] : null;
     if (!record) {

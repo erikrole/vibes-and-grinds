@@ -41,13 +41,6 @@ export default defineConfig({
             return 'map';
           }
 
-          if (
-            path.includes('/node_modules/recharts/') ||
-            path.includes('/node_modules/victory-vendor/')
-          ) {
-            return 'charts';
-          }
-
           // Keep React out of the map chunk. Otherwise Rollup parks the shared
           // runtime there and the entry preloads Leaflet on every page.
           if (

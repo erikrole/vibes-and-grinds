@@ -37,7 +37,14 @@ export async function onRequestPost({ request, env }) {
       photo_url,
     } = body;
 
-    const validationError = validateVisit({ date, coffee_shop_name, vibe_rating, coffee_rating });
+    const cleanDate = String(date ?? '').trim();
+    const cleanName = String(coffee_shop_name ?? '').trim();
+    const validationError = validateVisit({
+      date: cleanDate,
+      coffee_shop_name: cleanName,
+      vibe_rating,
+      coffee_rating,
+    });
     if (validationError) {
       return jsonResponse({ error: validationError }, 400);
     }
@@ -49,8 +56,8 @@ export async function onRequestPost({ request, env }) {
         coffee_shop_lat, coffee_shop_lng, coffee_order, vibe_rating, coffee_rating, notes, photo_url
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
-      date,
-      coffee_shop_name.trim(),
+      cleanDate,
+      cleanName,
       normalizeOptionalText(city),
       normalizeOptionalText(opponent),
       sport || null,
