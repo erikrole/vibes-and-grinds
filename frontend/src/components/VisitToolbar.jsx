@@ -112,14 +112,6 @@ export default function VisitToolbar({
             </select>
             <button
               type="button"
-              className="control-field px-3"
-              onClick={() => setSortBy(sortBy)}
-              aria-label={`Reverse sort direction, currently ${sortDirectionPhrase(sortBy, sortAsc)}`}
-            >
-              <span aria-hidden="true">{sortAsc ? '↑' : '↓'}</span>
-            </button>
-            <button
-              type="button"
               onClick={() => setShowMobileFilters((value) => !value)}
               className="control-field"
               aria-expanded={showMobileFilters}

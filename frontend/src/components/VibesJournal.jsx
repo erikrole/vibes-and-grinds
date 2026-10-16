@@ -72,7 +72,7 @@ export default function VibesJournal({
         avgComposite={avgComposite}
       />
 
-      <div className="flex flex-wrap items-end justify-between gap-x-5 gap-y-1 mb-6 border-b border-stone-900/10 dark:border-stone-100/10">
+      <div className="flex items-center justify-between gap-5 mb-6 border-b border-stone-900/10 dark:border-stone-100/10">
         <div className="flex items-end gap-7 sm:gap-9" role="tablist" aria-label="Journal sections">
           {TABS.map(tab => (
             <button
@@ -92,7 +92,7 @@ export default function VibesJournal({
           ))}
         </div>
         {seasonVisitCount >= 3 && (
-          <button type="button" onClick={onOpenSeason} className="season-link">
+          <button type="button" onClick={onOpenSeason} className="season-link hidden sm:inline-flex">
             {reviewSeason} review
             <span aria-hidden="true">↗</span>
           </button>
