@@ -88,7 +88,11 @@ Vest score loading derives the ESPN season end year from the latest saved game (
 
 Older immutable Pages deployments must be retired or access-restricted before owner-only editing is considered complete; their old code can still reach shared production data. All 251 older unguarded copies were retired with explicit approval on 2026-10-04; every retired API URL returned 404 and every remaining deployment rejected guest writes. Saved records remained unchanged. Wrangler shows only the first 25 deployments, so audit the complete API history. See [DEPLOYMENT.md](DEPLOYMENT.md).
 
-See [ROADMAP.md](ROADMAP.md) for remaining work and [CHANGELOG.md](CHANGELOG.md) for change notes.
+## Release branches
+
+`main` is the intended integration line. As verified on October 17, 2026, GitHub's default branch is still `claude/coffee-shop-tracker-iIWcb`. The last recorded Cloudflare Pages production-branch setting used that branch on October 4; it was not reverified during local maintenance. Check the current Pages setting and exact deployment source before publishing. Branch-setting changes require approval; do not assume changing GitHub's default also changes Pages.
+
+See [ROADMAP.md](ROADMAP.md) for remaining work and dated verification, and [CHANGELOG.md](CHANGELOG.md) for change notes.
 
 ### Contributor key (add-only)
 

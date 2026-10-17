@@ -15,14 +15,16 @@
 - Insights opens with animated, journal-derived fun stats (counts, miles, weekday and rating bars).
 - Add visit offers Wisconsin games for the picked date (Sidearm iCal, ESPN fallback for men's basketball). Open: a home/away field, and track once the 2026–27 feed publishes.
 
-## Verification and release gates
+## Historical verification — October 4, 2026
+
+The release URLs, record counts and live checks below are dated evidence, not a current production inventory or attestation.
 
 - Apple Maps was enabled with approval and restricted to `coffee.erikrole.com`; verify it on that domain after each affected release.
 - Frontend and isolated SQLite API regression tests pass. Local review covers owner sign-in, return save, deletion/restoration, shop history/Back, comparison counts, current/completed seasons, narrow dark layout, Vest game save/snapshot restore, and draft retention through owner-session expiry.
 - Production released at https://305b1af5.vibes-and-grinds.pages.dev (source `c75bb59b4cd9e7ead59c45079addf8f92d853b66`), serving https://coffee.erikrole.com. GitHub CI run `37251590037` passed. Every original field and ID matches the private backup: 34 coffee visits, 35 Vest games, no deleted original rows; all visits have stable shop IDs.
 - Live checks passed: guest mutations rejected on visit CRUD/upload/Vest/backfill; owner sign-in/backfill/export; Apple rendering and exact Williamson Street autofill; shop history/Back; factual active/completed seasons; mobile dark journal.
 - With explicit approval, all 251 older unguarded Pages deployments were retired on 2026-10-04 (the first 25, then 226 found through pagination). All 251 `/api/visits` URLs return 404. A complete inventory leaves only the protected production release and protected previews; every remaining deployment and production/main alias rejects guest writes. Every journal/shop/alias/game/recovery field matches the pre-retirement export: 34 visits, 33 shops, 35 games, Vest revision 0.
-- Wrangler lists only the first 25 deployments: always inspect every Cloudflare API page when auditing deployment history. Handoff CI `37255032376` passed; the production source remains `c75bb59`.
+- Wrangler lists only the first 25 deployments: always inspect every Cloudflare API page when auditing deployment history. Handoff CI `37255032376` passed; the production source at that verification was `c75bb59`.
 - Native photo-picker automation is unavailable in the current in-app browser; isolated upload and image read-back passed; manual picker acceptance remains distinct.
 - Approved data cleanup on 2026-10-04 mapped the two missing locations against exact Apple place pages. All 34 visits across 33 shops now have coordinates. Corrected Finca's municipality, seven meet labels, home event context, Pike Place spelling, and formatting. All 35 games have exact ESPN links; BYU is neutral-site. Stable IDs, ratings, dates, photos, and personal note wording were preserved. Vest revision is now 1 with the original game list retained in a recovery snapshot.
 - Score-loading safeguards, factual score summaries, and Madison-scoped Apple search pass 17 frontend and 8 isolated SQLite tests plus the build and syntax checks. Both ESPN schedule types produced all 35 actual scores in an isolated copy; results agree and saved games remain unchanged. Live verification of the new code follows deployment.
@@ -31,4 +33,4 @@
 ## Follow-up maintenance
 
 - Review existing dependency audit findings separately.
-- Releases land on `main`. If the Pages production branch is still pinned to `claude/coffee-shop-tracker-iIWcb`, switch it to `main` only with explicit infrastructure approval. Do not deploy that older branch; it has no owner-session gate.
+- `main` is the intended integration line and includes the season-review layout and monthly visit chart from PR #90. On 2026-10-17 GitHub's default branch was still `claude/coffee-shop-tracker-iIWcb`; the current Pages production-branch setting and live source were not reverified during local maintenance. Inspect both before publishing. Changing either setting requires explicit infrastructure approval, and every candidate release must preserve the server-enforced owner-session gate. Do not infer the current branch's security behavior from the October 4 deployment history.
