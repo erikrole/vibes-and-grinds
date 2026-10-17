@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { vestGames as seedGames } from '../utils/vestTrackerData';
 import { fetchVestGames, syncVestGames, fetchVisits, fetchVestBlurb } from '../utils/api';
+import { shouldSyncVestGames } from '../utils/vestGameSync';
 import {
   buildNetLookup,
   buildOutfitStats,
@@ -65,6 +66,8 @@ export default function VestTrackerDashboard({ showToast }) {
   const [viewingOutfit, setViewingOutfit] = useState(null);
   const [vestTab, setVestTab] = useState('dashboard');
   const [syncReady, setSyncReady] = useState(false);
+  const serverGamesRef = useRef(null);
+  const syncGenerationRef = useRef(0);
 
   // Warn once if localStorage was corrupted on load.
   useEffect(() => {
@@ -79,22 +82,37 @@ export default function VestTrackerDashboard({ showToast }) {
   }, [games]);
 
   // Initial sync from server (overrides local seed if data exists).
+  // A failed read leaves sync disabled so local or seed games are not written over the table.
   useEffect(() => {
     let cancelled = false;
     fetchVestGames()
       .then((payload) => {
+        if (cancelled) return;
         const serverGames = Array.isArray(payload?.games) ? payload.games : [];
-        if (!cancelled && serverGames.length > 0) setGames(serverGames);
+        serverGamesRef.current = serverGames;
+        if (serverGames.length > 0) setGames(serverGames);
+        setSyncReady(true);
       })
-      .catch(() => { /* fall back to local */ })
-      .finally(() => { if (!cancelled) setSyncReady(true); });
+      .catch(() => { /* fall back to local; do not upload */ });
     return () => { cancelled = true; };
   }, []);
 
-  // Push changes upstream once initial sync resolves.
+  // Push a local edit upstream. Skip the write when the list still matches the last successful read.
   useEffect(() => {
-    if (!syncReady) return;
-    syncVestGames(games).catch(() => { /* offline/dev — ignore */ });
+    if (!shouldSyncVestGames({
+      loadState: syncReady ? 'ready' : 'pending',
+      serverGames: serverGamesRef.current,
+      games,
+    })) return;
+
+    const generation = syncGenerationRef.current + 1;
+    syncGenerationRef.current = generation;
+    const snapshot = games;
+    syncVestGames(snapshot)
+      .then(() => {
+        if (syncGenerationRef.current === generation) serverGamesRef.current = snapshot;
+      })
+      .catch(() => { /* offline/dev — ignore */ });
   }, [games, syncReady]);
 
   // Fetch NET rankings from any of the supported worker shapes.
