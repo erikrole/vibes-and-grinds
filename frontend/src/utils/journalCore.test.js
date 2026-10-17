@@ -66,30 +66,36 @@ describe('repeats', () => {
   });
 
   it('counts earlier stops and carries the shop into a return draft', () => {
-    const earlier = {
-      id: 4,
-      date: '2025-11-01',
-      coffee_shop_name: 'Colectivo',
-      city: 'Chicago, IL',
-      opponent: 'Iowa',
-      sport: "Men's Basketball",
-      visit_type: VISIT_TYPES.ROAD,
-      coffee_order: 'cortado',
-      composite_score: 12,
-      coffee_shop_place_id: 'abc',
-    };
-    const context = getRepeatContext([earlier], { coffee_shop_name: 'Colectivo', coffee_shop_place_id: 'abc' });
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 16, 15, 0, 0));
+    try {
+      const earlier = {
+        id: 4,
+        date: '2025-11-01',
+        coffee_shop_name: 'Colectivo',
+        city: 'Chicago, IL',
+        opponent: 'Iowa',
+        sport: "Men's Basketball",
+        visit_type: VISIT_TYPES.ROAD,
+        coffee_order: 'cortado',
+        composite_score: 12,
+        coffee_shop_place_id: 'abc',
+      };
+      const context = getRepeatContext([earlier], { coffee_shop_name: 'Colectivo', coffee_shop_place_id: 'abc' });
 
-    expect(context.visitNumber).toBe(2);
-    expect(context.lastVisit).toBe(earlier);
-    expect(context.bestVisit).toBe(earlier);
+      expect(context.visitNumber).toBe(2);
+      expect(context.lastVisit).toBe(earlier);
+      expect(context.bestVisit).toBe(earlier);
 
-    const draft = buildReturnVisitDraft(earlier);
-    expect(draft.coffee_shop_name).toBe('Colectivo');
-    expect(draft.coffee_shop_place_id).toBe('abc');
-    expect(draft.vibe_rating).toBe('');
-    expect(draft.date).toBe('2026-10-16');
-    expect(draft.visit_type).toBe(VISIT_TYPES.ROAD);
+      const draft = buildReturnVisitDraft(earlier);
+      expect(draft.coffee_shop_name).toBe('Colectivo');
+      expect(draft.coffee_shop_place_id).toBe('abc');
+      expect(draft.vibe_rating).toBe('');
+      expect(draft.date).toBe('2026-10-16');
+      expect(draft.visit_type).toBe(VISIT_TYPES.ROAD);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
