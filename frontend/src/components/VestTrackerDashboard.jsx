@@ -1,8 +1,8 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { centralToday } from '../../../functions/api/vest/_centralDate.js';
 import { freshPayload } from '../../../functions/api/vest/_freshCache.js';
 import { vestGames as seedGames } from '../utils/vestTrackerData';
-import { fetchVestGames, syncVestGames, fetchVisits, fetchVestBlurb } from '../utils/api';
+import { fetchVestGames, syncVestGames, fetchVestBlurb } from '../utils/api';
 import { readStoredVestGames, shouldSyncVestGames } from '../utils/vestGameSync';
 import {
   buildNetLookup,
@@ -38,6 +38,7 @@ const NET_RANKINGS_URL = import.meta.env.VITE_NET_RANKINGS_URL || '';
 const NET_FETCH_PATHS = ['/api/vest/net-rankings', '/api/vest/net'];
 const NET_CACHE_TTL_MS = 5 * 60 * 1000;
 let netRankingsCache = null;
+let restoreVestTabFocus = false;
 
 const TABS = [
   { value: 'dashboard', label: 'Dashboard' },
@@ -53,7 +54,7 @@ const loadGames = () => {
   }
 };
 
-export default function VestTrackerDashboard({ showToast }) {
+export default function VestTrackerDashboard({ showToast, coffeeVisits = [] }) {
   const corruptedRef = useRef(false);
   const [games, setGames] = useState(() => {
     const { games: loaded, corrupted } = loadGames();
@@ -62,6 +63,7 @@ export default function VestTrackerDashboard({ showToast }) {
   });
   const [netRankings, setNetRankings] = useState([]);
   const [netStatus, setNetStatus] = useState('idle');
+  const [netAttempt, setNetAttempt] = useState(0);
   const [selectedOutfit, setSelectedOutfit] = useState(null);
   const [editingGame, setEditingGame] = useState(null);
   const [viewingGame, setViewingGame] = useState(null);
@@ -133,6 +135,7 @@ export default function VestTrackerDashboard({ showToast }) {
         .filter(Boolean);
 
     const load = async () => {
+      if (netAttempt > 0) netRankingsCache = null;
       const cachedRows = freshPayload(netRankingsCache, Date.now(), NET_CACHE_TTL_MS);
       if (cachedRows) {
         if (!cancelled) {
@@ -166,7 +169,9 @@ export default function VestTrackerDashboard({ showToast }) {
 
     load();
     return () => { cancelled = true; };
-  }, []);
+  }, [netAttempt]);
+
+  const retryNet = useCallback(() => setNetAttempt((attempt) => attempt + 1), []);
 
   const netLookup = useMemo(() => buildNetLookup(netRankings), [netRankings]);
 
@@ -436,18 +441,7 @@ export default function VestTrackerDashboard({ showToast }) {
     return ms;
   }, [completedGames, netLookup]);
 
-  // Coffee crossover — same-day visits grouped by drink.
-  const [coffeeVisits, setCoffeeVisits] = useState([]);
-  useEffect(() => {
-    let cancelled = false;
-    fetchVisits()
-      .then((data) => {
-        if (!cancelled) setCoffeeVisits(Array.isArray(data) ? data : data?.visits || []);
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
-
+  // Coffee crossover uses the journal fetch. Vest mode used to request it again.
   const coffeeCrossover = useMemo(() => {
     if (!coffeeVisits.length || !completedGames.length) return [];
     const gameDateMap = indexByCentralDay(completedGames);
@@ -539,19 +533,12 @@ export default function VestTrackerDashboard({ showToast }) {
       <NetRankingsPage
         netRankings={netRankings}
         netStatus={netStatus}
-        onBack={() => setVestTab('dashboard')}
+        onRetry={retryNet}
+        onBack={() => {
+          restoreVestTabFocus = true;
+          setVestTab('dashboard');
+        }}
       />
-    );
-  }
-
-  if (vestTab === 'game-stats') {
-    return (
-      <main className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <TabBar value={vestTab} onChange={setVestTab} />
-        <Suspense fallback={<LoadingPanel />}>
-          <GameStatsPanel games={games} />
-        </Suspense>
-      </main>
     );
   }
 
@@ -559,6 +546,14 @@ export default function VestTrackerDashboard({ showToast }) {
     <main className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       <TabBar value={vestTab} onChange={setVestTab} />
 
+      {vestTab === 'game-stats' ? (
+        <div role="tabpanel" id="vest-panel-game-stats" aria-labelledby="vest-tab-game-stats">
+          <Suspense fallback={<LoadingPanel />}>
+            <GameStatsPanel games={games} />
+          </Suspense>
+        </div>
+      ) : (
+      <div role="tabpanel" id="vest-panel-dashboard" aria-labelledby="vest-tab-dashboard">
       <VestGameForm
         editingGame={editingGame}
         existingOutfits={existingOutfits}
@@ -602,7 +597,7 @@ export default function VestTrackerDashboard({ showToast }) {
 
       <StorylineStrip milestones={milestones} />
 
-      <NetDegradedBanner netStatus={netStatus} />
+      <NetDegradedBanner netStatus={netStatus} onRetry={retryNet} />
 
       {upcomingGame && (
         showPostGame ? (
@@ -647,6 +642,9 @@ export default function VestTrackerDashboard({ showToast }) {
         coffeeCrossover={coffeeCrossover}
       />
 
+      </div>
+      )}
+
       {(viewingGame || viewingOutfit) && (
         <VestDetailModal
           game={viewingGame}
@@ -689,7 +687,7 @@ function StorylineStrip({ milestones }) {
   );
 }
 
-function NetDegradedBanner({ netStatus }) {
+function NetDegradedBanner({ netStatus, onRetry }) {
   if (netStatus === 'loaded') return null;
 
   const message =
@@ -699,7 +697,8 @@ function NetDegradedBanner({ netStatus }) {
 
   return (
     <div
-      className="mb-6 px-4 py-3 rounded border-l-2 flex items-start gap-3"
+      className="mb-6 px-4 py-3 rounded border-l-2 flex items-start gap-3 flex-wrap"
+      role={netStatus === 'error' ? 'alert' : 'status'}
       style={{
         background: 'rgba(197, 5, 12, 0.06)',
         borderLeftColor: 'var(--vt-red)',
@@ -709,20 +708,63 @@ function NetDegradedBanner({ netStatus }) {
       }}
     >
       <span className="vt-label vt-label-red shrink-0">⚠ {message.label}</span>
-      <span className="vt-mono text-[11px] text-[color:var(--vt-ink-mute)] leading-snug">
+      <span className="vt-mono text-[11px] text-[color:var(--vt-ink-mute)] leading-snug flex-1">
         {message.detail}
       </span>
+      {netStatus === 'error' && (
+        <button type="button" onClick={onRetry} className="vt-btn-ghost text-xs">Try again</button>
+      )}
     </div>
   );
 }
 
 function TabBar({ value, onChange }) {
+  const listRef = useRef(null);
+
+  useEffect(() => {
+    if (!restoreVestTabFocus) return;
+    restoreVestTabFocus = false;
+    listRef.current?.querySelector('[aria-selected="true"]')?.focus();
+  }, []);
+
+  const onKeyDown = (event) => {
+    const tabs = [...event.currentTarget.querySelectorAll('[role="tab"]')];
+    const index = tabs.indexOf(document.activeElement);
+    if (index < 0) return;
+    let next = index;
+    if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = tabs.length - 1;
+    else return;
+    event.preventDefault();
+    const nextTab = TABS[next].value;
+    if (nextTab === 'rankings') restoreVestTabFocus = true;
+    tabs[next].focus();
+    onChange(nextTab);
+  };
+
   return (
-    <div className="mb-5 sm:mb-6 flex border-b border-[color:var(--vt-rule)]">
+    <div
+      ref={listRef}
+      className="mb-5 sm:mb-6 flex border-b border-[color:var(--vt-rule)]"
+      role="tablist"
+      aria-label="Vest sections"
+      onKeyDown={onKeyDown}
+    >
       {TABS.map((tab) => (
         <button
           key={tab.value}
-          onClick={() => onChange(tab.value)}
+          id={`vest-tab-${tab.value}`}
+          type="button"
+          role="tab"
+          aria-selected={value === tab.value}
+          aria-controls={`vest-panel-${tab.value}`}
+          tabIndex={value === tab.value ? 0 : -1}
+          onClick={() => {
+            if (tab.value === 'rankings') restoreVestTabFocus = true;
+            onChange(tab.value);
+          }}
           className={`vt-tab ${value === tab.value ? 'is-active' : ''}`}
         >
           {tab.label}
@@ -734,7 +776,7 @@ function TabBar({ value, onChange }) {
 
 function LoadingPanel() {
   return (
-    <div className="text-center py-12">
+    <div className="text-center py-12" role="status">
       <span className="inline-block w-5 h-5 border-2 border-[color:var(--vt-red)] border-t-transparent rounded-full animate-spin mr-2 align-middle" />
       <span className="vt-label">Loading</span>
     </div>

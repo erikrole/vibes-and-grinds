@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
 import AppHeader from './components/AppHeader';
 import AppFooter from './components/AppFooter';
@@ -11,6 +11,7 @@ import useViewPreferences from './hooks/useViewPreferences';
 import useVisitJournal from './hooks/useVisitJournal';
 import useJournalDerived from './hooks/useJournalDerived';
 import useJournalShortcuts from './hooks/useJournalShortcuts';
+import { ensureVestFonts } from './utils/vestFonts';
 
 const AddVisitForm = lazy(() => import('./components/AddVisitForm'));
 const FormModal = lazy(() => import('./components/FormModal'));
@@ -29,6 +30,10 @@ export default function App() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showYearReview, setShowYearReview] = useState(false);
   const searchRef = useRef(null);
+
+  useEffect(() => {
+    if (prefs.appMode === APP_MODES.VEST) ensureVestFonts();
+  }, [prefs.appMode]);
 
   useJournalShortcuts({
     appMode: prefs.appMode,
@@ -57,12 +62,12 @@ export default function App() {
 
         <div id="app-main" tabIndex={-1} className="skip-target">
         {prefs.appMode === APP_MODES.VEST ? (
-          <Suspense fallback={<div className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading...</div>}>
-            <VestTrackerDashboard showToast={toastBag.show} />
+          <Suspense fallback={<div role="status" className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading…</div>}>
+            <VestTrackerDashboard showToast={toastBag.show} coffeeVisits={journal.visits} />
           </Suspense>
         ) : journal.loading ? (
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" aria-busy="true">
-            <div className="flex items-center justify-center py-20 text-stone-400 dark:text-stone-500 animate-pulse">Loading visits…</div>
+            <div role="status" className="flex items-center justify-center py-20 text-stone-400 dark:text-stone-500 animate-pulse">Loading visits…</div>
           </main>
         ) : journal.error ? (
           <main className="max-w-2xl mx-auto px-4 sm:px-6 py-16">

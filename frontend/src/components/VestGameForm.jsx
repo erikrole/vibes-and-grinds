@@ -75,6 +75,7 @@ function VestGameForm({ editingGame, existingOutfits, onSave, onDelete, onCancel
     return (
       <section className="mb-6">
         <button
+          type="button"
           onClick={() => setOpen(true)}
           className="w-full border border-dashed border-[color:var(--vt-rule-strong)] rounded py-3.5 px-5 hover:border-[color:var(--vt-red)] hover:bg-[color:var(--vt-red-soft)] transition-colors group"
         >

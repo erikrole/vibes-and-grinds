@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchVisits, createVisit, updateVisit, deleteVisit } from '../utils/api';
 import { buildReturnVisitDraft } from '../utils/repeats';
 import { HOME_CITY, VISIT_TYPES } from '../utils/visitTypes';
@@ -13,7 +13,7 @@ export default function useVisitJournal(showToast, scopeFilter) {
   const [viewingVisit, setViewingVisit] = useState(null);
   const prevBadgesRef = useRef(null);
 
-  const loadVisits = async () => {
+  const loadVisits = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -25,11 +25,11 @@ export default function useVisitJournal(showToast, scopeFilter) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadVisits();
-  }, []);
+  }, [loadVisits]);
 
   // Badge unlock notifications. Loaded on demand so insights stay out of the entry.
   useEffect(() => {
@@ -50,9 +50,9 @@ export default function useVisitJournal(showToast, scopeFilter) {
     return () => {
       cancelled = true;
     };
-  }, [visits]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visits, showToast]);
 
-  const handleAddVisit = async (visitData) => {
+  const handleAddVisit = useCallback(async (visitData) => {
     try {
       setError(null);
       const newVisit = await createVisit(visitData);
@@ -66,16 +66,16 @@ export default function useVisitJournal(showToast, scopeFilter) {
       showToast('Could not add visit.', 'error');
       console.error(err);
     }
-  };
+  }, [showToast]);
 
-  const handleEditVisit = (visit) => {
+  const handleEditVisit = useCallback((visit) => {
     setEditingVisit(visit);
     setShowForm(false);
     setVisitDraft(null);
     setViewingVisit(null);
-  };
+  }, []);
 
-  const handleUpdateVisit = async (visitData) => {
+  const handleUpdateVisit = useCallback(async (visitData) => {
     try {
       setError(null);
       const updatedVisit = await updateVisit(editingVisit.id, visitData);
@@ -88,9 +88,9 @@ export default function useVisitJournal(showToast, scopeFilter) {
       showToast('Could not update visit.', 'error');
       console.error(err);
     }
-  };
+  }, [editingVisit, showToast]);
 
-  const handleDeleteVisit = async (id) => {
+  const handleDeleteVisit = useCallback(async (id) => {
     const deletedVisit = visits.find((v) => v.id === id);
     try {
       setError(null);
@@ -114,9 +114,9 @@ export default function useVisitJournal(showToast, scopeFilter) {
       showToast('Could not delete visit.', 'error');
       console.error(err);
     }
-  };
+  }, [visits, showToast]);
 
-  const handleOpenNewVisit = () => {
+  const handleOpenNewVisit = useCallback(() => {
     // While browsing the Madison list, start new visits on that side of the toggle.
     setVisitDraft(
       scopeFilter === VISIT_TYPES.HOME
@@ -125,16 +125,16 @@ export default function useVisitJournal(showToast, scopeFilter) {
     );
     setEditingVisit(null);
     setShowForm(true);
-  };
+  }, [scopeFilter]);
 
-  const handleLogReturnVisit = (visit) => {
+  const handleLogReturnVisit = useCallback((visit) => {
     setVisitDraft(buildReturnVisitDraft(visit));
     setEditingVisit(null);
     setViewingVisit(null);
     setShowForm(true);
-  };
+  }, []);
 
-  const handleModalUpdateVisit = async (id, updatedData) => {
+  const handleModalUpdateVisit = useCallback(async (id, updatedData) => {
     try {
       setError(null);
       const updatedVisit = await updateVisit(id, updatedData);
@@ -146,13 +146,13 @@ export default function useVisitJournal(showToast, scopeFilter) {
       showToast('Could not update visit.', 'error');
       console.error(err);
     }
-  };
+  }, [showToast]);
 
-  const handleCancelForm = () => {
+  const handleCancelForm = useCallback(() => {
     setShowForm(false);
     setVisitDraft(null);
     setEditingVisit(null);
-  };
+  }, []);
 
   // A draft with a shop already filled in came from "Log Return Visit"; a bare
   // draft only carries scope defaults for a brand-new stop.

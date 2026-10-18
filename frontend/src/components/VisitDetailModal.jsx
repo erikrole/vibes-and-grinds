@@ -247,7 +247,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
             )}
             {visit.photo_url ? (
               <div className="visit-photo-stage">
-                <img src={visit.photo_url} alt={visit.coffee_shop_name} className="visit-photo-image" />
+                <img src={visit.photo_url} alt={visit.coffee_shop_name} width="1200" height="900" decoding="async" className="visit-photo-image" />
               </div>
             ) : (
               <div

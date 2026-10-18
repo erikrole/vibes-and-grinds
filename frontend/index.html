@@ -12,9 +12,8 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=Anton&family=Barlow+Condensed:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=Anton&family=Barlow+Condensed:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"></noscript>
-    <link rel="dns-prefetch" href="https://places.googleapis.com" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
     <title>Vibes & Grinds - Coffee Shop Tracker</title>
     <script>
       (function () {
@@ -22,6 +21,17 @@
           var s = localStorage.getItem('vibes-and-grinds:dark-mode');
           var d = s === 'true' || (s === null && window.matchMedia('(prefers-color-scheme: dark)').matches);
           if (d) document.documentElement.classList.add('dark');
+          var host = location.hostname.indexOf('vests.') === 0;
+          var mode = null;
+          var raw = localStorage.getItem('vibes-and-grinds:view-preferences');
+          if (raw) mode = JSON.parse(raw).appMode;
+          if (host || mode === 'vest') {
+            var link = document.createElement('link');
+            link.id = 'vest-fonts';
+            link.rel = 'stylesheet';
+            link.href = 'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=JetBrains+Mono:wght@400&display=swap';
+            document.head.appendChild(link);
+          }
         } catch (e) {}
       })();
     </script>

@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import RatingBadge from './RatingBadge';
 import CompositeBadge from './CompositeBadge';
 import { formatDate, getRelativeLabel } from '../utils/dates';
 import { formatEventContext, titleCaseOrder } from '../utils/display';
 
-export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLogReturnVisit, visitCount = 1 }) {
+function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLogReturnVisit, visitCount = 1 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const menuRef = useRef(null);
@@ -82,8 +82,11 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
               <img
                 src={visit.photo_url}
                 alt=""
+                width="80"
+                height="80"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 loading="lazy"
+                decoding="async"
               />
             </div>
           )}
@@ -227,3 +230,5 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
     </article>
   );
 }
+
+export default memo(VisitCard);

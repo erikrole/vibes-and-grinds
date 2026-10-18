@@ -5,6 +5,7 @@ import useFocusTrap from '../hooks/useFocusTrap';
 export default function ShareCardModal({ visit, onClose }) {
   const modalRef = useRef(null);
   const [status, setStatus] = useState('loading'); // loading | ready | error
+  const [attempt, setAttempt] = useState(0);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [shareSupported, setShareSupported] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -15,6 +16,9 @@ export default function ShareCardModal({ visit, onClose }) {
   useEffect(() => {
     let cancelled = false;
     let url = null;
+    setStatus('loading');
+    setPreviewUrl(null);
+    blobRef.current = null;
     (async () => {
       try {
         const blob = await generateShareCard(visit);
@@ -35,7 +39,7 @@ export default function ShareCardModal({ visit, onClose }) {
       cancelled = true;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [visit]);
+  }, [visit, attempt]);
 
   const handleShare = async () => {
     if (!blobRef.current) return;
@@ -93,14 +97,15 @@ export default function ShareCardModal({ visit, onClose }) {
             <img src={previewUrl} alt={`Share card preview for ${visit.coffee_shop_name}`} className="absolute inset-0 w-full h-full object-cover" />
           )}
           {status === 'loading' && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" role="status">
               <div className="w-6 h-6 border-2 border-stone-300 dark:border-stone-600 border-t-stone-600 dark:border-t-stone-300 rounded-full animate-spin" />
               <span className="text-sm text-stone-500 dark:text-stone-400">Generating card…</span>
             </div>
           )}
           {status === 'error' && (
-            <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
-              <span className="text-sm text-stone-500 dark:text-stone-400">Couldn’t generate the card. Please try again.</span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center" role="alert">
+              <p className="text-sm text-stone-500 dark:text-stone-400">Couldn’t generate the card.</p>
+              <button type="button" onClick={() => setAttempt((current) => current + 1)} className="text-sm font-medium underline" style={{ color: 'var(--ink)' }}>Try again</button>
             </div>
           )}
         </div>
