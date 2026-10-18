@@ -10,6 +10,7 @@ import useFocusTrap from '../hooks/useFocusTrap';
 import { formatEventContext, titleCaseOrder } from '../utils/display';
 import { getAppleMapsUrl } from '../utils/maps';
 import { visitStanding } from '../utils/visitStanding';
+import { fetchVisitWeather, formatWeatherSummary } from '../utils/weather';
 
 export default function VisitDetailModal({ visit, visits, onClose, onNavigate, onUpdate, onEdit, onDelete, onLogReturnVisit, onShopClick, suspended = false }) {
   const modalRef = useRef(null);
@@ -24,6 +25,17 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
   const [showShareCard, setShowShareCard] = useState(false);
   const [closing, setClosing] = useState(false);
   const [draggingPhoto, setDraggingPhoto] = useState(false);
+  const [weather, setWeather] = useState(null);
+
+  useEffect(() => {
+    setWeather(null);
+    const controller = new AbortController();
+    fetchVisitWeather(visit, { signal: controller.signal }).then((w) => {
+      if (!controller.signal.aborted) setWeather(w);
+    });
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visit.id, visit.date, visit.coffee_shop_lat, visit.coffee_shop_lng]);
 
   const standing = useMemo(() => visitStanding(visit, visits), [visit, visits]);
   const closeTimerRef = useRef(null);
@@ -296,8 +308,10 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
                   </a>
                 ) : visit.coffee_shop_name}
               </h2>
-              {(visit.city || eventContext) && (
-                <p className="vdm-meta">{[visit.city, eventContext].filter(Boolean).join(' · ')}</p>
+              {(visit.city || eventContext || weather) && (
+                <p className="vdm-meta">
+                  {[visit.city, eventContext, weather && `${weather.icon} ${formatWeatherSummary(weather)}`].filter(Boolean).join(' · ')}
+                </p>
               )}
             </header>
 
