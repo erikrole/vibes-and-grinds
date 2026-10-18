@@ -1,8 +1,9 @@
 // Box-score aggregates for the vest game-stats tab. No React.
 
+import { centralGameDate } from '../../../functions/api/vest/_centralDate.js';
+
 function dateKey(value) {
-  const text = String(value ?? '');
-  return text.length >= 10 && text[4] === '-' ? text.slice(0, 10) : text;
+  return centralGameDate(value) || '';
 }
 
 function finiteScore(value) {

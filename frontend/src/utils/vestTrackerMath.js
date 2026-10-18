@@ -1,6 +1,8 @@
 // Pure math + normalization helpers for the Vest Tracker.
 // No React, no DOM — everything here should be unit-testable in isolation.
 
+import { centralGameDate } from '../../../functions/api/vest/_centralDate.js';
+
 export const QUADRANT_THRESHOLDS = {
   vs: [30, 75, 160, 365],
   N: [50, 100, 200, 365],
@@ -69,7 +71,9 @@ const MONTHS = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'Jun.', 'Jul.', 'Aug.', '
 
 export const formatDate = (dateStr) => {
   if (!dateStr) return null;
-  const parts = String(dateStr).split('-');
+  const central = centralGameDate(dateStr);
+  const source = central || String(dateStr);
+  const parts = source.split('-');
   if (parts.length < 3) return dateStr;
   const month = MONTHS[parseInt(parts[1], 10) - 1];
   const day = parseInt(parts[2], 10);
@@ -81,7 +85,10 @@ export const toIsoDate = (value) => {
   if (!value) return '';
   if (typeof value === 'string') {
     const text = value.trim();
-    if (text.length >= 10 && text[4] === '-' && text[7] === '-') return text.slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+    if (text.includes('T') || text.includes(' ')) {
+      return centralGameDate(text) || '';
+    }
     const parsed = new Date(text);
     if (Number.isNaN(parsed.getTime())) return '';
     return localIsoDate(parsed);
@@ -91,6 +98,17 @@ export const toIsoDate = (value) => {
     return localIsoDate(value);
   }
   return '';
+};
+
+// First game whose calendar day is the Central day of a visit or ESPN instant.
+// Stored YYYY-MM-DD values stay as written. Zoned instants convert.
+export const indexByCentralDay = (games) => {
+  const map = new Map();
+  for (const game of games || []) {
+    const key = toIsoDate(game?.date);
+    if (key && !map.has(key)) map.set(key, game);
+  }
+  return map;
 };
 
 // Local calendar fields, not UTC. toISOString() rolls a US evening back a day.

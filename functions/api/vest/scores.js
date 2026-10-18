@@ -1,6 +1,11 @@
 // /api/vest/scores — Fetch ESPN schedule+scores, cache in D1, return merged with vest data
 
-import { matchVestGameId } from './_centralDate.js';
+import {
+  newestFetchedAtMs,
+  planScoreSync,
+  SCORE_CACHE_TTL_MS,
+  shouldServeCachedScores,
+} from './_scoreWrites.js';
 
 const TEAM_ID = '275';
 const ESPN_URL = `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/${TEAM_ID}/schedule`;
@@ -45,7 +50,11 @@ function parseEspnEvent(event) {
   };
 }
 
+let schemaReady = false;
+let memoryCheckedAt = 0;
+
 async function ensureTable(db) {
+  if (schemaReady) return;
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS vest_game_stats (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,6 +85,7 @@ async function ensureTable(db) {
       'ALTER TABLE vest_games ADD COLUMN espn_event_id TEXT'
     ).run();
   } catch { /* column already exists */ }
+  schemaReady = true;
 }
 
 export async function onRequestGet({ env, request }) {
@@ -84,6 +94,18 @@ export async function onRequestGet({ env, request }) {
 
   try {
     await ensureTable(env.DB);
+    const cachedBefore = await getCached(env.DB);
+    const now = Date.now();
+    if (shouldServeCachedScores({
+      rowCount: cachedBefore.length,
+      newestFetchedAtMs: newestFetchedAtMs(cachedBefore),
+      memoryCheckedAtMs: memoryCheckedAt,
+      now,
+      ttlMs: SCORE_CACHE_TTL_MS,
+    })) {
+      return json({ games: cachedBefore, source: 'cache' });
+    }
+
     const espnRes = await fetch(`${ESPN_URL}?season=${season}`, {
       signal: AbortSignal.timeout(10000),
     });
@@ -99,27 +121,27 @@ export async function onRequestGet({ env, request }) {
     const parsed = events.map(parseEspnEvent).filter(Boolean);
 
     const vestQuery = await env.DB.prepare(
-      'SELECT game_id, date FROM vest_games WHERE date IS NOT NULL ORDER BY game_id ASC'
+      'SELECT game_id, date, espn_event_id FROM vest_games ORDER BY game_id ASC'
     ).all();
     const vestRows = Array.isArray(vestQuery?.results) ? vestQuery.results : [];
+    const existingStats = await env.DB.prepare('SELECT * FROM vest_game_stats').all();
+    const plan = planScoreSync({
+      vestRows,
+      existingStats: Array.isArray(existingStats?.results) ? existingStats.results : [],
+      games: parsed,
+    });
 
-    // Upsert completed games
-    for (const game of parsed) {
-      if (!game.completed) continue;
-
-      const matchedGameId = matchVestGameId(vestRows, game.date);
-      const vestGame = matchedGameId == null ? null : { game_id: matchedGameId };
-
-      if (vestGame) {
-        // Drop a previous UTC-date link so this event cannot stay joined to two rows.
-        await env.DB.prepare(
-          'UPDATE vest_games SET espn_event_id = NULL WHERE espn_event_id = ? AND game_id != ?'
-        ).bind(game.espnEventId, vestGame.game_id).run();
-        await env.DB.prepare(
-          'UPDATE vest_games SET espn_event_id = ? WHERE game_id = ?'
-        ).bind(game.espnEventId, vestGame.game_id).run();
-      }
-
+    for (const clear of plan.clears) {
+      await env.DB.prepare(
+        'UPDATE vest_games SET espn_event_id = NULL WHERE espn_event_id = ? AND game_id != ?'
+      ).bind(clear.espnEventId, clear.gameId).run();
+    }
+    for (const link of plan.links) {
+      await env.DB.prepare(
+        'UPDATE vest_games SET espn_event_id = ? WHERE game_id = ?'
+      ).bind(link.espnEventId, link.gameId).run();
+    }
+    for (const { game, gameId } of plan.upserts) {
       await env.DB.prepare(`
         INSERT INTO vest_game_stats (
           espn_event_id, game_id, wisconsin_score, opponent_score,
@@ -128,6 +150,7 @@ export async function onRequestGet({ env, request }) {
           opp_ranking, wi_ranking, wi_record, fetched_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
         ON CONFLICT(espn_event_id) DO UPDATE SET
+          game_id = excluded.game_id,
           wisconsin_score = excluded.wisconsin_score,
           opponent_score = excluded.opponent_score,
           wisconsin_h1 = excluded.wisconsin_h1,
@@ -144,13 +167,15 @@ export async function onRequestGet({ env, request }) {
           wi_record = excluded.wi_record,
           fetched_at = datetime('now')
       `).bind(
-        game.espnEventId, vestGame?.game_id || null,
+        game.espnEventId, gameId,
         game.wisconsinScore, game.opponentScore,
         game.wisconsinH1, game.wisconsinH2, game.opponentH1, game.opponentH2,
         game.otPeriods, game.venue, game.venueCity, game.broadcast, game.attendance,
         game.oppRanking, game.wiRanking, game.wiRecord,
       ).run();
     }
+
+    memoryCheckedAt = Date.now();
 
     const merged = await getCached(env.DB);
     return json({ games: merged, source: 'espn' });

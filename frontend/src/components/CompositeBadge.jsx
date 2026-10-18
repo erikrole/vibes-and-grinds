@@ -1,4 +1,5 @@
 import { getCompositeColor } from '../utils/colors';
+import { formatMeter } from '../utils/display';
 
 export default function CompositeBadge({ composite }) {
   const accent = getCompositeColor(composite);
@@ -21,7 +22,7 @@ export default function CompositeBadge({ composite }) {
           aria-valuemin={0}
           aria-valuemax={20}
         >
-          {composite.toFixed(1)}
+          {formatMeter(composite)}
         </span>
         <span className="text-xs text-stone-500 dark:text-stone-400 font-medium">/ 20</span>
       </div>

@@ -118,4 +118,41 @@ describe('computeFunStats', () => {
       { outfit: 'Gray Suit', player: 'Tonje', count: 2 },
     ]);
   });
+
+  it('joins an evening tip to the Central game day instead of the UTC date', () => {
+    const stats = computeFunStats([
+      game({
+        date: '2025-12-31T00:00:00Z',
+        opponent: 'Milwaukee',
+        outfit: '',
+        wi_leader_pts_name: 'Tonje',
+        wisconsin_score: 80,
+        opponent_score: 50,
+      }),
+      game({
+        date: '2025-12-31',
+        opponent: 'Next',
+        outfit: '',
+        wi_leader_pts_name: 'Crowl',
+        wisconsin_score: 70,
+        opponent_score: 60,
+      }),
+      game({
+        date: '2026-01-01T03:00:00Z',
+        opponent: 'Also Next',
+        outfit: '',
+        wi_leader_pts_name: 'Crowl',
+        wisconsin_score: 71,
+        opponent_score: 60,
+      }),
+    ], [
+      { date: '2025-12-30', outfit: 'Light Gray Vest' },
+      { date: '2025-12-31', outfit: 'Red Vest' },
+    ]);
+
+    expect(stats.outfitScoringList.map((item) => item.outfit)).toEqual(['Red Vest']);
+    expect(stats.outfitPlayerCombos).toEqual([
+      { outfit: 'Red Vest', player: 'Crowl', count: 2 },
+    ]);
+  });
 });

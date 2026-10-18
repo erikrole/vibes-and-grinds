@@ -1,7 +1,9 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { centralToday } from '../../../functions/api/vest/_centralDate.js';
+import { freshPayload } from '../../../functions/api/vest/_freshCache.js';
 import { vestGames as seedGames } from '../utils/vestTrackerData';
 import { fetchVestGames, syncVestGames, fetchVisits, fetchVestBlurb } from '../utils/api';
-import { shouldSyncVestGames } from '../utils/vestGameSync';
+import { readStoredVestGames, shouldSyncVestGames } from '../utils/vestGameSync';
 import {
   buildNetLookup,
   buildOutfitStats,
@@ -12,12 +14,12 @@ import {
   formatDate,
   formatLocationLabel,
   getQuadrant,
+  indexByCentralDay,
   locationSplits,
   normalizeNetResponse,
   normalizeTeamName,
   toIsoDate,
 } from '../utils/vestTrackerMath';
-import { getTodayDateString } from '../utils/dates';
 import NetRankingsPage from './NetRankingsPage';
 import VestScoreboard from './VestScoreboard';
 import VestNextGame from './VestNextGame';
@@ -34,6 +36,8 @@ const GameStatsPanel = lazy(() => import('./GameStatsPanel'));
 const VEST_GAMES_KEY = 'vibes-and-grinds:vest-games';
 const NET_RANKINGS_URL = import.meta.env.VITE_NET_RANKINGS_URL || '';
 const NET_FETCH_PATHS = ['/api/vest/net-rankings', '/api/vest/net'];
+const NET_CACHE_TTL_MS = 5 * 60 * 1000;
+let netRankingsCache = null;
 
 const TABS = [
   { value: 'dashboard', label: 'Dashboard' },
@@ -43,12 +47,10 @@ const TABS = [
 
 const loadGames = () => {
   try {
-    const raw = localStorage.getItem(VEST_GAMES_KEY);
-    if (raw) return { games: JSON.parse(raw), corrupted: false };
+    return readStoredVestGames(localStorage.getItem(VEST_GAMES_KEY), seedGames);
   } catch {
     return { games: seedGames, corrupted: true };
   }
-  return { games: seedGames, corrupted: false };
 };
 
 export default function VestTrackerDashboard({ showToast }) {
@@ -131,6 +133,15 @@ export default function VestTrackerDashboard({ showToast }) {
         .filter(Boolean);
 
     const load = async () => {
+      const cachedRows = freshPayload(netRankingsCache, Date.now(), NET_CACHE_TTL_MS);
+      if (cachedRows) {
+        if (!cancelled) {
+          setNetRankings(cachedRows);
+          setNetStatus('loaded');
+        }
+        return;
+      }
+
       setNetStatus('loading');
       for (const url of sources) {
         try {
@@ -139,6 +150,7 @@ export default function VestTrackerDashboard({ showToast }) {
           const payload = await response.json();
           const rows = toRows(payload);
           if (!rows.length) continue;
+          netRankingsCache = { storedAt: Date.now(), payload: rows };
           if (!cancelled) {
             setNetRankings(rows);
             setNetStatus('loaded');
@@ -287,7 +299,7 @@ export default function VestTrackerDashboard({ showToast }) {
   // switch from the lock-in card to the post-game result card.
   // Recompute each render (cheap) rather than memoizing forever, so the
   // post-game switch reflects the correct day if the tab is left open past midnight.
-  const todayStr = getTodayDateString();
+  const todayStr = centralToday();
   const showPostGame = Boolean(
     upcomingGame?.outfit && upcomingGame?.date && upcomingGame.date <= todayStr
   );
@@ -438,12 +450,10 @@ export default function VestTrackerDashboard({ showToast }) {
 
   const coffeeCrossover = useMemo(() => {
     if (!coffeeVisits.length || !completedGames.length) return [];
-    const gameDateMap = {};
-    for (const g of completedGames) if (g.date) gameDateMap[g.date] = g;
+    const gameDateMap = indexByCentralDay(completedGames);
     const drinkStats = {};
     for (const visit of coffeeVisits) {
-      const visitDate = toIsoDate(visit.date || visit.visitDate);
-      const game = gameDateMap[visitDate];
+      const game = gameDateMap.get(toIsoDate(visit.date || visit.visitDate));
       if (!game) continue;
       const drink = visit.coffee_order || visit.drink || visit.order || '';
       if (!drink) continue;

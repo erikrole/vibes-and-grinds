@@ -11,6 +11,7 @@ import {
   formatDate,
   formatLocationLabel,
   getQuadrant,
+  indexByCentralDay,
   locationSplits,
   normalizeNetResponse,
   sampleTier,
@@ -203,6 +204,8 @@ describe('dates, samples, and feed shapes', () => {
     expect(formatLocationLabel('N', 'Adjective')).toBe('Neutral');
     expect(formatLocationLabel('nope', 'short')).toBe('vs');
     expect(toIsoDate('2026-03-05T23:00:00Z')).toBe('2026-03-05');
+    expect(toIsoDate('2026-03-06T04:00:00Z')).toBe('2026-03-05');
+    expect(formatDate('2025-12-31T00:00Z')).toBe('Dec. 30, 2025');
     expect(toIsoDate(new Date(2026, 2, 5, 20, 0))).toBe('2026-03-05');
     expect(toIsoDate('not a date')).toBe('');
     expect(sampleTier(0)).toBe('untested');
@@ -210,6 +213,17 @@ describe('dates, samples, and feed shapes', () => {
     expect(sampleTier(3)).toBe('small');
     expect(sampleTier(6)).toBe('decent');
     expect(sampleTier(7)).toBe('solid');
+  });
+
+  it('matches a coffee stop to the Central game day, not the UTC date', () => {
+    const games = indexByCentralDay([
+      { date: '2025-12-30', opponent: 'Milwaukee', result: 'W' },
+      { date: '2025-12-31', opponent: 'Next', result: 'W' },
+    ]);
+
+    expect(games.get(toIsoDate('2025-12-31T00:00Z'))?.opponent).toBe('Milwaukee');
+    expect(games.get(toIsoDate('2025-12-31'))?.opponent).toBe('Next');
+    expect(games.get(toIsoDate('2026-01-01T03:00:00Z'))?.opponent).toBe('Next');
   });
 
   it('shrinks a win rate and accepts the worker payload shapes', () => {

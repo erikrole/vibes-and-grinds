@@ -41,6 +41,16 @@ export function centralGameDate(value) {
 }
 
 /**
+ * Today's calendar day in Central time. Vest game days and the post-game
+ * switch follow America/Chicago, not the browser zone or UTC.
+ */
+export function centralToday(now = new Date()) {
+  const instant = now instanceof Date ? now : new Date(now);
+  if (Number.isNaN(instant.getTime())) return null;
+  return centralGameDate(instant.toISOString());
+}
+
+/**
  * First vest row whose calendar day is the Central day of an ESPN instant.
  * Rows should already be in the priority order the caller wants; this does
  * not reorder them. Returns the vest game_id, or null.

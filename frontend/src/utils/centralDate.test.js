@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { centralGameDate, matchVestGameId } from '../../../functions/api/vest/_centralDate.js';
+import { centralGameDate, centralToday, matchVestGameId } from '../../../functions/api/vest/_centralDate.js';
 
 describe('centralGameDate', () => {
   it('moves an evening Central tip off the next UTC date', () => {
@@ -20,6 +20,12 @@ describe('centralGameDate', () => {
     expect(centralGameDate('2026-03-15T00:30:00Z')).toBe('2026-03-14');
     // 7:00pm CST on Nov 1, 2026, after the clocks fall back.
     expect(centralGameDate('2026-11-02T01:00:00Z')).toBe('2026-11-01');
+  });
+
+  it('calls the Central calendar day today after UTC has rolled over', () => {
+    expect(centralToday(new Date('2026-03-06T03:30:00Z'))).toBe('2026-03-05');
+    expect(centralToday(new Date('2026-03-15T04:30:00Z'))).toBe('2026-03-14');
+    expect(centralToday('not-a-date')).toBeNull();
   });
 
   it('leaves a stored calendar day alone and rejects junk', () => {

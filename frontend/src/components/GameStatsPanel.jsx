@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { centralGameDate } from '../../../functions/api/vest/_centralDate.js';
 import { fetchVestScores, fetchVestGameStats } from '../utils/api';
 import { computeFunStats } from '../utils/gameStats';
 import { locationSplits } from '../utils/vestTrackerMath';
@@ -7,7 +8,7 @@ const MONTHS = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'Jun.', 'Jul.', 'Aug.', '
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
-  const parts = String(dateStr).slice(0, 10).split('-');
+  const parts = (centralGameDate(dateStr) || String(dateStr)).split('-');
   const month = MONTHS[parseInt(parts[1], 10) - 1];
   const day = parseInt(parts[2], 10);
   if (!month || !Number.isFinite(day)) return String(dateStr);

@@ -96,6 +96,17 @@ describe('useJournalDerived', () => {
     expect(derive(visits, { searchQuery: 'window' }).result.current.hasActiveFilters).toBe(true);
   });
 
+  it('keeps searching when a visit is missing its shop name', () => {
+    const visits = [
+      visit({ id: 'named', coffee_shop_name: 'Colectivo', city: 'Chicago, IL' }),
+      visit({ id: 'blank', coffee_shop_name: null, city: 'Madison, WI' }),
+    ];
+
+    expect(() => derive(visits, { searchQuery: 'madison' })).not.toThrow();
+    expect(derive(visits, { searchQuery: 'madison' }).result.current.sortedVisits.map((item) => item.id)).toEqual(['blank']);
+    expect(derive(visits, { searchQuery: 'colectivo' }).result.current.sortedVisits.map((item) => item.id)).toEqual(['named']);
+  });
+
   it('filters by trip type, sport, and whether the shop is a repeat', () => {
     const visits = [
       visit({ id: 'road', visit_type: VISIT_TYPES.ROAD, sport: 'Football', coffee_shop_name: 'Colectivo', city: 'Madison, WI' }),
