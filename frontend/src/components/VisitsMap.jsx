@@ -1,15 +1,36 @@
 import { useEffect, useMemo, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Tooltip, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { getVisitCoordinates, hasVisitCoordinates } from '../utils/coords';
 
-const markerIcon = (score, selected) => L.divIcon({
-  html: `<span class="journal-map-pin${selected ? ' is-selected' : ''}"><b>${Number(score).toFixed(1)}</b></span>`,
-  className: 'journal-map-marker',
-  iconSize: [44, 44],
-  iconAnchor: [22, 42],
-});
+const markerIcons = new Map();
+
+function markerIcon(score, selected) {
+  const label = Number(score).toFixed(1);
+  const key = `${label}:${selected ? 1 : 0}`;
+  const cached = markerIcons.get(key);
+  if (cached) return cached;
+  const icon = L.divIcon({
+    html: `<span class="journal-map-pin${selected ? ' is-selected' : ''}"><b>${label}</b></span>`,
+    className: 'journal-map-marker',
+    iconSize: [44, 44],
+    iconAnchor: [22, 42],
+  });
+  markerIcons.set(key, icon);
+  return icon;
+}
+
+function MapViewport({ center, zoom }) {
+  const map = useMap();
+  useEffect(() => {
+    const current = map.getCenter();
+    const sameCenter = Math.abs(current.lat - center[0]) < 0.0001 && Math.abs(current.lng - center[1]) < 0.0001;
+    if (sameCenter && map.getZoom() === zoom) return;
+    map.setView(center, zoom, { animate: false });
+  }, [map, center, zoom]);
+  return null;
+}
 
 export default function VisitsMap({ visits, selectedVisitId, onVisitSelect, onVisitClick }) {
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
@@ -75,8 +96,8 @@ export default function VisitsMap({ visits, selectedVisitId, onVisitSelect, onVi
       zoom={zoom}
       className="h-full w-full rounded-xl"
       scrollWheelZoom={false}
-      key={`map-${visitsWithCoords.length}-${center.join(',')}`}
     >
+      <MapViewport center={center} zoom={zoom} />
       <TileLayer
         attribution='&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url={tileUrl}

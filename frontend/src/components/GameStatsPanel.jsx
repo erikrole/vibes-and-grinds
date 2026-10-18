@@ -60,9 +60,11 @@ function BarStat({ label, wi, opp, format = 'pct' }) {
 export default function GameStatsPanel({ games: vestGames }) {
   const [scoreData, setScoreData] = useState([]);
   const [scoreStatus, setScoreStatus] = useState('idle');
+  const [scoreAttempt, setScoreAttempt] = useState(0);
   const [expandedGame, setExpandedGame] = useState(null);
   const [gameDetail, setGameDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,54 +82,58 @@ export default function GameStatsPanel({ games: vestGames }) {
       });
 
     return () => { cancelled = true; };
-  }, []);
+  }, [scoreAttempt]);
 
   const funStats = useMemo(
     () => computeFunStats(scoreData, vestGames),
     [scoreData, vestGames]
   );
 
-  const handleExpandGame = async (game) => {
-    if (expandedGame === game.espn_event_id) {
-      setExpandedGame(null);
-      setGameDetail(null);
-      return;
-    }
-    setExpandedGame(game.espn_event_id);
-    setGameDetail(null);
-
+  const loadDetail = async (game) => {
     if (!game.espn_event_id) return;
-
     setDetailLoading(true);
+    setDetailError(false);
     try {
       const { stats } = await fetchVestGameStats(game.espn_event_id);
       setGameDetail(stats);
     } catch {
       setGameDetail(null);
+      setDetailError(true);
     } finally {
       setDetailLoading(false);
     }
   };
 
+  const handleExpandGame = async (game) => {
+    if (expandedGame === game.espn_event_id) {
+      setExpandedGame(null);
+      setGameDetail(null);
+      setDetailError(false);
+      return;
+    }
+    setExpandedGame(game.espn_event_id);
+    setGameDetail(null);
+    setDetailError(false);
+    await loadDetail(game);
+  };
+
   if (scoreStatus === 'loading') {
     return (
-      <div className="text-center py-12">
+      <div className="text-center py-12" role="status">
         <span className="inline-block w-5 h-5 border-2 border-stone-400 border-t-transparent rounded-full animate-spin mr-2 align-middle" />
-        <span className="text-sm text-stone-500 dark:text-stone-400">Loading ESPN scores...</span>
-      </div>
-    );
-  }
-
-  if (scoreStatus === 'error') {
-    return (
-      <div className="text-center py-12">
-        <p className="text-sm text-stone-500 dark:text-stone-400">Unable to load ESPN scores. Try again later.</p>
+        <span className="text-sm text-stone-500 dark:text-stone-400">Loading ESPN scores…</span>
       </div>
     );
   }
 
   if (!funStats) {
-    return <LocalSeasonStats games={vestGames} scoreStatus={scoreStatus} />;
+    return (
+      <LocalSeasonStats
+        games={vestGames}
+        scoreStatus={scoreStatus}
+        onRetry={scoreStatus === 'error' ? () => setScoreAttempt((attempt) => attempt + 1) : null}
+      />
+    );
   }
 
   return (
@@ -316,7 +322,9 @@ export default function GameStatsPanel({ games: vestGames }) {
             return (
               <div key={game.espn_event_id || game.id}>
                 <button
+                  type="button"
                   onClick={() => handleExpandGame(game)}
+                  aria-expanded={isExpanded}
                   className={`w-full text-left rounded-xl border px-4 py-3 transition-all hover:shadow-md ${
                     isWin
                       ? 'bg-emerald-50/50 border-emerald-200/80 dark:bg-emerald-900/10 dark:border-emerald-800/40'
@@ -363,9 +371,14 @@ export default function GameStatsPanel({ games: vestGames }) {
                 {isExpanded && (
                   <div className="mt-1 rounded-xl border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700/30 p-4">
                     {detailLoading ? (
-                      <div className="text-center py-4">
+                      <div className="text-center py-4" role="status">
                         <span className="inline-block w-4 h-4 border-2 border-stone-400 border-t-transparent rounded-full animate-spin mr-2 align-middle" />
-                        <span className="text-xs text-stone-500">Loading box score...</span>
+                        <span className="text-xs text-stone-500">Loading box score…</span>
+                      </div>
+                    ) : detailError ? (
+                      <div className="text-center py-4" role="alert">
+                        <p className="text-xs text-stone-600 dark:text-stone-300 mb-2">Couldn’t load this box score.</p>
+                        <button type="button" onClick={() => loadDetail(game)} className="text-xs font-medium underline">Try again</button>
                       </div>
                     ) : gameDetail?.wi_fg ? (
                       <div className="space-y-3">
@@ -410,7 +423,7 @@ export default function GameStatsPanel({ games: vestGames }) {
   );
 }
 
-function LocalSeasonStats({ games, scoreStatus }) {
+function LocalSeasonStats({ games, scoreStatus, onRetry }) {
   const completed = games.filter((game) => game.result === 'W' || game.result === 'L');
   const wins = completed.filter((game) => game.result === 'W').length;
   const splits = locationSplits(games);
@@ -431,6 +444,9 @@ function LocalSeasonStats({ games, scoreStatus }) {
           <LocalMetric label="Outfits worn" value={new Set(completed.map((game) => game.outfit).filter(Boolean)).size} />
         </div>
         <p className="vt-mono text-xs text-[color:var(--vt-ink-mute)] mt-4">Box-score enrichment is {scoreStatus === 'error' ? 'temporarily unavailable' : 'not available for this season'}, so these stats use the trusted Vest game log.</p>
+        {onRetry && (
+          <button type="button" onClick={onRetry} className="vt-btn-ghost text-xs mt-4">Try again</button>
+        )}
       </section>
       <div className="grid lg:grid-cols-2 gap-6">
         <section className="vt-card overflow-hidden">

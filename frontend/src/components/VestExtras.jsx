@@ -28,12 +28,33 @@ function VestExtras({ milestones, outfitStats, outfitBadges, coffeeCrossover }) 
 
   return (
     <section className="vt-card mb-6 overflow-hidden">
-      <div className="flex border-b border-[color:var(--vt-rule)] overflow-x-auto">
+      <div
+        className="flex border-b border-[color:var(--vt-rule)] overflow-x-auto"
+        role="toolbar"
+        aria-label="More vest details"
+        onKeyDown={(event) => {
+          const items = [...event.currentTarget.querySelectorAll('[data-extra-tab]')];
+          const index = items.indexOf(document.activeElement);
+          if (index < 0) return;
+          let next = index;
+          if (event.key === 'ArrowRight') next = (index + 1) % items.length;
+          else if (event.key === 'ArrowLeft') next = (index - 1 + items.length) % items.length;
+          else if (event.key === 'Home') next = 0;
+          else if (event.key === 'End') next = items.length - 1;
+          else return;
+          event.preventDefault();
+          items[next].focus();
+        }}
+      >
         {tabs.map((tab) => {
           const isOpen = openTab === tab.value;
           return (
             <button
               key={tab.value}
+              type="button"
+              data-extra-tab
+              aria-expanded={isOpen}
+              aria-controls={`vest-extra-${tab.value}`}
               onClick={() => setOpenTab(isOpen ? null : tab.value)}
               className={`vt-tab whitespace-nowrap ${isOpen ? 'is-active' : ''}`}
             >
@@ -49,7 +70,7 @@ function VestExtras({ milestones, outfitStats, outfitBadges, coffeeCrossover }) 
       </div>
 
       {openTab === 'storylines' && (
-        <ul className="divide-y divide-[color:var(--vt-rule)]">
+        <ul id="vest-extra-storylines" className="divide-y divide-[color:var(--vt-rule)]">
           {milestones.map((m, i) => (
             <li key={i} className="flex items-baseline gap-3 px-5 py-3">
               <span className="vt-label vt-label-red w-6 text-center" aria-hidden>
@@ -64,11 +85,12 @@ function VestExtras({ milestones, outfitStats, outfitBadges, coffeeCrossover }) 
       )}
 
       {openTab === 'compare' && (
-        <div className="px-5 py-4">
+        <div id="vest-extra-compare" className="px-5 py-4">
           <div className="flex flex-wrap items-center gap-2 mb-3">
             {[0, 1].map((slot) => (
               <select
                 key={slot}
+                aria-label={slot === 0 ? 'First outfit to compare' : 'Second outfit to compare'}
                 value={compareOutfits[slot] || ''}
                 onChange={(e) => {
                   const val = e.target.value || null;
@@ -88,6 +110,7 @@ function VestExtras({ milestones, outfitStats, outfitBadges, coffeeCrossover }) 
             ))}
             {(compareOutfits[0] || compareOutfits[1]) && (
               <button
+                type="button"
                 onClick={() => setCompareOutfits([null, null])}
                 className="vt-condensed text-xs tracking-[0.16em] uppercase text-[color:var(--vt-ink-mute)] hover:text-[color:var(--vt-red)] transition-colors px-2"
               >
@@ -110,7 +133,7 @@ function VestExtras({ milestones, outfitStats, outfitBadges, coffeeCrossover }) 
       )}
 
       {openTab === 'coffee' && (
-        <div className="px-5 py-4">
+        <div id="vest-extra-coffee" className="px-5 py-4">
           <p className="vt-label mb-3">Drinks logged on game day · grouped by outcome</p>
           <ul className="divide-y divide-[color:var(--vt-rule)]">
             {coffeeCrossover.map((c) => (
@@ -163,7 +186,7 @@ function CompareCard({ stat, other }) {
         <li>Q3 {stat.quadrants[3].wins}–{stat.quadrants[3].losses} · Q4 {stat.quadrants[4].wins}–{stat.quadrants[4].losses}</li>
         <li>
           <span className="text-[color:var(--vt-ink-faint)]">vs Expected</span>{' '}
-          <span style={{ color: stat.winsAboveExpected >= 0 ? 'var(--vt-red)' : 'var(--vt-ink-mute)' }}>
+          <span style={{ color: stat.winsAboveExpected >= 0 ? 'var(--vt-red-text)' : 'var(--vt-ink-mute)' }}>
             {stat.winsAboveExpected >= 0 ? '+' : ''}{stat.winsAboveExpected.toFixed(1)}
           </span>
         </li>

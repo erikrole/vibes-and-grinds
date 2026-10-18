@@ -101,7 +101,7 @@ function VestNextGame({
                     style={{
                       color:
                         rec.score - rec.scoreAvg >= 0
-                          ? 'var(--vt-red)'
+                          ? 'var(--vt-red-text)'
                           : 'var(--vt-ink-mute)',
                     }}
                   >
@@ -172,7 +172,7 @@ function VestNextGame({
                 <span key={alt.outfit} className="vt-condensed text-sm text-[color:var(--vt-ink-dim)]">
                   {idx > 0 && <span className="text-[color:var(--vt-ink-faint)] mx-2">·</span>}
                   {alt.outfit.toUpperCase()}{' '}
-                  <span className="vt-mono text-xs text-[color:var(--vt-red)] vt-tabular">
+                  <span className="vt-mono text-xs text-[color:var(--vt-red-text)] vt-tabular">
                     {Math.round(alt.score)}
                   </span>
                 </span>
@@ -214,7 +214,7 @@ function VestNextGame({
               disabled={aiBlurbLoading}
               className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded vt-condensed text-xs tracking-[0.18em] uppercase border transition-colors disabled:opacity-50"
               style={{
-                color: 'var(--vt-red)',
+                color: 'var(--vt-red-text)',
                 borderColor: 'var(--vt-red)',
                 background: 'transparent',
               }}
@@ -232,7 +232,10 @@ function VestNextGame({
       {advisor?.length > 0 && game?.quadrant && (
         <div className="border-t border-[color:var(--vt-rule)]">
           <button
+            type="button"
             onClick={() => setExpandAdvisor((v) => !v)}
+            aria-expanded={expandAdvisor}
+            aria-controls="vest-advisor-panel"
             className="w-full px-5 sm:px-6 py-3.5 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors"
           >
             <span className="vt-label">
@@ -247,7 +250,7 @@ function VestNextGame({
             </span>
           </button>
           {expandAdvisor && (
-            <div className="px-5 sm:px-6 pb-5 pt-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            <div id="vest-advisor-panel" className="px-5 sm:px-6 pb-5 pt-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {advisor.map((a) => (
                 <AdvisorRow key={a.outfit} entry={a} location={game.location} quadrant={game.quadrant} />
               ))}
@@ -283,6 +286,7 @@ function ScoreMeter({ label, value, weight, tip }) {
       <div className="flex items-baseline justify-between gap-1 mb-1.5">
         <span className="vt-label text-[10px] flex items-center gap-1" title={tip}>
           {label}
+          {tip && <span className="sr-only">. {tip}</span>}
           {tip && (
             <span
               aria-hidden
@@ -308,14 +312,13 @@ function ScoreMeter({ label, value, weight, tip }) {
   );
 }
 
-const CONFIDENCE_TEXT = {
-  high: 'text-[color:var(--vt-red)]',
-  medium: 'text-[color:var(--vt-ink-dim)]',
-  low: 'text-[color:var(--vt-ink-mute)]',
-  untested: 'text-[color:var(--vt-ink-faint)]',
-  unknown: 'text-[color:var(--vt-ink-faint)]',
-};
 const CONFIDENCE_LABEL = { high: 'HIGH', medium: 'MED', low: 'LOW', untested: 'NEW', unknown: '—' };
+const CONFIDENCE_COLOR = {
+  medium: 'var(--vt-ink-dim)',
+  low: 'var(--vt-ink-mute)',
+  untested: 'var(--vt-ink-faint)',
+  unknown: 'var(--vt-ink-faint)',
+};
 
 function AdvisorRow({ entry, location, quadrant }) {
   return (
@@ -324,7 +327,10 @@ function AdvisorRow({ entry, location, quadrant }) {
         <span className="vt-condensed text-sm text-[color:var(--vt-ink)] truncate uppercase">
           {entry.outfit}
         </span>
-        <span className={`vt-label ${CONFIDENCE_TEXT[entry.confidence]}`}>
+        <span
+          className={`vt-label ${entry.confidence === 'high' ? 'vt-label-red' : ''}`}
+          style={CONFIDENCE_COLOR[entry.confidence] ? { color: CONFIDENCE_COLOR[entry.confidence] } : undefined}
+        >
           {CONFIDENCE_LABEL[entry.confidence]}
         </span>
       </div>

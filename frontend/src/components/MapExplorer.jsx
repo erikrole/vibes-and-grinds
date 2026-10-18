@@ -30,7 +30,7 @@ export default function MapExplorer({ visits, onVisitClick }) {
   const mappedCount = useMemo(() => visibleVisits.filter(hasVisitCoordinates).length, [visibleVisits]);
   const unmappedCount = visibleVisits.length - mappedCount;
 
-  const selectVisit = (visit) => setSelectedVisitId(visit.id);
+  const selectVisit = (visit) => setSelectedVisitId((current) => (current === visit.id ? current : visit.id));
   const openVisit = (visit) => {
     setSelectedVisitId(visit.id);
     onVisitClick?.(visit);
@@ -50,7 +50,7 @@ export default function MapExplorer({ visits, onVisitClick }) {
       </header>
       <div className="map-explorer-layout">
         <div className="map-canvas">
-          <Suspense fallback={<div className="flex h-full items-center justify-center text-stone-400 animate-pulse">Loading map...</div>}>
+          <Suspense fallback={<div role="status" className="flex h-full items-center justify-center text-stone-400 animate-pulse">Loading map…</div>}>
             <VisitsMap visits={visibleVisits} selectedVisitId={selectedVisitId} onVisitSelect={selectVisit} onVisitClick={openVisit} />
           </Suspense>
         </div>

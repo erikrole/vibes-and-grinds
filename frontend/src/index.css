@@ -18,7 +18,7 @@
     --paper-tint: #ece4d3;
     --ink: #1d1815;
     --ink-soft: #6f6356;
-    --ink-faint: #7a6e5e;
+    --ink-faint: #74685c;
     --rule: #d8cdb8;
     --latte: #b89977;
     --latte-deep: #8c6e4f;
@@ -31,7 +31,7 @@
     --field: #faf7f0;
     --text-primary: var(--ink);
     --text-secondary: #675b50;
-    --text-tertiary: #837669;
+    --text-tertiary: #756960;
     --border-subtle: #ddd2c0;
     --border-strong: #c6b8a2;
     --focus: #b7501d;
@@ -114,12 +114,12 @@
 .form-field:focus-within { background: color-mix(in srgb, var(--accent-soft) 18%, transparent); }
 .form-label { display: block; margin-bottom: .35rem; color: var(--text-tertiary); font-size: .67rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 .form-control { width: 100%; border: 0; background: transparent; color: var(--text-primary); font-size: 1rem; line-height: 1.6; outline: 0; }
-.form-control::placeholder { color: var(--text-tertiary); opacity: .72; }
+.form-control::placeholder { color: var(--text-tertiary); opacity: 1; }
 .form-control:focus-visible { outline: 0; }
 .form-rating-control { display: flex; align-items: baseline; gap: .4rem; }
 .form-rating-control > span { color: var(--text-tertiary); font-size: .72rem; font-weight: 700; }
 .form-rating-input { width: 5.2rem; border: 0; background: transparent; color: var(--text-primary); font-family: Fraunces, Georgia, serif; font-size: 2.4rem; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1; outline: 0; }
-.form-rating-input::placeholder { color: var(--text-tertiary); opacity: .45; }
+.form-rating-input::placeholder { color: var(--text-tertiary); opacity: 1; }
 .form-submit { width: 100%; min-height: 3rem; border-radius: var(--radius-md); background: var(--text-primary); color: var(--canvas); font-size: .95rem; font-weight: 700; transition: background 150ms ease, transform 150ms ease; }
 .form-submit:hover { background: #b4531a; color: #fff; }
 .form-submit:active { transform: translateY(1px); }
@@ -687,6 +687,20 @@ a:focus-visible,
   color: var(--ink-faint) !important;
 }
 
+/* stone-400 is about 2.5:1 on the journal paper, and stone-500 about 4.2:1.
+   Vest mode keeps a black ground even when the journal is in light mode, so
+   those utilities stay light gray there. */
+html:not(.dark) .text-stone-400 {
+  color: #57534e;
+}
+html:not(.dark) .text-stone-500 {
+  color: var(--ink-soft);
+}
+html .vest-tracker .text-stone-400,
+html .vest-tracker .text-stone-500 {
+  color: #c4bdb8;
+}
+
 /* Date picker calendar icon in dark mode */
 .dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
 
@@ -733,7 +747,7 @@ a:focus-visible,
   background: #c5050c;
 }
 .vest-tracker-header h1,
-.vest-tracker-header button {
+.vest-tracker-header button:not([role="menuitemradio"]) {
   color: #ffffff;
 }
 .vest-tracker-header .coffee-shop-name {
@@ -760,7 +774,8 @@ a:focus-visible,
   --vt-ink: #ffffff;
   --vt-ink-dim: #c7c7cd;
   --vt-ink-mute: #8a8a92;
-  --vt-ink-faint: #5a5a62;
+  --vt-ink-faint: #84848d;
+  --vt-red-text: #e85d4c;
   --vt-red: #c5050c;
   --vt-red-hot: #e51020;
   --vt-red-soft: rgba(197, 5, 12, 0.12);
@@ -798,7 +813,7 @@ a:focus-visible,
   font-size: 11px;
   color: var(--vt-ink-mute);
 }
-.vt-label-red { color: var(--vt-red-hot); }
+.vt-label-red { color: var(--vt-red-text); }
 
 /* Surface primitives */
 .vt-card {
@@ -924,8 +939,17 @@ a:focus-visible,
 .vest-tracker input:focus,
 .vest-tracker select:focus,
 .vest-tracker textarea:focus {
-  outline: none;
   border-color: var(--vt-red);
+}
+.vest-tracker input:focus-visible,
+.vest-tracker select:focus-visible,
+.vest-tracker textarea:focus-visible {
+  outline: 2px solid var(--vt-red-text);
+  outline-offset: 2px;
+}
+.net-rank-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 2.75rem;
 }
 .vest-tracker input::placeholder { color: var(--vt-ink-faint); }
 

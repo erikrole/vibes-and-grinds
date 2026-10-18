@@ -105,11 +105,11 @@ export default function VibesJournal({
         aria-labelledby={`journal-tab-${viewTab}`}
       >
       {viewTab === 'insights' ? (
-        <Suspense fallback={<div className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading insights...</div>}>
+        <Suspense fallback={<div role="status" className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading insights…</div>}>
           <InsightsPanel visits={visits} />
         </Suspense>
       ) : viewTab === 'map' ? (
-        <Suspense fallback={<div className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading map...</div>}>
+        <Suspense fallback={<div role="status" className="flex items-center justify-center py-20 text-stone-400 animate-pulse">Loading map…</div>}>
           <MapExplorer visits={visits} onVisitClick={onViewDetails} />
         </Suspense>
       ) : (

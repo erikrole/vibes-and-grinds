@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 const SORT_FIELDS = {
   RANK: 'rank',
@@ -12,10 +12,15 @@ const parseRecord = (record) => {
   return { wins: Number.isFinite(w) ? w : -1, losses: Number.isFinite(l) ? l : -1 };
 };
 
-export default function NetRankingsPage({ netRankings, netStatus, onBack }) {
+export default function NetRankingsPage({ netRankings, netStatus, onBack, onRetry }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState(SORT_FIELDS.RANK);
   const [sortAsc, setSortAsc] = useState(true);
+  const backRef = useRef(null);
+
+  useEffect(() => {
+    backRef.current?.focus();
+  }, []);
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -57,9 +62,11 @@ export default function NetRankingsPage({ netRankings, netStatus, onBack }) {
   };
 
   return (
-    <main className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <main id="vest-panel-rankings" className="vest-tracker max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       <div className="mb-5 sm:mb-6 flex items-center gap-3">
         <button
+          ref={backRef}
+          type="button"
           onClick={onBack}
           className="text-sm text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 transition-colors py-2 pr-2"
         >
@@ -69,24 +76,31 @@ export default function NetRankingsPage({ netRankings, netStatus, onBack }) {
       </div>
 
       {netStatus === 'loading' && (
-        <p className="text-stone-500 dark:text-stone-400 text-sm">Loading NET rankings...</p>
+        <p role="status" className="vt-mono text-sm text-[color:var(--vt-ink-mute)]">Loading NET rankings…</p>
       )}
 
       {netStatus === 'error' && (
-        <p className="text-red-600 dark:text-red-400 text-sm">Unable to load NET rankings. Try refreshing the page.</p>
+        <section className="vt-card px-5 py-8 text-center" role="alert">
+          <p className="vt-label vt-label-red mb-2">NET feed offline</p>
+          <p className="vt-mono text-sm text-[color:var(--vt-ink-dim)] mb-4">Couldn’t load rankings.</p>
+          <button type="button" onClick={onRetry} className="vt-btn-ghost text-xs">Try again</button>
+        </section>
       )}
 
       {netStatus === 'loaded' && (
         <div className="bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700/60 rounded-2xl p-4 sm:p-5 shadow-sm">
           <div className="relative mb-4">
+            <label htmlFor="net-team-search" className="sr-only">Search teams</label>
             <input
-              type="text"
+              id="net-team-search"
+              type="search"
               placeholder="Search teams..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full px-4 py-3 pl-11 border border-stone-300 dark:border-stone-600 rounded-xl focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-stone-500 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-100 transition-colors text-sm"
             />
             <svg
+              aria-hidden="true"
               className="absolute left-3.5 top-3.5 h-5 w-5 text-stone-400 dark:text-stone-500"
               fill="none"
               stroke="currentColor"
@@ -133,10 +147,17 @@ export default function NetRankingsPage({ netRankings, netStatus, onBack }) {
                   ].map(({ field, label, width }) => (
                     <th
                       key={field}
-                      onClick={() => handleSort(field)}
-                      className={`${width} px-3 py-2 text-left text-xs font-semibold uppercase tracking-[0.08em] text-stone-500 dark:text-stone-400 cursor-pointer select-none hover:text-stone-800 dark:hover:text-stone-200 transition-colors`}
+                      aria-sort={sortField === field ? (sortAsc ? 'ascending' : 'descending') : 'none'}
+                      className={`${width} px-3 py-2 text-left text-xs font-semibold uppercase tracking-[0.08em] text-stone-500 dark:text-stone-400`}
                     >
-                      {label}{sortIcon(field)}
+                      <button
+                        type="button"
+                        onClick={() => handleSort(field)}
+                        className="inline-flex items-center gap-1 hover:text-stone-800 dark:hover:text-stone-200 transition-colors"
+                      >
+                        {label}
+                        <span aria-hidden="true">{sortIcon(field)}</span>
+                      </button>
                     </th>
                   ))}
                 </tr>
@@ -145,7 +166,7 @@ export default function NetRankingsPage({ netRankings, netStatus, onBack }) {
                 {sorted.map((entry) => (
                   <tr
                     key={entry.rank + entry.team}
-                    className="border-b border-stone-100 dark:border-stone-700/50 even:bg-stone-50 dark:even:bg-stone-700/30 hover:bg-stone-100 dark:hover:bg-stone-700/50 transition-colors"
+                    className="net-rank-row border-b border-stone-100 dark:border-stone-700/50 even:bg-stone-50 dark:even:bg-stone-700/30 hover:bg-stone-100 dark:hover:bg-stone-700/50 transition-colors"
                   >
                     <td className="px-3 py-2.5 tabular-nums font-medium text-stone-700 dark:text-stone-200">
                       {entry.rank}
