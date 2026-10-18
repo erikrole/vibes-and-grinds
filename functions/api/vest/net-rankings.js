@@ -6,7 +6,20 @@
 //   2. NCAA API proxy at ncaa-api.henrygd.me (JSON, with pagination)
 //   3. WarrenNolan /net page (fallback)
 
+import { freshPayload } from './_freshCache.js';
+
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+const NET_CACHE_TTL_MS = 5 * 60 * 1000;
+const UPSTREAM_TIMEOUT_MS = 8000;
+
+let rankingsMemory = null;
+
+function fetchUpstream(url) {
+  return fetch(url, {
+    headers: { 'User-Agent': UA },
+    signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+  });
+}
 
 function stripHtmlTags(value = '') {
   return value
@@ -133,7 +146,7 @@ async function getNetRankingsResponse(envNetRankingsUrl) {
           const url = page === 1
             ? 'https://www.ncaa.com/rankings/basketball-men/d1/ncaa-mens-basketball-net-rankings'
             : `https://www.ncaa.com/rankings/basketball-men/d1/ncaa-mens-basketball-net-rankings?page=${page}`;
-          const resp = await fetch(url, { headers: { 'User-Agent': UA } });
+          const resp = await fetchUpstream(url);
           if (!resp.ok) {
             if (page === 1) throw new Error(`NCAA.com returned ${resp.status}`);
             break;
@@ -161,7 +174,7 @@ async function getNetRankingsResponse(envNetRankingsUrl) {
           const url = page === 1
             ? 'https://ncaa-api.henrygd.me/rankings/basketball-men/d1/ncaa-mens-basketball-net-rankings'
             : `https://ncaa-api.henrygd.me/rankings/basketball-men/d1/ncaa-mens-basketball-net-rankings?page=${page}`;
-          const resp = await fetch(url, { headers: { 'User-Agent': UA } });
+          const resp = await fetchUpstream(url);
           if (!resp.ok) {
             if (page === 1) throw new Error(`NCAA API returned ${resp.status}`);
             break;
@@ -189,7 +202,7 @@ async function getNetRankingsResponse(envNetRankingsUrl) {
       name: 'warrennolan',
       async fn() {
         const url = envNetRankingsUrl || 'https://www.warrennolan.com/basketball/2026/net';
-        const resp = await fetch(url, { headers: { 'User-Agent': UA } });
+        const resp = await fetchUpstream(url);
         if (!resp.ok) throw new Error(`WarrenNolan returned ${resp.status}`);
         const html = await resp.text();
         return parseGenericRankingsTable(html);
@@ -225,9 +238,26 @@ async function getNetRankingsResponse(envNetRankingsUrl) {
   });
 }
 
+function rankingsResponse(payload) {
+  return new Response(JSON.stringify(payload), {
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'public, max-age=300',
+    },
+  });
+}
+
 export async function onRequestGet({ env }) {
   try {
-    return await getNetRankingsResponse(env.NET_RANKINGS_URL);
+    const cached = freshPayload(rankingsMemory, Date.now(), NET_CACHE_TTL_MS);
+    if (cached) return rankingsResponse(cached);
+
+    const response = await getNetRankingsResponse(env.NET_RANKINGS_URL);
+    if (response.ok) {
+      const payload = await response.clone().json();
+      rankingsMemory = { storedAt: Date.now(), payload };
+    }
+    return response;
   } catch (error) {
     console.error('Error fetching vest NET rankings:', error);
     return new Response(JSON.stringify({

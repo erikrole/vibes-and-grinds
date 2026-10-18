@@ -33,7 +33,7 @@ export default function useJournalDerived(visits, {
     const query = searchQuery.toLowerCase();
 
     return (
-      visit.coffee_shop_name.toLowerCase().includes(query) ||
+      String(visit.coffee_shop_name || '').toLowerCase().includes(query) ||
       visit.city?.toLowerCase().includes(query) ||
       visit.opponent?.toLowerCase().includes(query) ||
       visit.coffee_order?.toLowerCase().includes(query) ||

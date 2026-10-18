@@ -4,7 +4,7 @@ import { getRatingColor, getCompositeColor } from '../utils/colors';
 import { formatDate, getRelativeLabel } from '../utils/dates';
 import { DEFAULT_VISITOR_NAME, getRepeatVisits } from '../utils/repeats';
 import useFocusTrap from '../hooks/useFocusTrap';
-import { formatEventContext, titleCaseOrder } from '../utils/display';
+import { formatEventContext, formatMeter, titleCaseOrder } from '../utils/display';
 import { getVisitCoordinates } from '../utils/coords';
 
 const ShareCardModal = lazy(() => import('./ShareCardModal'));
@@ -586,7 +586,7 @@ function ScoreCell({ label, score, isTotal = false }) {
         aria-valuemin={0}
         aria-valuemax={maxVal}
       >
-        {score.toFixed(1)}
+        {formatMeter(score)}
       </span>
       <span className="detail-score-scale">/ {maxVal}</span>
     </div>
@@ -626,7 +626,7 @@ function RepeatHistoryCard({ visit, visits, visitNumber, previousVisit, bestVisi
         {bestVisit && (
           <RepeatMetric
             label="Best here"
-            value={`${bestScore.toFixed(1)}/20`}
+            value={`${formatMeter(bestScore)}/20`}
             detail={bestDate}
             accent={getCompositeColor(bestScore)}
           />

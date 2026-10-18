@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { formatMeter } from '../utils/display';
 import { computeSeasonReview, getAvailableSeasons } from '../utils/yearReview';
 import useFocusTrap from '../hooks/useFocusTrap';
 
@@ -69,7 +70,7 @@ export default function YearInReview({ visits, onClose }) {
             <div className="year-report-card-copy">
               <p className="year-report-kicker">High point</p>
               <h2>{review.bestVisit.coffee_shop_name}</h2>
-              <p>{review.bestVisit.city || 'On the road'} · {review.bestVisit.composite_score.toFixed(1)} / 20</p>
+              <p>{review.bestVisit.city || 'On the road'} · {formatMeter(review.bestVisit.composite_score)} / 20</p>
             </div>
             {review.bestVisit.photo_url && <img src={review.bestVisit.photo_url} alt={`Coffee at ${review.bestVisit.coffee_shop_name}`} />}
           </article>

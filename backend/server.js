@@ -11,13 +11,14 @@ const ESPN_SCHEDULE_BASE = 'https://site.api.espn.com/apis/site/v2/sports/basket
 const ESPN_SUMMARY_BASE = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/summary';
 const FETCH_TIMEOUT_MS = 10000;
 
-let centralDateModulePromise;
+let scoreWritesModulePromise;
+let scoresMemoryCheckedAt = 0;
 
-function loadCentralDate() {
-  if (!centralDateModulePromise) {
-    centralDateModulePromise = import('../functions/api/vest/_centralDate.js');
+function loadScoreWrites() {
+  if (!scoreWritesModulePromise) {
+    scoreWritesModulePromise = import('../functions/api/vest/_scoreWrites.js');
   }
-  return centralDateModulePromise;
+  return scoreWritesModulePromise;
 }
 
 // Middleware
@@ -570,22 +571,44 @@ function parseEspnEvent(event) {
 app.get('/api/vest/scores', async (req, res) => {
   const season = String(req.query.season || '2025');
 
-  const cacheQuery = `
-    SELECT s.*, v.outfit, v.game_id
+  const mergedQuery = `
+    SELECT s.*, v.outfit, v.game_id, v.opponent, v.date, v.location, v.result, v.overtime
     FROM vest_game_stats s
     LEFT JOIN vest_games v ON v.espn_event_id = s.espn_event_id
-    ORDER BY s.id ASC
+    ORDER BY v.date ASC, s.id ASC
   `;
 
   try {
+    const {
+      newestFetchedAtMs,
+      planScoreSync,
+      SCORE_CACHE_TTL_MS,
+      shouldServeCachedScores,
+    } = await loadScoreWrites();
+
+    let cached = [];
+    try {
+      cached = await db.all(mergedQuery);
+    } catch {
+      cached = [];
+    }
+
+    if (shouldServeCachedScores({
+      rowCount: cached.length,
+      newestFetchedAtMs: newestFetchedAtMs(cached),
+      memoryCheckedAtMs: scoresMemoryCheckedAt,
+      now: Date.now(),
+      ttlMs: SCORE_CACHE_TTL_MS,
+    })) {
+      return res.json({ games: cached, source: 'cache' });
+    }
+
     // Fetch fresh from ESPN
     const response = await fetchWithTimeout(
       `${ESPN_SCHEDULE_BASE}/${WISCONSIN_TEAM_ID}/schedule?season=${season}`
     );
 
     if (!response.ok) {
-      // Return cached if ESPN is down
-      const cached = await db.all(cacheQuery);
       if (cached.length) return res.json({ games: cached, source: 'cache' });
       return res.status(502).json({ error: 'ESPN unavailable', status: response.status });
     }
@@ -593,33 +616,30 @@ app.get('/api/vest/scores', async (req, res) => {
     const data = await response.json();
     const events = Array.isArray(data.events) ? data.events : [];
     const parsed = events.map(parseEspnEvent).filter(Boolean);
-    const { matchVestGameId } = await loadCentralDate();
 
     const vestGameRows = await db.all(
-      'SELECT game_id, date FROM vest_games WHERE date IS NOT NULL ORDER BY game_id ASC'
+      'SELECT game_id, date, espn_event_id FROM vest_games ORDER BY game_id ASC'
     );
+    const existingStats = await db.all('SELECT * FROM vest_game_stats');
+    const plan = planScoreSync({
+      vestRows: vestGameRows,
+      existingStats,
+      games: parsed,
+    });
 
-    // Upsert into vest_game_stats
-    for (const game of parsed) {
-      if (!game.completed) continue;
-
-      const matchedGameId = matchVestGameId(vestGameRows, game.date);
-      const vestGame = matchedGameId == null ? null : { game_id: matchedGameId };
-
-      // Update vest_games espn_event_id if matched. Clear any earlier link so
-      // a UTC-date mismatch cannot leave the same event on two vest rows.
-      if (vestGame) {
-        await db.run(
-          'UPDATE vest_games SET espn_event_id = NULL WHERE espn_event_id = ? AND game_id != ?',
-          [game.espnEventId, vestGame.game_id]
-        );
-        await db.run(
-          'UPDATE vest_games SET espn_event_id = ? WHERE game_id = ?',
-          [game.espnEventId, vestGame.game_id]
-        );
-      }
-
-      // Upsert stats
+    for (const clear of plan.clears) {
+      await db.run(
+        'UPDATE vest_games SET espn_event_id = NULL WHERE espn_event_id = ? AND game_id != ?',
+        [clear.espnEventId, clear.gameId]
+      );
+    }
+    for (const link of plan.links) {
+      await db.run(
+        'UPDATE vest_games SET espn_event_id = ? WHERE game_id = ?',
+        [link.espnEventId, link.gameId]
+      );
+    }
+    for (const { game, gameId } of plan.upserts) {
       await db.run(`
         INSERT INTO vest_game_stats (
           espn_event_id, game_id, wisconsin_score, opponent_score,
@@ -628,6 +648,7 @@ app.get('/api/vest/scores', async (req, res) => {
           opp_ranking, wi_ranking, wi_record, fetched_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         ON CONFLICT(espn_event_id) DO UPDATE SET
+          game_id = excluded.game_id,
           wisconsin_score = excluded.wisconsin_score,
           opponent_score = excluded.opponent_score,
           wisconsin_h1 = excluded.wisconsin_h1,
@@ -644,13 +665,15 @@ app.get('/api/vest/scores', async (req, res) => {
           wi_record = excluded.wi_record,
           fetched_at = CURRENT_TIMESTAMP
       `, [
-        game.espnEventId, vestGame?.game_id || null,
+        game.espnEventId, gameId,
         game.wisconsinScore, game.opponentScore,
         game.wisconsinH1, game.wisconsinH2, game.opponentH1, game.opponentH2,
         game.otPeriods, game.venue, game.venueCity, game.broadcast, game.attendance,
         game.oppRanking, game.wiRanking, game.wiRecord,
       ]);
     }
+
+    scoresMemoryCheckedAt = Date.now();
 
     // Re-fetch merged data
     const merged = await db.all(`
@@ -756,30 +779,32 @@ app.get('/api/vest/game-stats/:eventId', async (req, res) => {
       wi_leader_ast_value: astLeader?.leaders?.[0]?.displayValue || null,
     };
 
-    // Update the cached row
-    if (cached) {
-      await db.run(`
-        UPDATE vest_game_stats SET
-          wi_fg = ?, wi_3pt = ?, wi_ft = ?, wi_rebounds = ?, wi_turnovers = ?,
-          wi_fg_pct = ?, wi_3pt_pct = ?, wi_ft_pct = ?,
-          opp_fg = ?, opp_3pt = ?, opp_ft = ?, opp_rebounds = ?, opp_turnovers = ?,
-          opp_fg_pct = ?, opp_3pt_pct = ?, opp_ft_pct = ?,
-          wi_leader_pts_name = ?, wi_leader_pts_value = ?,
-          wi_leader_reb_name = ?, wi_leader_reb_value = ?,
-          wi_leader_ast_name = ?, wi_leader_ast_value = ?,
-          fetched_at = CURRENT_TIMESTAMP
-        WHERE espn_event_id = ?
-      `, [
-        updates.wi_fg, updates.wi_3pt, updates.wi_ft, updates.wi_rebounds, updates.wi_turnovers,
-        updates.wi_fg_pct, updates.wi_3pt_pct, updates.wi_ft_pct,
-        updates.opp_fg, updates.opp_3pt, updates.opp_ft, updates.opp_rebounds, updates.opp_turnovers,
-        updates.opp_fg_pct, updates.opp_3pt_pct, updates.opp_ft_pct,
-        updates.wi_leader_pts_name, updates.wi_leader_pts_value,
-        updates.wi_leader_reb_name, updates.wi_leader_reb_value,
-        updates.wi_leader_ast_name, updates.wi_leader_ast_value,
-        eventId,
-      ]);
+    const { boxScoreNeedsWrite } = await loadScoreWrites();
+    if (!boxScoreNeedsWrite(cached, updates)) {
+      return res.json({ stats: cached || updates, source: cached ? 'cache-partial' : 'espn' });
     }
+
+    await db.run(`
+      UPDATE vest_game_stats SET
+        wi_fg = ?, wi_3pt = ?, wi_ft = ?, wi_rebounds = ?, wi_turnovers = ?,
+        wi_fg_pct = ?, wi_3pt_pct = ?, wi_ft_pct = ?,
+        opp_fg = ?, opp_3pt = ?, opp_ft = ?, opp_rebounds = ?, opp_turnovers = ?,
+        opp_fg_pct = ?, opp_3pt_pct = ?, opp_ft_pct = ?,
+        wi_leader_pts_name = ?, wi_leader_pts_value = ?,
+        wi_leader_reb_name = ?, wi_leader_reb_value = ?,
+        wi_leader_ast_name = ?, wi_leader_ast_value = ?,
+        fetched_at = CURRENT_TIMESTAMP
+      WHERE espn_event_id = ?
+    `, [
+      updates.wi_fg, updates.wi_3pt, updates.wi_ft, updates.wi_rebounds, updates.wi_turnovers,
+      updates.wi_fg_pct, updates.wi_3pt_pct, updates.wi_ft_pct,
+      updates.opp_fg, updates.opp_3pt, updates.opp_ft, updates.opp_rebounds, updates.opp_turnovers,
+      updates.opp_fg_pct, updates.opp_3pt_pct, updates.opp_ft_pct,
+      updates.wi_leader_pts_name, updates.wi_leader_pts_value,
+      updates.wi_leader_reb_name, updates.wi_leader_reb_value,
+      updates.wi_leader_ast_name, updates.wi_leader_ast_value,
+      eventId,
+    ]);
 
     const final = await db.get(
       'SELECT * FROM vest_game_stats WHERE espn_event_id = ?',

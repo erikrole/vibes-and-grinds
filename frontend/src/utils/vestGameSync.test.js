@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shouldSyncVestGames } from './vestGameSync';
+import { readStoredVestGames, shouldSyncVestGames } from './vestGameSync';
 
 const serverGames = [
   {
@@ -13,6 +13,19 @@ const serverGames = [
     overtime: false,
   },
 ];
+
+describe('readStoredVestGames', () => {
+  const seed = [{ id: 1, opponent: 'Campbell' }];
+
+  it('keeps a saved array and falls back when the saved value is not a list', () => {
+    expect(readStoredVestGames(null, seed)).toEqual({ games: seed, corrupted: false });
+    expect(readStoredVestGames('[]', seed)).toEqual({ games: [], corrupted: false });
+    expect(readStoredVestGames(JSON.stringify(seed), seed).games).toEqual(seed);
+    expect(readStoredVestGames('{}', seed)).toEqual({ games: seed, corrupted: true });
+    expect(readStoredVestGames('null', seed)).toEqual({ games: seed, corrupted: true });
+    expect(readStoredVestGames('{', seed)).toEqual({ games: seed, corrupted: true });
+  });
+});
 
 describe('shouldSyncVestGames', () => {
   it('does not upload while the server read is still in flight', () => {

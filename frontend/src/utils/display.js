@@ -1,3 +1,13 @@
+/**
+ * Rating text for meters and the season report. Null and numeric strings
+ * must not throw, or one bad visit blanks the journal.
+ */
+export function formatMeter(value) {
+  if (value == null || value === '') return '—';
+  const num = Number(value);
+  return Number.isFinite(num) ? num.toFixed(1) : '—';
+}
+
 export function titleCaseOrder(value) {
   if (!value) return '';
 

@@ -1,5 +1,7 @@
 // /api/vest/game-stats/:eventId — Fetch ESPN game summary (box score + leaders)
 
+import { boxScoreNeedsWrite } from '../_scoreWrites.js';
+
 const TEAM_ID = '275';
 const ESPN_SUMMARY = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/summary';
 
@@ -16,7 +18,10 @@ function extractStatNum(stats, label) {
   return Number.isFinite(n) ? Math.round(n * 10) / 10 : null;
 }
 
+let schemaReady = false;
+
 async function ensureTable(db) {
+  if (schemaReady) return;
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS vest_game_stats (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,6 +45,7 @@ async function ensureTable(db) {
       fetched_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `).run();
+  schemaReady = true;
 }
 
 export async function onRequestGet({ env, params }) {
@@ -106,35 +112,37 @@ export async function onRequestGet({ env, params }) {
       wi_leader_ast_value: ast?.leaders?.[0]?.displayValue || null,
     };
 
-    if (cached) {
-      await env.DB.prepare(`
-        UPDATE vest_game_stats SET
-          wi_fg = ?, wi_3pt = ?, wi_ft = ?, wi_rebounds = ?, wi_turnovers = ?,
-          wi_fg_pct = ?, wi_3pt_pct = ?, wi_ft_pct = ?,
-          opp_fg = ?, opp_3pt = ?, opp_ft = ?, opp_rebounds = ?, opp_turnovers = ?,
-          opp_fg_pct = ?, opp_3pt_pct = ?, opp_ft_pct = ?,
-          wi_leader_pts_name = ?, wi_leader_pts_value = ?,
-          wi_leader_reb_name = ?, wi_leader_reb_value = ?,
-          wi_leader_ast_name = ?, wi_leader_ast_value = ?,
-          fetched_at = datetime('now')
-        WHERE espn_event_id = ?
-      `).bind(
-        updates.wi_fg, updates.wi_3pt, updates.wi_ft, updates.wi_rebounds, updates.wi_turnovers,
-        updates.wi_fg_pct, updates.wi_3pt_pct, updates.wi_ft_pct,
-        updates.opp_fg, updates.opp_3pt, updates.opp_ft, updates.opp_rebounds, updates.opp_turnovers,
-        updates.opp_fg_pct, updates.opp_3pt_pct, updates.opp_ft_pct,
-        updates.wi_leader_pts_name, updates.wi_leader_pts_value,
-        updates.wi_leader_reb_name, updates.wi_leader_reb_value,
-        updates.wi_leader_ast_name, updates.wi_leader_ast_value,
-        eventId,
-      ).run();
+    if (!boxScoreNeedsWrite(cached, updates)) {
+      return json({ stats: cached || updates, source: cached ? 'cache-partial' : 'espn' });
     }
 
-    const final = cached
-      ? await env.DB.prepare('SELECT * FROM vest_game_stats WHERE espn_event_id = ?').bind(eventId).first()
-      : { ...cached, ...updates };
+    await env.DB.prepare(`
+      UPDATE vest_game_stats SET
+        wi_fg = ?, wi_3pt = ?, wi_ft = ?, wi_rebounds = ?, wi_turnovers = ?,
+        wi_fg_pct = ?, wi_3pt_pct = ?, wi_ft_pct = ?,
+        opp_fg = ?, opp_3pt = ?, opp_ft = ?, opp_rebounds = ?, opp_turnovers = ?,
+        opp_fg_pct = ?, opp_3pt_pct = ?, opp_ft_pct = ?,
+        wi_leader_pts_name = ?, wi_leader_pts_value = ?,
+        wi_leader_reb_name = ?, wi_leader_reb_value = ?,
+        wi_leader_ast_name = ?, wi_leader_ast_value = ?,
+        fetched_at = datetime('now')
+      WHERE espn_event_id = ?
+    `).bind(
+      updates.wi_fg, updates.wi_3pt, updates.wi_ft, updates.wi_rebounds, updates.wi_turnovers,
+      updates.wi_fg_pct, updates.wi_3pt_pct, updates.wi_ft_pct,
+      updates.opp_fg, updates.opp_3pt, updates.opp_ft, updates.opp_rebounds, updates.opp_turnovers,
+      updates.opp_fg_pct, updates.opp_3pt_pct, updates.opp_ft_pct,
+      updates.wi_leader_pts_name, updates.wi_leader_pts_value,
+      updates.wi_leader_reb_name, updates.wi_leader_reb_value,
+      updates.wi_leader_ast_name, updates.wi_leader_ast_value,
+      eventId,
+    ).run();
 
-    return json({ stats: final, source: 'espn' });
+    const final = await env.DB.prepare(
+      'SELECT * FROM vest_game_stats WHERE espn_event_id = ?'
+    ).bind(eventId).first();
+
+    return json({ stats: final || { ...cached, ...updates }, source: 'espn' });
   } catch (error) {
     console.error('Error fetching game stats:', error);
     return json({ error: 'Failed to fetch game stats' }, 502);
