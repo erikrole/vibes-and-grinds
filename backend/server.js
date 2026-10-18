@@ -11,6 +11,15 @@ const ESPN_SCHEDULE_BASE = 'https://site.api.espn.com/apis/site/v2/sports/basket
 const ESPN_SUMMARY_BASE = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/summary';
 const FETCH_TIMEOUT_MS = 10000;
 
+let centralDateModulePromise;
+
+function loadCentralDate() {
+  if (!centralDateModulePromise) {
+    centralDateModulePromise = import('../functions/api/vest/_centralDate.js');
+  }
+  return centralDateModulePromise;
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -584,26 +593,26 @@ app.get('/api/vest/scores', async (req, res) => {
     const data = await response.json();
     const events = Array.isArray(data.events) ? data.events : [];
     const parsed = events.map(parseEspnEvent).filter(Boolean);
+    const { matchVestGameId } = await loadCentralDate();
 
-    const vestGamesByDate = new Map();
     const vestGameRows = await db.all(
-      'SELECT game_id, date FROM vest_games WHERE date IS NOT NULL ORDER BY id ASC'
+      'SELECT game_id, date FROM vest_games WHERE date IS NOT NULL ORDER BY game_id ASC'
     );
-    for (const row of vestGameRows) {
-      const dateKey = String(row.date);
-      if (!dateKey || vestGamesByDate.has(dateKey)) continue;
-      vestGamesByDate.set(dateKey, row.game_id);
-    }
 
     // Upsert into vest_game_stats
     for (const game of parsed) {
       if (!game.completed) continue;
 
-      const matchedGameId = vestGamesByDate.get(game.date?.slice(0, 10));
+      const matchedGameId = matchVestGameId(vestGameRows, game.date);
       const vestGame = matchedGameId == null ? null : { game_id: matchedGameId };
 
-      // Update vest_games espn_event_id if matched
+      // Update vest_games espn_event_id if matched. Clear any earlier link so
+      // a UTC-date mismatch cannot leave the same event on two vest rows.
       if (vestGame) {
+        await db.run(
+          'UPDATE vest_games SET espn_event_id = NULL WHERE espn_event_id = ? AND game_id != ?',
+          [game.espnEventId, vestGame.game_id]
+        );
         await db.run(
           'UPDATE vest_games SET espn_event_id = ? WHERE game_id = ?',
           [game.espnEventId, vestGame.game_id]

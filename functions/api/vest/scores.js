@@ -1,5 +1,7 @@
 // /api/vest/scores — Fetch ESPN schedule+scores, cache in D1, return merged with vest data
 
+import { matchVestGameId } from './_centralDate.js';
+
 const TEAM_ID = '275';
 const ESPN_URL = `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/${TEAM_ID}/schedule`;
 
@@ -96,15 +98,23 @@ export async function onRequestGet({ env, request }) {
     const events = Array.isArray(data.events) ? data.events : [];
     const parsed = events.map(parseEspnEvent).filter(Boolean);
 
+    const vestQuery = await env.DB.prepare(
+      'SELECT game_id, date FROM vest_games WHERE date IS NOT NULL ORDER BY game_id ASC'
+    ).all();
+    const vestRows = Array.isArray(vestQuery?.results) ? vestQuery.results : [];
+
     // Upsert completed games
     for (const game of parsed) {
       if (!game.completed) continue;
 
-      const vestGame = await env.DB.prepare(
-        'SELECT game_id FROM vest_games WHERE date = ? LIMIT 1'
-      ).bind(game.date?.slice(0, 10)).first();
+      const matchedGameId = matchVestGameId(vestRows, game.date);
+      const vestGame = matchedGameId == null ? null : { game_id: matchedGameId };
 
       if (vestGame) {
+        // Drop a previous UTC-date link so this event cannot stay joined to two rows.
+        await env.DB.prepare(
+          'UPDATE vest_games SET espn_event_id = NULL WHERE espn_event_id = ? AND game_id != ?'
+        ).bind(game.espnEventId, vestGame.game_id).run();
         await env.DB.prepare(
           'UPDATE vest_games SET espn_event_id = ? WHERE game_id = ?'
         ).bind(game.espnEventId, vestGame.game_id).run();
