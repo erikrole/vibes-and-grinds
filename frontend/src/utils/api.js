@@ -53,6 +53,8 @@ export async function deleteVisit(id) {
   const response = await fetch(`${API_URL}/api/visits/${id}`, {
     method: 'DELETE',
   });
+  // The row is already gone. Callers should drop it from the list.
+  if (response.status === 404) return;
   if (!response.ok) {
     await parseErrorResponse(response, 'Failed to delete visit');
   }

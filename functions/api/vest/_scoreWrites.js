@@ -33,6 +33,12 @@ export const BOX_SCORE_FIELDS = [
   'wisconsin_h1', 'wisconsin_h2', 'opponent_h1', 'opponent_h2', 'ot_periods',
 ];
 
+// Halves and OT ride along with a box score. On their own they are not proof
+// that ESPN sent shooting stats, and a missing linescore list is not a zero.
+const BOX_LINE_FIELDS = new Set([
+  'wisconsin_h1', 'wisconsin_h2', 'opponent_h1', 'opponent_h2', 'ot_periods',
+]);
+
 function sameValue(left, right) {
   if (left == null && right == null) return true;
   if (left == null || right == null) return false;
@@ -151,14 +157,36 @@ export function planScoreSync({ vestRows = [], existingStats = [], games = [] })
 }
 
 /**
- * A box-score GET should write only when ESPN returned stats that differ
- * from the cached row. An empty summary must not null out the row.
+ * Fill each missing box-score field from the stored row. A null from ESPN
+ * means "not in this payload", not "delete what we saved".
+ */
+export function keepStoredBoxScore(cached, updates) {
+  if (!updates) return updates;
+  const next = { ...updates };
+  if (!cached) return next;
+  for (const key of BOX_SCORE_FIELDS) {
+    const incoming = next[key];
+    if (incoming == null || incoming === '') {
+      const stored = cached[key];
+      if (stored != null && stored !== '') next[key] = stored;
+    }
+  }
+  return next;
+}
+
+/**
+ * A box-score GET should write only when ESPN returned shooting stats or
+ * leaders that differ from the cached row. Halves and OT do not, by
+ * themselves, count as new box data. An empty summary must not null out the row.
  */
 export function boxScoreNeedsWrite(cached, updates) {
   if (!cached || !updates) return false;
-  const hasNew = BOX_SCORE_FIELDS.some((key) => updates[key] != null && updates[key] !== '');
+  const hasNew = BOX_SCORE_FIELDS.some((key) => (
+    !BOX_LINE_FIELDS.has(key) && updates[key] != null && updates[key] !== ''
+  ));
   if (!hasNew) return false;
-  return BOX_SCORE_FIELDS.some((key) => !sameValue(cached[key], updates[key]));
+  const merged = keepStoredBoxScore(cached, updates);
+  return BOX_SCORE_FIELDS.some((key) => !sameValue(cached[key], merged[key]));
 }
 
 /**

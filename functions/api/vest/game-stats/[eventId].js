@@ -2,7 +2,7 @@
 
 import { readEventId } from '../../_http.js';
 import { parseBoxScore } from '../_espn.js';
-import { boxScoreCacheHit, boxScoreNeedsWrite } from '../_scoreWrites.js';
+import { boxScoreCacheHit, boxScoreNeedsWrite, keepStoredBoxScore } from '../_scoreWrites.js';
 
 const ESPN_SUMMARY = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/summary';
 
@@ -75,29 +75,33 @@ export async function onRequestGet({ env, params }) {
       return json({ stats: cached || updates, source: cached ? 'cache-partial' : 'espn' });
     }
 
+    const merged = keepStoredBoxScore(cached, updates);
     await env.DB.prepare(`
       UPDATE vest_game_stats SET
-        wi_fg = ?, wi_3pt = ?, wi_ft = ?, wi_rebounds = ?, wi_turnovers = ?,
-        wi_fg_pct = ?, wi_3pt_pct = ?, wi_ft_pct = ?,
-        opp_fg = ?, opp_3pt = ?, opp_ft = ?, opp_rebounds = ?, opp_turnovers = ?,
-        opp_fg_pct = ?, opp_3pt_pct = ?, opp_ft_pct = ?,
-        wi_leader_pts_name = ?, wi_leader_pts_value = ?,
-        wi_leader_reb_name = ?, wi_leader_reb_value = ?,
-        wi_leader_ast_name = ?, wi_leader_ast_value = ?,
-        wisconsin_h1 = ?, wisconsin_h2 = ?, opponent_h1 = ?, opponent_h2 = ?,
-        ot_periods = ?,
+        wi_fg = COALESCE(?, wi_fg), wi_3pt = COALESCE(?, wi_3pt), wi_ft = COALESCE(?, wi_ft),
+        wi_rebounds = COALESCE(?, wi_rebounds), wi_turnovers = COALESCE(?, wi_turnovers),
+        wi_fg_pct = COALESCE(?, wi_fg_pct), wi_3pt_pct = COALESCE(?, wi_3pt_pct), wi_ft_pct = COALESCE(?, wi_ft_pct),
+        opp_fg = COALESCE(?, opp_fg), opp_3pt = COALESCE(?, opp_3pt), opp_ft = COALESCE(?, opp_ft),
+        opp_rebounds = COALESCE(?, opp_rebounds), opp_turnovers = COALESCE(?, opp_turnovers),
+        opp_fg_pct = COALESCE(?, opp_fg_pct), opp_3pt_pct = COALESCE(?, opp_3pt_pct), opp_ft_pct = COALESCE(?, opp_ft_pct),
+        wi_leader_pts_name = COALESCE(?, wi_leader_pts_name), wi_leader_pts_value = COALESCE(?, wi_leader_pts_value),
+        wi_leader_reb_name = COALESCE(?, wi_leader_reb_name), wi_leader_reb_value = COALESCE(?, wi_leader_reb_value),
+        wi_leader_ast_name = COALESCE(?, wi_leader_ast_name), wi_leader_ast_value = COALESCE(?, wi_leader_ast_value),
+        wisconsin_h1 = COALESCE(?, wisconsin_h1), wisconsin_h2 = COALESCE(?, wisconsin_h2),
+        opponent_h1 = COALESCE(?, opponent_h1), opponent_h2 = COALESCE(?, opponent_h2),
+        ot_periods = COALESCE(?, ot_periods),
         fetched_at = datetime('now')
       WHERE espn_event_id = ?
     `).bind(
-      updates.wi_fg, updates.wi_3pt, updates.wi_ft, updates.wi_rebounds, updates.wi_turnovers,
-      updates.wi_fg_pct, updates.wi_3pt_pct, updates.wi_ft_pct,
-      updates.opp_fg, updates.opp_3pt, updates.opp_ft, updates.opp_rebounds, updates.opp_turnovers,
-      updates.opp_fg_pct, updates.opp_3pt_pct, updates.opp_ft_pct,
-      updates.wi_leader_pts_name, updates.wi_leader_pts_value,
-      updates.wi_leader_reb_name, updates.wi_leader_reb_value,
-      updates.wi_leader_ast_name, updates.wi_leader_ast_value,
-      updates.wisconsin_h1, updates.wisconsin_h2, updates.opponent_h1, updates.opponent_h2,
-      updates.ot_periods,
+      merged.wi_fg, merged.wi_3pt, merged.wi_ft, merged.wi_rebounds, merged.wi_turnovers,
+      merged.wi_fg_pct, merged.wi_3pt_pct, merged.wi_ft_pct,
+      merged.opp_fg, merged.opp_3pt, merged.opp_ft, merged.opp_rebounds, merged.opp_turnovers,
+      merged.opp_fg_pct, merged.opp_3pt_pct, merged.opp_ft_pct,
+      merged.wi_leader_pts_name, merged.wi_leader_pts_value,
+      merged.wi_leader_reb_name, merged.wi_leader_reb_value,
+      merged.wi_leader_ast_name, merged.wi_leader_ast_value,
+      merged.wisconsin_h1, merged.wisconsin_h2, merged.opponent_h1, merged.opponent_h2,
+      merged.ot_periods,
       eventId,
     ).run();
 

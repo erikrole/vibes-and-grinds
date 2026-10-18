@@ -13,7 +13,7 @@ import {
   parseGenericRankingsTable,
   rankingsFromItems,
 } from '../../functions/api/vest/_netParse.js';
-import { planScoreSync } from '../../functions/api/vest/_scoreWrites.js';
+import { boxScoreNeedsWrite, keepStoredBoxScore, planScoreSync } from '../../functions/api/vest/_scoreWrites.js';
 
 const TEAM = '275';
 
@@ -206,6 +206,7 @@ describe('ESPN summary shape', () => {
     assert.equal(box.wisconsin_h1, 51);
     assert.equal(box.opponent_h2, 43);
     assert.equal(box.opp_fg, '30-60');
+    assert.equal(box.ot_periods, 0);
   });
 
   it('returns null fields instead of throwing when the summary is empty or malformed', () => {
@@ -214,6 +215,36 @@ describe('ESPN summary shape', () => {
     assert.equal(box.wi_fg, null);
     assert.equal(box.wi_leader_pts_name, null);
     assert.equal(box.wisconsin_h1, null);
+    assert.equal(box.ot_periods, null);
+
+    const empty = parseBoxScore({});
+    assert.equal(empty.ot_periods, null);
+    assert.equal(boxScoreNeedsWrite({
+      wi_fg: '37-77',
+      wi_rebounds: 43,
+      wi_leader_pts_name: 'John Blackwell',
+      wisconsin_h1: 51,
+      ot_periods: 1,
+    }, empty), false);
+  });
+
+  it('treats overtime as its own word, not letters inside another word', () => {
+    const base = {
+      id: '9',
+      date: '2026-01-02T01:00Z',
+      competitions: [{
+        status: { type: { completed: true, description: 'Final', detail: 'shot' } },
+        competitors: [
+          competitor(TEAM, 'home', { score: '70' }),
+          competitor('1', 'away', { name: 'Iowa', score: '60' }),
+        ],
+      }],
+    };
+    assert.equal(parseEspnEvent(base).overtime, false);
+    base.competitions[0].status.type.detail = 'Final/OT';
+    assert.equal(parseEspnEvent(base).overtime, true);
+    base.competitions[0].status.type.detail = 'Final/2OT';
+    assert.equal(parseEspnEvent(base).overtime, true);
   });
 });
 

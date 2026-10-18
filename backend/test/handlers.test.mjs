@@ -571,6 +571,57 @@ describe('vest handlers', () => {
     assert.equal(cached.body.source, 'cache');
   });
 
+  it('keeps a saved box score when the summary is empty or only partial', async () => {
+    const db = createDb();
+    db.state.stats.push({
+      espn_event_id: '401826890',
+      wi_fg: '37-77',
+      wi_rebounds: 43,
+      wi_3pt_pct: null,
+      wi_leader_pts_name: null,
+      wisconsin_h1: 51,
+      ot_periods: 1,
+      fetched_at: '2020-01-01 00:00:00',
+    });
+
+    globalThis.fetch = async () => new Response('{}', {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+    const empty = await jsonBody(await gameStatsGet({
+      params: { eventId: '401826890' },
+      env: envWith(db),
+    }));
+    assert.equal(empty.status, 200);
+    assert.equal(empty.body.source, 'cache-partial');
+    assert.equal(empty.body.stats.wi_fg, '37-77');
+    assert.equal(empty.body.stats.wisconsin_h1, 51);
+    assert.equal(empty.body.stats.ot_periods, 1);
+    assert.equal(db.calls.some((call) => call.sql.toLowerCase().startsWith('update vest_game_stats')), false);
+
+    globalThis.fetch = async () => new Response(JSON.stringify({
+      boxscore: {
+        teams: [{
+          team: { id: '275' },
+          statistics: [{ abbreviation: '3P%', displayValue: '35' }],
+        }],
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+    const partial = await jsonBody(await gameStatsGet({
+      params: { eventId: '401826890' },
+      env: envWith(db),
+    }));
+    assert.equal(partial.status, 200);
+    assert.equal(partial.body.source, 'espn');
+    assert.equal(partial.body.stats.wi_3pt_pct, 35);
+    assert.equal(partial.body.stats.wi_fg, '37-77');
+    assert.equal(partial.body.stats.wi_rebounds, 43);
+    assert.equal(partial.body.stats.wisconsin_h1, 51);
+    assert.equal(partial.body.stats.ot_periods, 1);
+    assert.equal(db.state.stats[0].wi_fg, '37-77');
+    assert.equal(db.state.stats[0].ot_periods, 1);
+  });
+
   it('accepts NCAA JSON that uses Rank and School when the HTML source fails', async () => {
     const teams = Array.from({ length: 55 }, (_item, index) => ({
       Rank: String(index + 1),

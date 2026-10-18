@@ -125,7 +125,7 @@ export function parseEspnEvent(event, teamId = WISCONSIN_TEAM_ID) {
       opponentName: opponent.team?.displayName || opponent.team?.name || event.shortName || 'TBD',
       location: espnLocation(badgers, competition),
       completed: isCompleted,
-      overtime: /OT/i.test(text) || wiLines.length > 2,
+      overtime: /\b\d?OT\b/i.test(text) || wiLines.length > 2,
       result,
       wisconsinScore: wiScore,
       opponentScore: oppScore,
@@ -284,7 +284,10 @@ export function parseBoxScore(summary, teamId = WISCONSIN_TEAM_ID) {
       wisconsin_h2: readLineValue(wiLines[1]),
       opponent_h1: readLineValue(oppLines[0]),
       opponent_h2: readLineValue(oppLines[1]),
-      ot_periods: Math.max(0, wiLines.length - 2),
+      // No linescores means the summary did not say how many overtime periods
+      // there were. 0 would look like a real "regulation" answer and wipe a
+      // stored OT count.
+      ot_periods: wiLines.length ? Math.max(0, wiLines.length - 2) : null,
     };
   } catch {
     return null;
