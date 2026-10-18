@@ -130,6 +130,25 @@ describe('planScoreSync', () => {
     expect(plan.links).toEqual([{ espnEventId: '401', gameId: 13 }]);
     expect(plan.upserts).toHaveLength(1);
   });
+
+  it('does not blank a stored score when the new payload omits it', () => {
+    const plan = planScoreSync({
+      vestRows,
+      existingStats: [storedRow()],
+      games: [{
+        ...milwaukee,
+        wisconsinScore: null,
+        opponentScore: null,
+        wisconsinH1: null,
+        venue: 'New Arena',
+      }],
+    });
+
+    expect(plan.upserts).toHaveLength(1);
+    expect(plan.upserts[0].game.wisconsinScore).toBe(80);
+    expect(plan.upserts[0].game.wisconsinH1).toBe(40);
+    expect(plan.upserts[0].game.venue).toBe('New Arena');
+  });
 });
 
 describe('boxScoreNeedsWrite', () => {

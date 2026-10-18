@@ -44,3 +44,11 @@ jobs:
           node --check functions/api/vest/net-rankings.js
           node --check functions/api/vest/scores.js
           node --check "functions/api/vest/game-stats/[eventId].js"
+          node --check functions/api/_shared.js
+          node --check functions/api/_http.js
+          node --check functions/api/vest/_centralDate.js
+          node --check functions/api/vest/_espn.js
+          node --check functions/api/vest/_freshCache.js
+          node --check functions/api/vest/_gameSync.js
+          node --check functions/api/vest/_netParse.js
+          node --check functions/api/vest/_scoreWrites.js

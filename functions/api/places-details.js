@@ -1,3 +1,5 @@
+import { readPlaceId } from './_http.js';
+
 const SESSION_TOKEN_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function readSessionToken(value) {
@@ -45,7 +47,7 @@ function buildPlacesErrorResponse(prefix, upstreamStatus, payloadText) {
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
-  const placeId = (url.searchParams.get('placeId') || '').trim();
+  const place = readPlaceId(url.searchParams.get('placeId'));
   const apiKey = env.GOOGLE_MAPS_API_KEY || env.VITE_GOOGLE_MAPS_API_KEY;
 
   if (!apiKey) {
@@ -55,12 +57,13 @@ export async function onRequestGet({ request, env }) {
     });
   }
 
-  if (!placeId) {
-    return new Response(JSON.stringify({ error: 'placeId is required.' }), {
-      status: 400,
+  if (place.error) {
+    return new Response(JSON.stringify({ error: place.error }), {
+      status: place.status,
       headers: { 'Content-Type': 'application/json' },
     });
   }
+  const placeId = place.id;
 
   const sessionToken = readSessionToken(url.searchParams.get('sessionToken'));
   const detailsUrl = new URL(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`);
@@ -68,6 +71,7 @@ export async function onRequestGet({ request, env }) {
 
   try {
     const response = await fetch(detailsUrl, {
+      signal: AbortSignal.timeout(8000),
       headers: {
         'X-Goog-Api-Key': apiKey,
         'X-Goog-FieldMask': 'id,displayName,formattedAddress,location',

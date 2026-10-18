@@ -30,6 +30,7 @@ export const BOX_SCORE_FIELDS = [
   'wi_leader_pts_name', 'wi_leader_pts_value',
   'wi_leader_reb_name', 'wi_leader_reb_value',
   'wi_leader_ast_name', 'wi_leader_ast_value',
+  'wisconsin_h1', 'wisconsin_h2', 'opponent_h1', 'opponent_h2', 'ot_periods',
 ];
 
 function sameValue(left, right) {
@@ -79,6 +80,28 @@ export function shouldServeCachedScores({
   return Number.isFinite(fetchedAt) && now >= fetchedAt && now - fetchedAt < ttlMs;
 }
 
+/**
+ * A schedule payload that omits a number (score object we could not read,
+ * linescores absent on the schedule) must not null out a value already stored.
+ */
+function gameForUpsert(existing, game, matchedGameId) {
+  const next = { ...game };
+  let gameId = matchedGameId;
+  if (!existing) return { game: next, gameId };
+
+  if (gameId == null && existing.game_id != null && existing.game_id !== '') {
+    const storedId = Number(existing.game_id);
+    if (Number.isFinite(storedId)) gameId = storedId;
+  }
+
+  for (const [column, key] of STAT_FIELDS) {
+    if (next[key] == null || next[key] === '') {
+      if (existing[column] != null && existing[column] !== '') next[key] = existing[column];
+    }
+  }
+  return { game: next, gameId };
+}
+
 function statRowMatches(existing, game, gameId) {
   const existingGameId = existing?.game_id == null || existing.game_id === ''
     ? null
@@ -118,8 +141,9 @@ export function planScoreSync({ vestRows = [], existingStats = [], games = [] })
     }
 
     const existing = statsByEvent.get(eventId);
-    if (!existing || !statRowMatches(existing, game, matchedGameId)) {
-      upserts.push({ game, gameId: matchedGameId });
+    const upsert = gameForUpsert(existing, game, matchedGameId);
+    if (!existing || !statRowMatches(existing, upsert.game, upsert.gameId)) {
+      upserts.push(upsert);
     }
   }
 
@@ -135,4 +159,17 @@ export function boxScoreNeedsWrite(cached, updates) {
   const hasNew = BOX_SCORE_FIELDS.some((key) => updates[key] != null && updates[key] !== '');
   if (!hasNew) return false;
   return BOX_SCORE_FIELDS.some((key) => !sameValue(cached[key], updates[key]));
+}
+
+/**
+ * A cached box score is complete when shooting stats and either the 3-point
+ * percentage or a scoring leader are present. Rows saved while ESPN labeled
+ * the percentage "3P%" and put leaders on summary.leaders have FG filled in
+ * and those two fields empty, so they need one more read.
+ */
+export function boxScoreCacheHit(row) {
+  if (row?.wi_fg == null || row.wi_fg === '') return false;
+  const missingPct = row.wi_3pt_pct == null || row.wi_3pt_pct === '';
+  const missingLeader = row.wi_leader_pts_name == null || row.wi_leader_pts_name === '';
+  return !(missingPct && missingLeader);
 }

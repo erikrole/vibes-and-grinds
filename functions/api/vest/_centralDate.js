@@ -2,6 +2,8 @@
 // UTC calendar day, so slicing the timestamp joins the box score to the
 // following day's vest row — or to none. Vest dates are the Central game day.
 
+import { isIsoDate } from '../_shared.js';
+
 const CENTRAL_TIME_ZONE = 'America/Chicago';
 const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
 const HAS_ZONE = /(?:z|[+-]\d{2}:?\d{2})$/i;
@@ -22,7 +24,9 @@ const centralFormatter = new Intl.DateTimeFormat('en-CA', {
 export function centralGameDate(value) {
   const text = String(value ?? '').trim();
   if (!text) return null;
-  if (DATE_ONLY.test(text)) return text;
+  // A stored YYYY-MM-DD is already the game day. February 31 and other
+  // impossible days are not, and must not match a vest row.
+  if (DATE_ONLY.test(text)) return isIsoDate(text) ? text : null;
 
   let instantText = text;
   if (!HAS_ZONE.test(text) && /^\d{4}-\d{2}-\d{2}T/.test(text)) {
@@ -62,7 +66,7 @@ export function matchVestGameId(vestGames, espnDate) {
   for (const game of vestGames) {
     if (centralGameDate(game?.date) !== gameDay) continue;
     const id = Number(game.game_id);
-    return Number.isFinite(id) ? id : null;
+    if (Number.isFinite(id)) return id;
   }
   return null;
 }

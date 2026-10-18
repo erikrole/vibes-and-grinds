@@ -1,22 +1,10 @@
 // /api/vest/game-stats/:eventId — Fetch ESPN game summary (box score + leaders)
 
-import { boxScoreNeedsWrite } from '../_scoreWrites.js';
+import { readEventId } from '../../_http.js';
+import { parseBoxScore } from '../_espn.js';
+import { boxScoreCacheHit, boxScoreNeedsWrite } from '../_scoreWrites.js';
 
-const TEAM_ID = '275';
 const ESPN_SUMMARY = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/summary';
-
-function extractStat(stats, label) {
-  if (!Array.isArray(stats)) return null;
-  const entry = stats.find((s) => s.label === label || s.abbreviation === label);
-  return entry?.displayValue || null;
-}
-
-function extractStatNum(stats, label) {
-  const val = extractStat(stats, label);
-  if (!val) return null;
-  const n = parseFloat(val);
-  return Number.isFinite(n) ? Math.round(n * 10) / 10 : null;
-}
 
 let schemaReady = false;
 
@@ -48,8 +36,13 @@ async function ensureTable(db) {
   schemaReady = true;
 }
 
+export function resetGameStatsState() {
+  schemaReady = false;
+}
+
 export async function onRequestGet({ env, params }) {
-  const eventId = params.eventId;
+  const eventId = readEventId(params.eventId);
+  if (!eventId) return json({ error: 'Event id must be numeric' }, 400);
 
   try {
     await ensureTable(env.DB);
@@ -58,11 +51,11 @@ export async function onRequestGet({ env, params }) {
       'SELECT * FROM vest_game_stats WHERE espn_event_id = ?'
     ).bind(eventId).first();
 
-    if (cached?.wi_fg) {
+    if (boxScoreCacheHit(cached)) {
       return json({ stats: cached, source: 'cache' });
     }
 
-    const res = await fetch(`${ESPN_SUMMARY}?event=${eventId}`, {
+    const res = await fetch(`${ESPN_SUMMARY}?event=${encodeURIComponent(eventId)}`, {
       signal: AbortSignal.timeout(10000),
     });
 
@@ -72,45 +65,11 @@ export async function onRequestGet({ env, params }) {
     }
 
     const summary = await res.json();
-    const boxTeams = summary.boxscore?.teams || [];
-    const wiBox = boxTeams.find((t) => String(t.team?.id) === TEAM_ID);
-    const oppBox = boxTeams.find((t) => String(t.team?.id) !== TEAM_ID);
-    const wiStats = wiBox?.statistics || [];
-    const oppStats = oppBox?.statistics || [];
-
-    const competition = summary.header?.competitions?.[0] || {};
-    const competitors = competition.competitors || [];
-    const wiComp = competitors.find((c) => String(c.id) === TEAM_ID);
-    const wiLeaders = wiComp?.leaders || [];
-
-    const pts = wiLeaders.find((l) => l.name === 'points' || l.abbreviation === 'PTS');
-    const reb = wiLeaders.find((l) => l.name === 'rebounds' || l.abbreviation === 'REB');
-    const ast = wiLeaders.find((l) => l.name === 'assists' || l.abbreviation === 'AST');
-
-    const updates = {
-      wi_fg: extractStat(wiStats, 'FG'),
-      wi_3pt: extractStat(wiStats, '3PT'),
-      wi_ft: extractStat(wiStats, 'FT'),
-      wi_rebounds: extractStatNum(wiStats, 'REB'),
-      wi_turnovers: extractStatNum(wiStats, 'TO'),
-      wi_fg_pct: extractStatNum(wiStats, 'FG%'),
-      wi_3pt_pct: extractStatNum(wiStats, '3PT%'),
-      wi_ft_pct: extractStatNum(wiStats, 'FT%'),
-      opp_fg: extractStat(oppStats, 'FG'),
-      opp_3pt: extractStat(oppStats, '3PT'),
-      opp_ft: extractStat(oppStats, 'FT'),
-      opp_rebounds: extractStatNum(oppStats, 'REB'),
-      opp_turnovers: extractStatNum(oppStats, 'TO'),
-      opp_fg_pct: extractStatNum(oppStats, 'FG%'),
-      opp_3pt_pct: extractStatNum(oppStats, '3PT%'),
-      opp_ft_pct: extractStatNum(oppStats, 'FT%'),
-      wi_leader_pts_name: pts?.leaders?.[0]?.athlete?.displayName || null,
-      wi_leader_pts_value: pts?.leaders?.[0]?.displayValue || null,
-      wi_leader_reb_name: reb?.leaders?.[0]?.athlete?.displayName || null,
-      wi_leader_reb_value: reb?.leaders?.[0]?.displayValue || null,
-      wi_leader_ast_name: ast?.leaders?.[0]?.athlete?.displayName || null,
-      wi_leader_ast_value: ast?.leaders?.[0]?.displayValue || null,
-    };
+    const updates = parseBoxScore(summary);
+    if (!updates) {
+      if (cached) return json({ stats: cached, source: 'cache-partial' });
+      return json({ error: 'ESPN summary unavailable' }, 502);
+    }
 
     if (!boxScoreNeedsWrite(cached, updates)) {
       return json({ stats: cached || updates, source: cached ? 'cache-partial' : 'espn' });
@@ -125,6 +84,8 @@ export async function onRequestGet({ env, params }) {
         wi_leader_pts_name = ?, wi_leader_pts_value = ?,
         wi_leader_reb_name = ?, wi_leader_reb_value = ?,
         wi_leader_ast_name = ?, wi_leader_ast_value = ?,
+        wisconsin_h1 = ?, wisconsin_h2 = ?, opponent_h1 = ?, opponent_h2 = ?,
+        ot_periods = ?,
         fetched_at = datetime('now')
       WHERE espn_event_id = ?
     `).bind(
@@ -135,6 +96,8 @@ export async function onRequestGet({ env, params }) {
       updates.wi_leader_pts_name, updates.wi_leader_pts_value,
       updates.wi_leader_reb_name, updates.wi_leader_reb_value,
       updates.wi_leader_ast_name, updates.wi_leader_ast_value,
+      updates.wisconsin_h1, updates.wisconsin_h2, updates.opponent_h1, updates.opponent_h2,
+      updates.ot_periods,
       eventId,
     ).run();
 
