@@ -2854,3 +2854,11 @@ button.insight-highlight:hover { background: var(--surface-muted); }
 .photo-note { position: absolute; inset: auto .75rem 3.5rem .75rem; z-index: 2; max-height: 55%; overflow: auto; padding: .875rem 1rem; border: 1px solid rgb(255 255 255 / .2); border-radius: var(--radius-md); background: rgb(20 17 14 / .72); color: var(--on-solid); font-family: var(--font-display); font-size: var(--text-md); line-height: 1.45; white-space: pre-wrap; -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2); animation: note-in 220ms var(--ease-out) both; }
 @keyframes note-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .photo-note { animation: none; } }
+
+.avf-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
+.avf-chip { min-height: 2rem; padding: 0 .75rem; border: 1px solid transparent; border-radius: var(--radius-pill); background: var(--surface-muted); color: var(--text-secondary); font-size: var(--text-sm); font-weight: 600; }
+.avf-chip.is-active { background: var(--text-primary); color: var(--surface); }
+.avf-total { flex-direction: column; align-items: flex-start; gap: 0; }
+.avf-total span { color: var(--text-tertiary); font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+.avf-key-row { display: flex; align-items: center; gap: .75rem; }
+.avf-key-row .avf-input { flex: 1; }
