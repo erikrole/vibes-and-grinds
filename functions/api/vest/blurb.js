@@ -1,5 +1,7 @@
 // /api/vest/blurb - AI-generated game narrative using Claude
 
+import { MAX_BLURB_CHARS, readJsonBody } from '../_http.js';
+
 export async function onRequestPost({ request, env }) {
   const apiKey = env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -9,19 +11,23 @@ export async function onRequestPost({ request, env }) {
     });
   }
 
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
-      status: 400,
+  const parsed = await readJsonBody(request, 32 * 1024);
+  if (!parsed.ok) {
+    return new Response(JSON.stringify({ error: parsed.error }), {
+      status: parsed.status,
       headers: { 'Content-Type': 'application/json' },
     });
   }
 
-  const { context } = body;
+  const { context } = parsed.value || {};
   if (!context || typeof context !== 'string') {
     return new Response(JSON.stringify({ error: 'Missing context string' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  if (context.length > MAX_BLURB_CHARS) {
+    return new Response(JSON.stringify({ error: `Context must be ${MAX_BLURB_CHARS} characters or fewer` }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -30,6 +36,7 @@ export async function onRequestPost({ request, env }) {
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
+      signal: AbortSignal.timeout(10000),
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,

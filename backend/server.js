@@ -12,6 +12,10 @@ const ESPN_SUMMARY_BASE = 'https://site.web.api.espn.com/apis/site/v2/sports/bas
 const FETCH_TIMEOUT_MS = 10000;
 
 let scoreWritesModulePromise;
+let espnModulePromise;
+let httpModulePromise;
+let netModulePromise;
+let gameSyncModulePromise;
 let scoresMemoryCheckedAt = 0;
 
 function loadScoreWrites() {
@@ -21,9 +25,29 @@ function loadScoreWrites() {
   return scoreWritesModulePromise;
 }
 
+function loadEspn() {
+  if (!espnModulePromise) espnModulePromise = import('../functions/api/vest/_espn.js');
+  return espnModulePromise;
+}
+
+function loadHttp() {
+  if (!httpModulePromise) httpModulePromise = import('../functions/api/_http.js');
+  return httpModulePromise;
+}
+
+function loadNetParse() {
+  if (!netModulePromise) netModulePromise = import('../functions/api/vest/_netParse.js');
+  return netModulePromise;
+}
+
+function loadGameSync() {
+  if (!gameSyncModulePromise) gameSyncModulePromise = import('../functions/api/vest/_gameSync.js');
+  return gameSyncModulePromise;
+}
+
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '256kb' }));
 
 // Initialize database then start listening — prevents requests arriving before db is ready
 let db;
@@ -41,65 +65,6 @@ initDatabase()
 
 // Routes
 
-
-function stripHtmlTags(value = '') {
-  return value
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function parseNetRankingsHtml(html = '') {
-  const rankings = [];
-
-  if (!html) return rankings;
-
-  const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
-  const tables = html.match(tableRegex);
-  if (!tables || tables.length === 0) return rankings;
-
-  const netTable = tables.reduce((best, table) => {
-    const bestRows = (best.match(/<tr/gi) || []).length;
-    const tableRows = (table.match(/<tr/gi) || []).length;
-    return tableRows > bestRows ? table : best;
-  });
-
-  const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-  const rows = [...netTable.matchAll(rowRegex)];
-
-  for (let i = 1; i < rows.length; i++) {
-    const rowHtml = rows[i][1] || '';
-    if (rowHtml.includes('<th')) continue;
-
-    const cellRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
-    const cells = [...rowHtml.matchAll(cellRegex)].map((cellMatch) => stripHtmlTags(cellMatch[1]));
-    if (cells.length < 2) continue;
-
-    const rank = Number.parseInt(cells[0], 10);
-    const team = (cells[1] || '').trim();
-
-    if (!Number.isFinite(rank) || !team) continue;
-
-    // Scan remaining cells for a W-L record pattern
-    let record = null;
-    for (let c = 2; c < cells.length; c++) {
-      if (/^\d+-\d+$/.test(cells[c])) {
-        record = cells[c];
-        break;
-      }
-    }
-
-    rankings.push({ team, rank, record });
-  }
-
-  return rankings;
-}
 
 // ── Shared helpers ──
 
@@ -205,20 +170,26 @@ app.post('/api/visits', async (req, res) => {
       photo_url
     } = req.body;
 
-    const validationError = validateVisit({ date, coffee_shop_name, vibe_rating, coffee_rating });
+    const cleanDate = String(date ?? '').trim();
+    const trimmedName = String(coffee_shop_name ?? '').trim();
+    const validationError = validateVisit({
+      date: cleanDate,
+      coffee_shop_name: trimmedName,
+      vibe_rating,
+      coffee_rating,
+    });
     if (validationError) {
       return res.status(400).json({ error: validationError });
     }
 
-    const trimmedName = String(coffee_shop_name).trim();
-
+    const { optionalCoord } = await loadHttp();
     const result = await db.run(
       `INSERT INTO coffee_visits (
         date, coffee_shop_name, city, opponent, sport, visit_type, coffee_shop_address, coffee_shop_place_id,
         coffee_shop_lat, coffee_shop_lng, coffee_order, vibe_rating, coffee_rating, notes, photo_url
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        date,
+        cleanDate,
         trimmedName,
         normalizeOptionalText(city),
         normalizeOptionalText(opponent),
@@ -226,8 +197,8 @@ app.post('/api/visits', async (req, res) => {
         normalizeVisitType(visit_type),
         coffee_shop_address || null,
         coffee_shop_place_id || null,
-        coffee_shop_lat,
-        coffee_shop_lng,
+        optionalCoord(coffee_shop_lat),
+        optionalCoord(coffee_shop_lng),
         normalizeOptionalText(coffee_order),
         Number(vibe_rating),
         Number(coffee_rating),
@@ -269,13 +240,19 @@ app.put('/api/visits/:id', async (req, res) => {
       photo_url
     } = req.body;
 
-    const validationError = validateVisit({ date, coffee_shop_name, vibe_rating, coffee_rating });
+    const cleanDate = String(date ?? '').trim();
+    const trimmedName = String(coffee_shop_name ?? '').trim();
+    const validationError = validateVisit({
+      date: cleanDate,
+      coffee_shop_name: trimmedName,
+      vibe_rating,
+      coffee_rating,
+    });
     if (validationError) {
       return res.status(400).json({ error: validationError });
     }
 
-    const trimmedName = String(coffee_shop_name).trim();
-
+    const { optionalCoord } = await loadHttp();
     const updateResult = await db.run(
       `UPDATE coffee_visits SET
         date = ?, coffee_shop_name = ?, city = ?, opponent = ?, sport = ?, visit_type = ?, coffee_shop_address = ?,
@@ -283,7 +260,7 @@ app.put('/api/visits/:id', async (req, res) => {
         coffee_order = ?, vibe_rating = ?, coffee_rating = ?, notes = ?, photo_url = ?
       WHERE id = ?`,
       [
-        date,
+        cleanDate,
         trimmedName,
         normalizeOptionalText(city),
         normalizeOptionalText(opponent),
@@ -291,8 +268,8 @@ app.put('/api/visits/:id', async (req, res) => {
         normalizeVisitType(visit_type),
         coffee_shop_address || null,
         coffee_shop_place_id || null,
-        coffee_shop_lat,
-        coffee_shop_lng,
+        optionalCoord(coffee_shop_lat),
+        optionalCoord(coffee_shop_lng),
         normalizeOptionalText(coffee_order),
         Number(vibe_rating),
         Number(coffee_rating),
@@ -398,58 +375,65 @@ app.put('/api/vest/games', async (req, res) => {
   }
 
   try {
-    await db.exec('BEGIN TRANSACTION');
-    await db.run('DELETE FROM vest_games');
-
-    const stmt = await db.prepare(`
-      INSERT INTO vest_games (game_id, date, location, opponent, ranking, outfit, result, overtime, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    const { planVestGameSync } = await loadGameSync();
+    const existing = await db.all(`
+      SELECT game_id, date, location, opponent, ranking, outfit, result, overtime
+      FROM vest_games
     `);
+    const plan = planVestGameSync(existing, incoming);
+    if (plan.error) return res.status(400).json({ error: plan.error });
 
-    let skipped = 0;
-    try {
-      for (const game of incoming) {
-        const gameId = Number.parseInt(game.id, 10);
-        const ranking = game.ranking === null || game.ranking === '' || game.ranking === undefined
-          ? null
-          : Number.parseInt(game.ranking, 10);
-
-        if (!Number.isFinite(gameId) || !`${game.opponent || ''}`.trim()) {
-          skipped++;
-          continue;
-        }
-
-        await stmt.run([
-          gameId,
-          game.date || null,
-          game.location || 'vs',
-          `${game.opponent}`.trim(),
-          Number.isFinite(ranking) ? ranking : null,
-          `${game.outfit || ''}`.trim(),
-          game.result || '',
-          game.overtime ? 1 : 0,
-        ]);
-      }
-    } finally {
-      await stmt.finalize();
+    if (!plan.inserts.length && !plan.updates.length && !plan.deletes.length) {
+      return res.json({ success: true, saved: plan.saved, skipped: plan.skipped });
     }
 
-    await db.exec('COMMIT');
-    return res.json({ success: true, saved: incoming.length - skipped, skipped });
+    await db.exec('BEGIN TRANSACTION');
+    try {
+      for (const gameId of plan.deletes) {
+        await db.run('DELETE FROM vest_games WHERE game_id = ?', [gameId]);
+      }
+      for (const game of plan.updates) {
+        await db.run(`
+          UPDATE vest_games SET
+            date = ?, location = ?, opponent = ?, ranking = ?, outfit = ?, result = ?, overtime = ?,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE game_id = ?
+        `, [
+          game.date, game.location, game.opponent, game.ranking,
+          game.outfit, game.result, game.overtime, game.gameId,
+        ]);
+      }
+      for (const game of plan.inserts) {
+        await db.run(`
+          INSERT INTO vest_games (game_id, date, location, opponent, ranking, outfit, result, overtime, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        `, [
+          game.gameId, game.date, game.location, game.opponent, game.ranking,
+          game.outfit, game.result, game.overtime,
+        ]);
+      }
+      await db.exec('COMMIT');
+    } catch (error) {
+      await db.exec('ROLLBACK');
+      throw error;
+    }
+
+    return res.json({ success: true, saved: plan.saved, skipped: plan.skipped });
   } catch (error) {
-    await db.exec('ROLLBACK');
     console.error('Error syncing vest games:', error);
     return res.status(500).json({ error: 'Failed to sync vest games' });
   }
 });
 
 app.get('/api/vest/schedule', async (req, res) => {
-  const season = String(req.query.season || '2025');
-  const teamId = '275'; // Wisconsin
+  const { readSeason } = await loadHttp();
+  const season = readSeason(req.query.season);
+  if (!season) return res.status(400).json({ error: 'Season must be a 4-digit year' });
 
   try {
+    const { scheduleGame } = await loadEspn();
     const response = await fetchWithTimeout(
-      `${ESPN_SCHEDULE_BASE}/${teamId}/schedule?season=${season}`
+      `${ESPN_SCHEDULE_BASE}/${WISCONSIN_TEAM_ID}/schedule?season=${encodeURIComponent(season)}`
     );
 
     if (!response.ok) {
@@ -457,36 +441,8 @@ app.get('/api/vest/schedule', async (req, res) => {
     }
 
     const data = await response.json();
-    const events = Array.isArray(data.events) ? data.events : [];
-
-    const games = events.map((event) => {
-      const competition = event.competitions?.[0] || {};
-      const competitors = competition.competitors || [];
-      const badgers = competitors.find((c) => String(c.team?.id) === teamId);
-      const opponent = competitors.find((c) => String(c.team?.id) !== teamId);
-
-      const location = badgers?.homeAway === 'away' ? '@' : 'vs';
-      const isCompleted = competition.status?.type?.completed;
-      const overtime = (competition.status?.type?.description || '').toUpperCase().includes('OT');
-
-      let result = '';
-      if (isCompleted && badgers && opponent) {
-        const badgersScore = Number(badgers.score);
-        const opponentScore = Number(opponent.score);
-        if (Number.isFinite(badgersScore) && Number.isFinite(opponentScore)) {
-          result = badgersScore > opponentScore ? 'W' : 'L';
-        }
-      }
-
-      return {
-        date: event.date,
-        opponent: opponent?.team?.displayName || event.shortName || 'TBD',
-        location,
-        result,
-        overtime,
-        completed: Boolean(isCompleted),
-      };
-    });
+    const events = Array.isArray(data?.events) ? data.events : [];
+    const games = events.map((event) => scheduleGame(event)).filter(Boolean);
 
     res.json({ season, source: 'ESPN', games });
   } catch (error) {
@@ -502,74 +458,10 @@ app.get('/api/vest/schedule', async (req, res) => {
 
 // ── ESPN Scores: fetch schedule + scores and cache in vest_game_stats ──
 
-function parseFloat2(val) {
-  const n = parseFloat(val);
-  return Number.isFinite(n) ? Math.round(n * 10) / 10 : null;
-}
-
-function extractTeamStat(stats, label) {
-  if (!Array.isArray(stats)) return null;
-  const entry = stats.find((s) => s.label === label || s.abbreviation === label);
-  return entry?.displayValue || null;
-}
-
-function extractTeamStatNum(stats, label) {
-  const val = extractTeamStat(stats, label);
-  if (!val) return null;
-  const n = parseFloat(val);
-  return Number.isFinite(n) ? n : null;
-}
-
-function parseEspnEvent(event) {
-  const competition = event.competitions?.[0] || {};
-  const competitors = competition.competitors || [];
-  const badgers = competitors.find((c) => String(c.team?.id) === WISCONSIN_TEAM_ID);
-  const opponent = competitors.find((c) => String(c.team?.id) !== WISCONSIN_TEAM_ID);
-  if (!badgers || !opponent) return null;
-
-  const isCompleted = competition.status?.type?.completed;
-  const statusDesc = competition.status?.type?.description || '';
-
-  const wiScore = Number(badgers.score);
-  const oppScore = Number(opponent.score);
-
-  const wiLinescores = Array.isArray(badgers.linescores) ? badgers.linescores : [];
-  const oppLinescores = Array.isArray(opponent.linescores) ? opponent.linescores : [];
-
-  const otPeriods = Math.max(0, wiLinescores.length - 2);
-
-  const venue = competition.venue;
-  const broadcasts = competition.broadcasts || [];
-  const broadcastName = broadcasts[0]?.names?.[0] || broadcasts[0]?.name || null;
-
-  return {
-    espnEventId: String(event.id),
-    date: event.date,
-    opponentName: opponent.team?.displayName || 'TBD',
-    location: badgers.homeAway === 'away' ? '@' : (competition.neutralSite ? 'N' : 'vs'),
-    completed: Boolean(isCompleted),
-    overtime: statusDesc.toUpperCase().includes('OT'),
-    result: isCompleted && Number.isFinite(wiScore) && Number.isFinite(oppScore)
-      ? (wiScore > oppScore ? 'W' : 'L') : '',
-    wisconsinScore: Number.isFinite(wiScore) ? wiScore : null,
-    opponentScore: Number.isFinite(oppScore) ? oppScore : null,
-    wisconsinH1: wiLinescores[0]?.value ?? null,
-    wisconsinH2: wiLinescores[1]?.value ?? null,
-    opponentH1: oppLinescores[0]?.value ?? null,
-    opponentH2: oppLinescores[1]?.value ?? null,
-    otPeriods,
-    venue: venue?.fullName || null,
-    venueCity: venue?.address?.city || null,
-    broadcast: broadcastName,
-    attendance: competition.attendance || null,
-    oppRanking: opponent.curatedRank?.current ?? null,
-    wiRanking: badgers.curatedRank?.current ?? null,
-    wiRecord: badgers.records?.[0]?.summary || null,
-  };
-}
-
 app.get('/api/vest/scores', async (req, res) => {
-  const season = String(req.query.season || '2025');
+  const { readSeason } = await loadHttp();
+  const season = readSeason(req.query.season);
+  if (!season) return res.status(400).json({ error: 'Season must be a 4-digit year' });
 
   const mergedQuery = `
     SELECT s.*, v.outfit, v.game_id, v.opponent, v.date, v.location, v.result, v.overtime
@@ -585,6 +477,7 @@ app.get('/api/vest/scores', async (req, res) => {
       SCORE_CACHE_TTL_MS,
       shouldServeCachedScores,
     } = await loadScoreWrites();
+    const { parseEspnEvent } = await loadEspn();
 
     let cached = [];
     try {
@@ -605,7 +498,7 @@ app.get('/api/vest/scores', async (req, res) => {
 
     // Fetch fresh from ESPN
     const response = await fetchWithTimeout(
-      `${ESPN_SCHEDULE_BASE}/${WISCONSIN_TEAM_ID}/schedule?season=${season}`
+      `${ESPN_SCHEDULE_BASE}/${WISCONSIN_TEAM_ID}/schedule?season=${encodeURIComponent(season)}`
     );
 
     if (!response.ok) {
@@ -614,8 +507,8 @@ app.get('/api/vest/scores', async (req, res) => {
     }
 
     const data = await response.json();
-    const events = Array.isArray(data.events) ? data.events : [];
-    const parsed = events.map(parseEspnEvent).filter(Boolean);
+    const events = Array.isArray(data?.events) ? data.events : [];
+    const parsed = events.map((event) => parseEspnEvent(event)).filter(Boolean);
 
     const vestGameRows = await db.all(
       'SELECT game_id, date, espn_event_id FROM vest_games ORDER BY game_id ASC'
@@ -710,23 +603,24 @@ app.get('/api/vest/scores', async (req, res) => {
 
 // ── ESPN Game Summary: box scores + player leaders for a single game ──
 app.get('/api/vest/game-stats/:eventId', async (req, res) => {
-  const eventId = req.params.eventId;
+  const { readEventId } = await loadHttp();
+  const eventId = readEventId(req.params.eventId);
+  if (!eventId) return res.status(400).json({ error: 'Event id must be numeric' });
 
   try {
-    // Check cache first
+    const { boxScoreCacheHit, boxScoreNeedsWrite, keepStoredBoxScore } = await loadScoreWrites();
+    const { parseBoxScore } = await loadEspn();
     const cached = await db.get(
       'SELECT * FROM vest_game_stats WHERE espn_event_id = ?',
       [eventId]
     );
 
-    // If we already have box score data, return it
-    if (cached?.wi_fg) {
+    if (boxScoreCacheHit(cached)) {
       return res.json({ stats: cached, source: 'cache' });
     }
 
-    // Fetch from ESPN summary
     const response = await fetchWithTimeout(
-      `${ESPN_SUMMARY_BASE}?event=${eventId}`
+      `${ESPN_SUMMARY_BASE}?event=${encodeURIComponent(eventId)}`
     );
 
     if (!response.ok) {
@@ -735,74 +629,43 @@ app.get('/api/vest/game-stats/:eventId', async (req, res) => {
     }
 
     const summary = await response.json();
+    const updates = parseBoxScore(summary);
+    if (!updates) {
+      if (cached) return res.json({ stats: cached, source: 'cache-partial' });
+      return res.status(502).json({ error: 'ESPN summary unavailable' });
+    }
 
-    // Extract box score team stats
-    const boxTeams = summary.boxscore?.teams || [];
-    const wiBox = boxTeams.find((t) => String(t.team?.id) === WISCONSIN_TEAM_ID);
-    const oppBox = boxTeams.find((t) => String(t.team?.id) !== WISCONSIN_TEAM_ID);
-
-    const wiStats = wiBox?.statistics || [];
-    const oppStats = oppBox?.statistics || [];
-
-    // Extract player leaders
-    const competition = summary.header?.competitions?.[0] || {};
-    const competitors = competition.competitors || [];
-    const wiComp = competitors.find((c) => String(c.id) === WISCONSIN_TEAM_ID);
-    const wiLeaders = wiComp?.leaders || [];
-
-    const ptsLeader = wiLeaders.find((l) => l.name === 'points' || l.abbreviation === 'PTS');
-    const rebLeader = wiLeaders.find((l) => l.name === 'rebounds' || l.abbreviation === 'REB');
-    const astLeader = wiLeaders.find((l) => l.name === 'assists' || l.abbreviation === 'AST');
-
-    const updates = {
-      wi_fg: extractTeamStat(wiStats, 'FG'),
-      wi_3pt: extractTeamStat(wiStats, '3PT'),
-      wi_ft: extractTeamStat(wiStats, 'FT'),
-      wi_rebounds: extractTeamStatNum(wiStats, 'REB'),
-      wi_turnovers: extractTeamStatNum(wiStats, 'TO'),
-      wi_fg_pct: parseFloat2(extractTeamStat(wiStats, 'FG%')),
-      wi_3pt_pct: parseFloat2(extractTeamStat(wiStats, '3PT%')),
-      wi_ft_pct: parseFloat2(extractTeamStat(wiStats, 'FT%')),
-      opp_fg: extractTeamStat(oppStats, 'FG'),
-      opp_3pt: extractTeamStat(oppStats, '3PT'),
-      opp_ft: extractTeamStat(oppStats, 'FT'),
-      opp_rebounds: extractTeamStatNum(oppStats, 'REB'),
-      opp_turnovers: extractTeamStatNum(oppStats, 'TO'),
-      opp_fg_pct: parseFloat2(extractTeamStat(oppStats, 'FG%')),
-      opp_3pt_pct: parseFloat2(extractTeamStat(oppStats, '3PT%')),
-      opp_ft_pct: parseFloat2(extractTeamStat(oppStats, 'FT%')),
-      wi_leader_pts_name: ptsLeader?.leaders?.[0]?.athlete?.displayName || null,
-      wi_leader_pts_value: ptsLeader?.leaders?.[0]?.displayValue || null,
-      wi_leader_reb_name: rebLeader?.leaders?.[0]?.athlete?.displayName || null,
-      wi_leader_reb_value: rebLeader?.leaders?.[0]?.displayValue || null,
-      wi_leader_ast_name: astLeader?.leaders?.[0]?.athlete?.displayName || null,
-      wi_leader_ast_value: astLeader?.leaders?.[0]?.displayValue || null,
-    };
-
-    const { boxScoreNeedsWrite } = await loadScoreWrites();
     if (!boxScoreNeedsWrite(cached, updates)) {
       return res.json({ stats: cached || updates, source: cached ? 'cache-partial' : 'espn' });
     }
 
+    const merged = keepStoredBoxScore(cached, updates);
     await db.run(`
       UPDATE vest_game_stats SET
-        wi_fg = ?, wi_3pt = ?, wi_ft = ?, wi_rebounds = ?, wi_turnovers = ?,
-        wi_fg_pct = ?, wi_3pt_pct = ?, wi_ft_pct = ?,
-        opp_fg = ?, opp_3pt = ?, opp_ft = ?, opp_rebounds = ?, opp_turnovers = ?,
-        opp_fg_pct = ?, opp_3pt_pct = ?, opp_ft_pct = ?,
-        wi_leader_pts_name = ?, wi_leader_pts_value = ?,
-        wi_leader_reb_name = ?, wi_leader_reb_value = ?,
-        wi_leader_ast_name = ?, wi_leader_ast_value = ?,
+        wi_fg = COALESCE(?, wi_fg), wi_3pt = COALESCE(?, wi_3pt), wi_ft = COALESCE(?, wi_ft),
+        wi_rebounds = COALESCE(?, wi_rebounds), wi_turnovers = COALESCE(?, wi_turnovers),
+        wi_fg_pct = COALESCE(?, wi_fg_pct), wi_3pt_pct = COALESCE(?, wi_3pt_pct), wi_ft_pct = COALESCE(?, wi_ft_pct),
+        opp_fg = COALESCE(?, opp_fg), opp_3pt = COALESCE(?, opp_3pt), opp_ft = COALESCE(?, opp_ft),
+        opp_rebounds = COALESCE(?, opp_rebounds), opp_turnovers = COALESCE(?, opp_turnovers),
+        opp_fg_pct = COALESCE(?, opp_fg_pct), opp_3pt_pct = COALESCE(?, opp_3pt_pct), opp_ft_pct = COALESCE(?, opp_ft_pct),
+        wi_leader_pts_name = COALESCE(?, wi_leader_pts_name), wi_leader_pts_value = COALESCE(?, wi_leader_pts_value),
+        wi_leader_reb_name = COALESCE(?, wi_leader_reb_name), wi_leader_reb_value = COALESCE(?, wi_leader_reb_value),
+        wi_leader_ast_name = COALESCE(?, wi_leader_ast_name), wi_leader_ast_value = COALESCE(?, wi_leader_ast_value),
+        wisconsin_h1 = COALESCE(?, wisconsin_h1), wisconsin_h2 = COALESCE(?, wisconsin_h2),
+        opponent_h1 = COALESCE(?, opponent_h1), opponent_h2 = COALESCE(?, opponent_h2),
+        ot_periods = COALESCE(?, ot_periods),
         fetched_at = CURRENT_TIMESTAMP
       WHERE espn_event_id = ?
     `, [
-      updates.wi_fg, updates.wi_3pt, updates.wi_ft, updates.wi_rebounds, updates.wi_turnovers,
-      updates.wi_fg_pct, updates.wi_3pt_pct, updates.wi_ft_pct,
-      updates.opp_fg, updates.opp_3pt, updates.opp_ft, updates.opp_rebounds, updates.opp_turnovers,
-      updates.opp_fg_pct, updates.opp_3pt_pct, updates.opp_ft_pct,
-      updates.wi_leader_pts_name, updates.wi_leader_pts_value,
-      updates.wi_leader_reb_name, updates.wi_leader_reb_value,
-      updates.wi_leader_ast_name, updates.wi_leader_ast_value,
+      merged.wi_fg, merged.wi_3pt, merged.wi_ft, merged.wi_rebounds, merged.wi_turnovers,
+      merged.wi_fg_pct, merged.wi_3pt_pct, merged.wi_ft_pct,
+      merged.opp_fg, merged.opp_3pt, merged.opp_ft, merged.opp_rebounds, merged.opp_turnovers,
+      merged.opp_fg_pct, merged.opp_3pt_pct, merged.opp_ft_pct,
+      merged.wi_leader_pts_name, merged.wi_leader_pts_value,
+      merged.wi_leader_reb_name, merged.wi_leader_reb_value,
+      merged.wi_leader_ast_name, merged.wi_leader_ast_value,
+      merged.wisconsin_h1, merged.wisconsin_h2, merged.opponent_h1, merged.opponent_h2,
+      merged.ot_periods,
       eventId,
     ]);
 
@@ -840,25 +703,32 @@ app.get('/api/vest/net-rankings', async (req, res) => {
 
     const contentType = response.headers.get('content-type') || '';
 
+    const {
+      itemsFromRankingPayload,
+      parseGenericRankingsTable,
+      rankingsFromItems,
+    } = await loadNetParse();
+
+    let rankings = [];
     if (contentType.includes('text/html')) {
-      const html = await response.text();
-      const rankings = parseNetRankingsHtml(html);
-
-      if (!rankings.length) {
-        return res.status(502).json({
-          error: 'Failed to parse NET rankings from upstream HTML source.',
-        });
-      }
-
-      const netRankings = Object.fromEntries(
-        rankings.map((entry) => [entry.team.toUpperCase(), entry.rank])
-      );
-
-      return res.json({ rankings, netRankings, source: 'WarrenNolan' });
+      rankings = parseGenericRankingsTable(await response.text());
+    } else {
+      const data = await response.json();
+      if (data?.netRankings && Array.isArray(data.rankings)) return res.json(data);
+      rankings = rankingsFromItems(itemsFromRankingPayload(data));
     }
 
-    const data = await response.json();
-    return res.json(data);
+    if (!rankings.length) {
+      return res.status(502).json({
+        error: 'Failed to parse NET rankings from upstream source.',
+      });
+    }
+
+    const netRankings = Object.fromEntries(
+      rankings.map((entry) => [entry.team, entry.rank])
+    );
+
+    return res.json({ rankings, netRankings, source: 'WarrenNolan' });
   } catch (error) {
     const timedOut = error?.name === 'AbortError';
     console.error('Error fetching vest NET rankings:', error);
@@ -954,6 +824,11 @@ app.get('/api/places-autocomplete', async (req, res) => {
     return res.status(503).json({ error: 'Google Places is not configured on the server.' });
   }
 
+  const { MAX_PLACES_INPUT } = await loadHttp();
+  if (input.length > MAX_PLACES_INPUT) {
+    return res.status(400).json({ error: `Search must be ${MAX_PLACES_INPUT} characters or fewer` });
+  }
+
   if (input.length < PLACES_MIN_INPUT_LENGTH) {
     return res.json({ suggestions: [] });
   }
@@ -966,7 +841,7 @@ app.get('/api/places-autocomplete', async (req, res) => {
   const sessionToken = readPlacesSessionToken(req.query.sessionToken);
 
   try {
-    const response = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+    const response = await fetchWithTimeout('https://places.googleapis.com/v1/places:autocomplete', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -987,7 +862,7 @@ app.get('/api/places-autocomplete', async (req, res) => {
     }
 
     const data = await response.json();
-    const suggestions = (data.suggestions || [])
+    const suggestions = (data?.suggestions || [])
       .map((item) => {
         const prediction = item.placePrediction;
         if (!prediction?.placeId) return null;
@@ -1013,23 +888,25 @@ app.get('/api/places-autocomplete', async (req, res) => {
 });
 
 app.get('/api/places-details', async (req, res) => {
-  const placeId = `${req.query.placeId || ''}`.trim();
+  const { readPlaceId } = await loadHttp();
+  const place = readPlaceId(req.query.placeId);
   const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
 
   if (!apiKey) {
     return res.status(503).json({ error: 'Google Places is not configured on the server.' });
   }
 
-  if (!placeId) {
-    return res.status(400).json({ error: 'placeId is required.' });
+  if (place.error) {
+    return res.status(place.status).json({ error: place.error });
   }
+  const placeId = place.id;
 
   const sessionToken = readPlacesSessionToken(req.query.sessionToken);
   const detailsUrl = new URL(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`);
   if (sessionToken) detailsUrl.searchParams.set('sessionToken', sessionToken);
 
   try {
-    const response = await fetch(detailsUrl, {
+    const response = await fetchWithTimeout(detailsUrl, {
       headers: {
         'X-Goog-Api-Key': apiKey,
         'X-Goog-FieldMask': 'id,displayName,formattedAddress,location',
@@ -1061,4 +938,15 @@ app.get('/api/places-details', async (req, res) => {
       details: error.message,
     });
   }
+});
+
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  if (err?.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Request body is too large' });
+  }
+  if (err instanceof SyntaxError || err?.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Invalid JSON' });
+  }
+  return next(err);
 });

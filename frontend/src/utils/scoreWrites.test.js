@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { parseBoxScore } from '../../../functions/api/vest/_espn.js';
 import {
   boxScoreNeedsWrite,
+  keepStoredBoxScore,
   newestFetchedAtMs,
   planScoreSync,
   shouldServeCachedScores,
@@ -130,6 +132,25 @@ describe('planScoreSync', () => {
     expect(plan.links).toEqual([{ espnEventId: '401', gameId: 13 }]);
     expect(plan.upserts).toHaveLength(1);
   });
+
+  it('does not blank a stored score when the new payload omits it', () => {
+    const plan = planScoreSync({
+      vestRows,
+      existingStats: [storedRow()],
+      games: [{
+        ...milwaukee,
+        wisconsinScore: null,
+        opponentScore: null,
+        wisconsinH1: null,
+        venue: 'New Arena',
+      }],
+    });
+
+    expect(plan.upserts).toHaveLength(1);
+    expect(plan.upserts[0].game.wisconsinScore).toBe(80);
+    expect(plan.upserts[0].game.wisconsinH1).toBe(40);
+    expect(plan.upserts[0].game.venue).toBe('New Arena');
+  });
 });
 
 describe('boxScoreNeedsWrite', () => {
@@ -145,5 +166,34 @@ describe('boxScoreNeedsWrite', () => {
       { wi_fg: null, wi_rebounds: null },
       { wi_fg: '30-60', wi_rebounds: 35 },
     )).toBe(true);
+  });
+
+  it('does not write an empty summary, and a partial reply keeps stored fields', () => {
+    const cached = {
+      wi_fg: '37-77',
+      wi_rebounds: 43,
+      wi_leader_pts_name: 'John Blackwell',
+      wisconsin_h1: 51,
+      ot_periods: 1,
+    };
+    const empty = parseBoxScore({});
+    expect(empty.ot_periods).toBeNull();
+    expect(boxScoreNeedsWrite(cached, empty)).toBe(false);
+
+    const partial = parseBoxScore({
+      boxscore: {
+        teams: [{ team: { id: '275' }, statistics: [{ abbreviation: '3P%', displayValue: '35' }] }],
+      },
+    });
+    expect(partial.wi_fg).toBeNull();
+    expect(partial.ot_periods).toBeNull();
+    expect(boxScoreNeedsWrite(cached, partial)).toBe(true);
+    const merged = keepStoredBoxScore(cached, partial);
+    expect(merged.wi_3pt_pct).toBe(35);
+    expect(merged.wi_fg).toBe('37-77');
+    expect(merged.wi_rebounds).toBe(43);
+    expect(merged.wi_leader_pts_name).toBe('John Blackwell');
+    expect(merged.wisconsin_h1).toBe(51);
+    expect(merged.ot_periods).toBe(1);
   });
 });

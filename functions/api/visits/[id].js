@@ -2,6 +2,7 @@
 // PUT /api/visits/:id - Update a visit
 // DELETE /api/visits/:id - Delete a visit
 
+import { optionalCoord, readJsonBody } from '../_http.js';
 import { jsonResponse, normalizeOptionalText, normalizeVisitType, validateVisit } from '../_shared.js';
 
 export async function onRequestGet({ params, env }) {
@@ -22,8 +23,14 @@ export async function onRequestGet({ params, env }) {
 }
 
 export async function onRequestPut({ params, request, env }) {
+  const parsed = await readJsonBody(request);
+  if (!parsed.ok) return jsonResponse({ error: parsed.error }, parsed.status);
+
   try {
-    const body = await request.json();
+    const body = parsed.value;
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return jsonResponse({ error: 'Invalid JSON' }, 400);
+    }
     const {
       date,
       coffee_shop_name,
@@ -70,8 +77,8 @@ export async function onRequestPut({ params, request, env }) {
       normalizeVisitType(visit_type),
       coffee_shop_address || null,
       coffee_shop_place_id || null,
-      coffee_shop_lat || null,
-      coffee_shop_lng || null,
+      optionalCoord(coffee_shop_lat),
+      optionalCoord(coffee_shop_lng),
       normalizeOptionalText(coffee_order),
       Number(vibe_rating),
       Number(coffee_rating),
@@ -100,7 +107,10 @@ export async function onRequestPut({ params, request, env }) {
 
 export async function onRequestDelete({ params, env }) {
   try {
-    await env.DB.prepare('DELETE FROM coffee_visits WHERE id = ?').bind(params.id).run();
+    const result = await env.DB.prepare('DELETE FROM coffee_visits WHERE id = ?').bind(params.id).run();
+    if (result?.meta?.changes === 0) {
+      return jsonResponse({ error: 'Visit not found' }, 404);
+    }
 
     return new Response(null, { status: 204 });
   } catch (error) {

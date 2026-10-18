@@ -1,3 +1,5 @@
+import { MAX_PLACES_INPUT } from './_http.js';
+
 const MIN_INPUT_LENGTH = 3;
 const SUGGESTION_CACHE_LIMIT = 50;
 const SUGGESTION_CACHE_TTL_MS = 10 * 60 * 1000;
@@ -83,6 +85,13 @@ export async function onRequestGet({ request, env }) {
     });
   }
 
+  if (input.length > MAX_PLACES_INPUT) {
+    return new Response(JSON.stringify({ error: `Search must be ${MAX_PLACES_INPUT} characters or fewer` }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   if (input.length < MIN_INPUT_LENGTH) {
     return new Response(JSON.stringify({ suggestions: [] }), {
       headers: { 'Content-Type': 'application/json' },
@@ -101,6 +110,7 @@ export async function onRequestGet({ request, env }) {
   try {
     const response = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
       method: 'POST',
+      signal: AbortSignal.timeout(8000),
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': apiKey,
@@ -123,7 +133,7 @@ export async function onRequestGet({ request, env }) {
     }
 
     const data = await response.json();
-    const suggestions = (data.suggestions || [])
+    const suggestions = (data?.suggestions || [])
       .map((item) => {
         const prediction = item.placePrediction;
         if (!prediction?.placeId) return null;

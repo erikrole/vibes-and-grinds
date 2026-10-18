@@ -31,9 +31,23 @@ describe('centralGameDate', () => {
   it('leaves a stored calendar day alone and rejects junk', () => {
     expect(centralGameDate('2025-11-03')).toBe('2025-11-03');
     expect(centralGameDate(' 2026-01-10 ')).toBe('2026-01-10');
+    expect(centralGameDate('2024-02-29')).toBe('2024-02-29');
     expect(centralGameDate('')).toBeNull();
     expect(centralGameDate(null)).toBeNull();
     expect(centralGameDate('not-a-date')).toBeNull();
+    expect(centralGameDate('2026-02-31')).toBeNull();
+    expect(centralGameDate('2026-02-29')).toBeNull();
+  });
+
+  it('keeps midnight and the DST transitions on the Central calendar day', () => {
+    expect(centralGameDate('2026-01-15T06:00:00.000Z')).toBe('2026-01-15');
+    expect(centralGameDate('2026-01-15T05:59:59.999Z')).toBe('2026-01-14');
+    expect(centralGameDate('2026-07-15T05:00:00.000Z')).toBe('2026-07-15');
+    expect(centralGameDate('2026-07-15T04:59:59Z')).toBe('2026-07-14');
+    expect(centralGameDate('2026-03-08T07:59:59Z')).toBe('2026-03-08');
+    expect(centralGameDate('2026-03-08T08:00:00Z')).toBe('2026-03-08');
+    expect(centralGameDate('2026-11-01T06:30:00Z')).toBe('2026-11-01');
+    expect(centralGameDate('2026-11-01T07:30:00Z')).toBe('2026-11-01');
   });
 });
 
@@ -49,6 +63,14 @@ describe('matchVestGameId', () => {
     expect(matchVestGameId(vestGames, '2025-11-04T01:00Z')).toBe(1);
     expect(matchVestGameId(vestGames, '2025-11-21T21:00Z')).toBe(5);
     expect(matchVestGameId(vestGames, '2025-12-31T00:00Z')).toBe(13);
+  });
+
+  it('skips a same-day row whose id is not a number', () => {
+    const rows = [
+      { game_id: 'nope', date: '2025-11-03' },
+      { game_id: 4, date: '2025-11-03' },
+    ];
+    expect(matchVestGameId(rows, '2025-11-04T01:00Z')).toBe(4);
   });
 
   it('does not attach a score when that Central day has no vest row', () => {
