@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { formatDate, formatLocationLabel, toSuperscript } from '../utils/vestTrackerMath';
+import { formatDate, formatLocationLabel } from '../utils/vestTrackerMath';
 
 // Broadcast-style next-game card. Section header → opponent row → spec sheet.
 // One accent (Wisconsin red), heavy condensed type, thin rules.

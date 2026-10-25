@@ -3,7 +3,7 @@
 
 import { centralGameDate } from '../../../functions/api/vest/_centralDate.js';
 
-export const QUADRANT_THRESHOLDS = {
+const QUADRANT_THRESHOLDS = {
   vs: [30, 75, 160, 365],
   N: [50, 100, 200, 365],
   '@': [75, 135, 240, 365],
@@ -14,14 +14,14 @@ export const QUADRANT_THRESHOLDS = {
 // and quadrant correlates strongly with strength of opponent.
 // Used to compute "wins above expected" — credit outfits for beating tough
 // opponents and discount easy wins.
-export const EXPECTED_WIN_PROB = {
+const EXPECTED_WIN_PROB = {
   vs: { 1: 0.50, 2: 0.70, 3: 0.85, 4: 0.92 },
   N:  { 1: 0.40, 2: 0.55, 3: 0.75, 4: 0.85 },
   '@': { 1: 0.22, 2: 0.45, 3: 0.65, 4: 0.80 },
 };
 
 // Fallback when NET data is missing — assume a typical opponent strength.
-export const EXPECTED_WIN_PROB_DEFAULT = { vs: 0.68, N: 0.55, '@': 0.42 };
+const EXPECTED_WIN_PROB_DEFAULT = { vs: 0.68, N: 0.55, '@': 0.42 };
 
 const OPPONENT_ALIASES = {
   'siu edwardsville': 'southern illinois edwardsville',
@@ -143,7 +143,7 @@ export const normalizeTeamName = (value = '') => {
 
 const normalizeToken = (token) => TOKEN_CANONICAL[token] || token;
 
-export const normalizeTokens = (value = '') =>
+const normalizeTokens = (value = '') =>
   normalizeTeamName(value).split(' ').map(normalizeToken).filter(Boolean);
 
 export const buildNetLookup = (rankings) => {
@@ -237,7 +237,7 @@ export const wilsonLowerBound = (wins, games, z = 1.0) => {
 
 // Bayesian shrinkage of an observed win rate toward a prior (typically the
 // team's overall season rate). `priorStrength` is in pseudo-games.
-export const bayesianRate = (wins, games, prior, priorStrength = 4) => {
+const bayesianRate = (wins, games, prior, priorStrength = 4) => {
   if (games <= 0) return prior;
   return (wins + prior * priorStrength) / (games + priorStrength);
 };
@@ -410,7 +410,7 @@ const normalizeWoEPerGame = (woePerGame) => {
 //   - WoE normalized       (25%) — beats expectation
 //   - decayedForm × 100    (20%) — recent trend
 //   - recency bonus        (10%) — encourage rotation off the last-worn fit
-export const recommendationScore = (stat, ctx = {}) => {
+const recommendationScore = (stat, ctx = {}) => {
   const { recencyDistance = 0, lastWorn = false } = ctx;
   // Evidence factor scales how much we trust noisy per-outfit signals.
   // Sample of 4+ → full trust; below that, blend toward the neutral baseline.

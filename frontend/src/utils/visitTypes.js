@@ -7,11 +7,6 @@ export const VISIT_TYPES = {
 // Middleton, Fitchburg, Verona and friends.
 export const HOME_CITY = 'Madison, WI';
 
-export const VISIT_TYPE_LABELS = {
-  [VISIT_TYPES.ROAD]: 'Road trip',
-  [VISIT_TYPES.HOME]: 'Around Madison',
-};
-
 // Visits logged before visit_type existed are road-trip stops.
 export function getVisitType(visit = {}) {
   return visit.visit_type === VISIT_TYPES.HOME ? VISIT_TYPES.HOME : VISIT_TYPES.ROAD;

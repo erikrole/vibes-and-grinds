@@ -22,7 +22,7 @@ const STAT_FIELDS = [
   ['wi_record', 'wiRecord'],
 ];
 
-export const BOX_SCORE_FIELDS = [
+const BOX_SCORE_FIELDS = [
   'wi_fg', 'wi_3pt', 'wi_ft', 'wi_rebounds', 'wi_turnovers',
   'wi_fg_pct', 'wi_3pt_pct', 'wi_ft_pct',
   'opp_fg', 'opp_3pt', 'opp_ft', 'opp_rebounds', 'opp_turnovers',

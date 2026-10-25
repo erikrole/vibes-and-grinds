@@ -4,9 +4,9 @@
 
 import { isIsoDate } from '../_shared.js';
 
-export const MAX_VEST_GAMES = 400;
+const MAX_VEST_GAMES = 400;
 
-export function normalizeGameLocation(game) {
+function normalizeGameLocation(game) {
   const neutral = game?.neutralSite === true || game?.neutralSite === 'true' || `${game?.homeAway || ''}`.toLowerCase() === 'neutral';
   if (neutral) return 'N';
   const raw = `${game?.location ?? ''}`.trim();

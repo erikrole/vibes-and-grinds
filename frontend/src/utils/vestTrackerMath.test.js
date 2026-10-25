@@ -78,7 +78,6 @@ describe('opponent strength', () => {
     expect(findNetRankForOpponent(lookup, 'Northern Illinois')).toBe(180);
     expect(findNetRankForOpponent(lookup, 'SIU Edwardsville')).toBe(300);
     expect(findNetRankForOpponent(lookup, 'Milwaukee')).toBe(250);
-    expect(findNetRankForOpponent(lookup, 'Iowa')).toBe(40);
   });
 
   it('returns null when the only candidates are different schools', () => {

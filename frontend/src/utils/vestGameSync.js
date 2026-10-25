@@ -7,7 +7,7 @@ function normalizeRanking(ranking) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-export function normalizeVestGame(game) {
+function normalizeVestGame(game) {
   const id = Number.parseInt(game?.id, 10);
   return {
     id: Number.isFinite(id) ? id : null,
@@ -21,7 +21,7 @@ export function normalizeVestGame(game) {
   };
 }
 
-export function vestGamesSignature(games) {
+function vestGamesSignature(games) {
   const list = Array.isArray(games) ? games : [];
   return JSON.stringify(list.map(normalizeVestGame));
 }

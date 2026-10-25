@@ -14,8 +14,6 @@ const TIER_COLORS = {
   Diamond:  { bg: 'bg-violet-100 dark:bg-violet-900/30', text: 'text-violet-700 dark:text-violet-300', border: 'border-violet-200 dark:border-violet-800/50', hex: '#7c3aed' },
 };
 
-export { TIERS, TIER_COLORS };
-
 // ── Badge Definitions ────────────────────────────────────────────────────────
 
 const BADGE_DEFS = [
@@ -193,7 +191,6 @@ const BADGE_DEFS = [
   },
 ];
 
-export { BADGE_DEFS };
 
 // ── Computation ──────────────────────────────────────────────────────────────
 

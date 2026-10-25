@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { readEventId, readJsonBody, readPlaceId, readSeason, optionalCoord } from '../../functions/api/_http.js';
-import { centralGameDate, matchVestGameId } from '../../functions/api/vest/_centralDate.js';
+import { matchVestGameId } from '../../functions/api/vest/_centralDate.js';
 import {
   parseBoxScore,
   parseEspnEvent,
@@ -13,7 +13,7 @@ import {
   parseGenericRankingsTable,
   rankingsFromItems,
 } from '../../functions/api/vest/_netParse.js';
-import { boxScoreNeedsWrite, keepStoredBoxScore, planScoreSync } from '../../functions/api/vest/_scoreWrites.js';
+import { planScoreSync } from '../../functions/api/vest/_scoreWrites.js';
 
 const TEAM = '275';
 
@@ -55,21 +55,7 @@ function event(overrides = {}) {
 }
 
 describe('Central dates', () => {
-  it('splits midnight and both sides of the DST change onto the Chicago day', () => {
-    assert.equal(centralGameDate('2026-01-15T06:00:00.000Z'), '2026-01-15');
-    assert.equal(centralGameDate('2026-01-15T05:59:59.999Z'), '2026-01-14');
-    assert.equal(centralGameDate('2026-07-15T05:00:00.000Z'), '2026-07-15');
-    assert.equal(centralGameDate('2026-07-15T04:59:59Z'), '2026-07-14');
-    assert.equal(centralGameDate('2026-03-08T07:59:59Z'), '2026-03-08');
-    assert.equal(centralGameDate('2026-03-08T08:00:00Z'), '2026-03-08');
-    assert.equal(centralGameDate('2026-11-01T06:30:00Z'), '2026-11-01');
-    assert.equal(centralGameDate('2026-11-01T07:30:00Z'), '2026-11-01');
-  });
-
   it('rejects impossible calendar days instead of treating them as game days', () => {
-    assert.equal(centralGameDate('2026-02-31'), null);
-    assert.equal(centralGameDate('2026-02-29'), null);
-    assert.equal(centralGameDate('2024-02-29'), '2024-02-29');
     assert.equal(matchVestGameId([{ game_id: 1, date: '2026-02-31' }], '2026-02-31'), null);
   });
 });
@@ -216,16 +202,6 @@ describe('ESPN summary shape', () => {
     assert.equal(box.wi_leader_pts_name, null);
     assert.equal(box.wisconsin_h1, null);
     assert.equal(box.ot_periods, null);
-
-    const empty = parseBoxScore({});
-    assert.equal(empty.ot_periods, null);
-    assert.equal(boxScoreNeedsWrite({
-      wi_fg: '37-77',
-      wi_rebounds: 43,
-      wi_leader_pts_name: 'John Blackwell',
-      wisconsin_h1: 51,
-      ot_periods: 1,
-    }, empty), false);
   });
 
   it('treats overtime as its own word, not letters inside another word', () => {

@@ -1,12 +1,12 @@
 // Request guards shared by the Pages functions and the local Express server.
 // Bodies, seasons, and event ids are checked before any upstream or D1 call.
 
-export const MAX_JSON_BYTES = 256 * 1024;
+const MAX_JSON_BYTES = 256 * 1024;
 export const MAX_BLURB_CHARS = 4000;
 export const MAX_PLACES_INPUT = 200;
-export const MAX_PLACE_ID_LENGTH = 300;
+const MAX_PLACE_ID_LENGTH = 300;
 
-export function bodyTooLarge(request, maxBytes = MAX_JSON_BYTES) {
+function bodyTooLarge(request, maxBytes = MAX_JSON_BYTES) {
   const header = request?.headers?.get?.('content-length');
   if (header == null || header === '') return false;
   const size = Number(header);

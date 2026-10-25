@@ -14,7 +14,7 @@ export function normalizeTeamName(name) {
   return mapping[normalized] || normalized;
 }
 
-export function stripHtmlTags(value = '') {
+function stripHtmlTags(value = '') {
   return String(value)
     .replace(/<[^>]*>/g, ' ')
     .replace(/&nbsp;/gi, ' ')

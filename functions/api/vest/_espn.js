@@ -7,7 +7,7 @@ import { centralGameDate } from './_centralDate.js';
 
 export const WISCONSIN_TEAM_ID = '275';
 
-export function readNumber(value) {
+function readNumber(value) {
   if (value == null || value === '') return null;
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
   if (typeof value === 'string') {
@@ -26,14 +26,14 @@ export function readNumber(value) {
  * Checking homeAway first labels a neutral "home" game "vs" and a neutral
  * "away" game "@". The neutral flag wins.
  */
-export function espnLocation(competitor, competition) {
+function espnLocation(competitor, competition) {
   const homeAway = `${competitor?.homeAway || ''}`.toLowerCase();
   if (competition?.neutralSite === true || homeAway === 'neutral') return 'N';
   if (homeAway === 'away') return '@';
   return 'vs';
 }
 
-export function readBroadcast(competition) {
+function readBroadcast(competition) {
   const broadcasts = Array.isArray(competition?.broadcasts) ? competition.broadcasts : [];
   for (const entry of broadcasts) {
     if (!entry || typeof entry !== 'object') continue;
@@ -47,7 +47,7 @@ export function readBroadcast(competition) {
   return null;
 }
 
-export function readRecord(competitor) {
+function readRecord(competitor) {
   const raw = competitor?.records ?? competitor?.record;
   const list = Array.isArray(raw) ? raw : [];
   const overall = list.find((record) => record?.type === 'total') || list[0];
@@ -55,7 +55,7 @@ export function readRecord(competitor) {
   return summary ? String(summary) : null;
 }
 
-export function readRank(competitor) {
+function readRank(competitor) {
   const current = competitor?.curatedRank?.current;
   const rank = readNumber(current);
   if (rank == null || rank < 1) return null;
@@ -180,7 +180,7 @@ function statTokens(entry) {
     .map((token) => String(token).trim().toLowerCase());
 }
 
-export function extractStat(stats, label) {
+function extractStat(stats, label) {
   const list = asArray(stats);
   const aliases = STAT_ALIASES[label] || [String(label).toLowerCase()];
   const entry = list.find((stat) => stat && statTokens(stat).some((token) => aliases.includes(token)));
@@ -190,7 +190,7 @@ export function extractStat(stats, label) {
   return String(display);
 }
 
-export function extractStatNum(stats, label) {
+function extractStatNum(stats, label) {
   const display = extractStat(stats, label);
   if (!display) return null;
   const num = Number.parseFloat(display);
