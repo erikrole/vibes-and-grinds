@@ -93,7 +93,7 @@ export default function PlacesAutocomplete({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [value]);
+  }, []);
 
   useEffect(() => {
     const query = (value || '').trim();
