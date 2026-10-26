@@ -136,7 +136,9 @@ export const formatLocationLabel = (location, mode = 'short') => {
 };
 
 export const normalizeTeamName = (value = '') => {
-  const lower = value.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  // null is passed through from a missing opponent. The default only covers
+  // undefined, and null.toLowerCase() used to take down the whole vest page.
+  const lower = String(value ?? '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
   const expanded = OPPONENT_ALIASES[lower] || lower;
   return expanded.replace(/\b(university|college)\b/g, ' ').replace(/\s+/g, ' ').trim();
 };

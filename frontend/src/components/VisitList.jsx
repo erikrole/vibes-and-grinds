@@ -66,8 +66,8 @@ export default function VisitList({
       {visits.map((visit, index) => (
         <div
           key={visit.id}
-          className="animate-card-in"
-          style={{ animationDelay: `${Math.min(index * 50, 400)}ms` }}
+          className={index < 6 ? 'animate-card-in' : undefined}
+          style={index < 6 ? { animationDelay: `${index * 40}ms` } : undefined}
         >
           <VisitCard
             visit={visit}

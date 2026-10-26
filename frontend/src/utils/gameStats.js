@@ -12,6 +12,31 @@ function finiteScore(value) {
   return Number.isFinite(num) ? num : null;
 }
 
+/**
+ * Box-score bars for one game. Turnovers are the category where fewer is better,
+ * and they stay on Wisconsin's side of the comparison. The panel used to feed
+ * the opponent's turnover total into the Wisconsin column.
+ */
+export function boxScoreBars(detail = {}) {
+  return [
+    { label: 'FG%', wi: detail.wi_fg_pct, opp: detail.opp_fg_pct, format: 'pct', lowerIsBetter: false },
+    { label: '3PT%', wi: detail.wi_3pt_pct, opp: detail.opp_3pt_pct, format: 'pct', lowerIsBetter: false },
+    { label: 'FT%', wi: detail.wi_ft_pct, opp: detail.opp_ft_pct, format: 'pct', lowerIsBetter: false },
+    { label: 'REB', wi: detail.wi_rebounds, opp: detail.opp_rebounds, format: 'num', lowerIsBetter: false },
+    { label: 'TO', wi: detail.wi_turnovers, opp: detail.opp_turnovers, format: 'num', lowerIsBetter: true },
+  ];
+}
+
+export function sideLeads(wi, opp, { lowerIsBetter = false } = {}) {
+  const left = typeof wi === 'number' ? wi : Number(wi);
+  const right = typeof opp === 'number' ? opp : Number(opp);
+  const wiVal = Number.isFinite(left) ? left : 0;
+  const oppVal = Number.isFinite(right) ? right : 0;
+  if (wiVal === oppVal) return 'tie';
+  const wiBetter = lowerIsBetter ? wiVal < oppVal : wiVal > oppVal;
+  return wiBetter ? 'wi' : 'opp';
+}
+
 export function computeFunStats(games, vestGames = []) {
   if (!games.length) return null;
 
