@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { centralGameDate } from '../../../functions/api/vest/_centralDate.js';
 import { fetchVestScores, fetchVestGameStats } from '../utils/api';
-import { computeFunStats } from '../utils/gameStats';
+import { boxScoreBars, computeFunStats, sideLeads } from '../utils/gameStats';
 import { locationSplits } from '../utils/vestTrackerMath';
+import { recentLoggedResults } from '../utils/vestStory';
 
 const MONTHS = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'Jun.', 'Jul.', 'Aug.', 'Sep.', 'Oct.', 'Nov.', 'Dec.'];
 
@@ -29,12 +30,12 @@ function StatCard({ label, value, sub, highlight }) {
   );
 }
 
-function BarStat({ label, wi, opp, format = 'pct' }) {
+function BarStat({ label, wi, opp, format = 'pct', lowerIsBetter = false }) {
   const wiVal = typeof wi === 'number' ? wi : 0;
   const oppVal = typeof opp === 'number' ? opp : 0;
   const total = wiVal + oppVal || 1;
   const wiPct = (wiVal / total) * 100;
-  const wiWins = format === 'pct' ? wiVal > oppVal : wiVal > oppVal;
+  const wiWins = sideLeads(wiVal, oppVal, { lowerIsBetter }) === 'wi';
 
   return (
     <div className="space-y-1">
@@ -386,11 +387,9 @@ export default function GameStatsPanel({ games: vestGames }) {
                           <span className="text-red-600 dark:text-red-400">Wisconsin</span>
                           <span>Opponent</span>
                         </div>
-                        <BarStat label="FG%" wi={gameDetail.wi_fg_pct} opp={gameDetail.opp_fg_pct} />
-                        <BarStat label="3PT%" wi={gameDetail.wi_3pt_pct} opp={gameDetail.opp_3pt_pct} />
-                        <BarStat label="FT%" wi={gameDetail.wi_ft_pct} opp={gameDetail.opp_ft_pct} />
-                        <BarStat label="REB" wi={gameDetail.wi_rebounds} opp={gameDetail.opp_rebounds} format="num" />
-                        <BarStat label="TO" wi={gameDetail.opp_turnovers} opp={gameDetail.wi_turnovers} format="num" />
+                        {boxScoreBars(gameDetail).map((bar) => (
+                          <BarStat key={bar.label} {...bar} />
+                        ))}
 
                         {(gameDetail.wi_leader_pts_name || gameDetail.wi_leader_reb_name || gameDetail.wi_leader_ast_name) && (
                           <div className="border-t border-stone-200 dark:border-stone-600 pt-3 mt-3">
@@ -427,7 +426,7 @@ function LocalSeasonStats({ games, scoreStatus, onRetry }) {
   const completed = games.filter((game) => game.result === 'W' || game.result === 'L');
   const wins = completed.filter((game) => game.result === 'W').length;
   const splits = locationSplits(games);
-  const recent = completed.slice(-10).reverse();
+  const recent = recentLoggedResults(games);
   const outfitCounts = Object.entries(completed.reduce((counts, game) => {
     if (game.outfit) counts[game.outfit] = (counts[game.outfit] || 0) + 1;
     return counts;

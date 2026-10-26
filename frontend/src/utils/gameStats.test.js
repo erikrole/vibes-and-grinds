@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeFunStats } from './gameStats';
+import { boxScoreBars, computeFunStats, sideLeads } from './gameStats';
 
 function game(overrides = {}) {
   return {
@@ -16,6 +16,29 @@ function game(overrides = {}) {
     ...overrides,
   };
 }
+
+describe('box score bars', () => {
+  it('keeps each total on the team that earned it, and treats fewer turnovers as the better side', () => {
+    const bars = boxScoreBars({
+      wi_fg_pct: 48,
+      opp_fg_pct: 40,
+      wi_3pt_pct: 35,
+      opp_3pt_pct: 30,
+      wi_ft_pct: 70,
+      opp_ft_pct: 80,
+      wi_rebounds: 43,
+      opp_rebounds: 30,
+      wi_turnovers: 8,
+      opp_turnovers: 14,
+    });
+    const turnovers = bars.find((bar) => bar.label === 'TO');
+    expect(turnovers).toMatchObject({ wi: 8, opp: 14, lowerIsBetter: true });
+    expect(sideLeads(turnovers.wi, turnovers.opp, { lowerIsBetter: true })).toBe('wi');
+    expect(sideLeads(48, 40)).toBe('wi');
+    expect(sideLeads(70, 80)).toBe('opp');
+    expect(sideLeads(10, 10)).toBe('tie');
+  });
+});
 
 describe('computeFunStats', () => {
   it('returns null until a game has both scores', () => {
