@@ -14,12 +14,17 @@ import {
   formatDate,
   formatLocationLabel,
   getQuadrant,
-  indexByCentralDay,
   locationSplits,
   normalizeNetResponse,
   normalizeTeamName,
-  toIsoDate,
 } from '../utils/vestTrackerMath';
+import {
+  buildOutfitBadges,
+  buildQuadrantAdvisor,
+  buildSeasonMilestones,
+  gameDayDrinks,
+  recordAgainstOpponent,
+} from '../utils/vestStory';
 import NetRankingsPage from './NetRankingsPage';
 import VestScoreboard from './VestScoreboard';
 import VestNextGame from './VestNextGame';
@@ -82,7 +87,10 @@ export default function VestTrackerDashboard({ showToast, coffeeVisits = [] }) {
 
   // Persist game changes.
   useEffect(() => {
-    try { localStorage.setItem(VEST_GAMES_KEY, JSON.stringify(games)); } catch { /* ignore */ }
+    try {
+      const next = JSON.stringify(games);
+      if (localStorage.getItem(VEST_GAMES_KEY) !== next) localStorage.setItem(VEST_GAMES_KEY, next);
+    } catch { /* ignore */ }
   }, [games]);
 
   // Initial sync from server (overrides local seed if data exists).
@@ -277,22 +285,7 @@ export default function VestTrackerDashboard({ showToast, coffeeVisits = [] }) {
     [outfitStats, completedGames]
   );
 
-  // Badges per outfit, narrative-style.
-  const outfitBadges = useMemo(() => {
-    const badges = {};
-    for (const stat of outfitStats) {
-      const list = [];
-      const s = countTrailingStreak(stat.results);
-      if (s && s.count >= 3 && s.result === 'W') list.push(`${s.count}-Game Heater`);
-      else if (s && s.count >= 3 && s.result === 'L') list.push(`${s.count}-Game Skid`);
-      if (stat.roadWins >= 3) list.push(`Road Warrior (${stat.roadWins}-${stat.roadLosses})`);
-      if (stat.quadrants[1].wins >= 2) list.push(`Q1 Slayer (${stat.quadrants[1].wins}-${stat.quadrants[1].losses})`);
-      if (stat.games >= 3 && stat.losses === 0) list.push('Undefeated');
-      if (stat.otWins >= 2) list.push(`OT Specialist (${stat.otWins}-${stat.otLosses})`);
-      if (list.length) badges[stat.outfit] = list;
-    }
-    return badges;
-  }, [outfitStats]);
+  const outfitBadges = useMemo(() => buildOutfitBadges(outfitStats), [outfitStats]);
 
   // Next game scouting report.
   const upcomingGame = useMemo(
@@ -314,58 +307,20 @@ export default function VestTrackerDashboard({ showToast, coffeeVisits = [] }) {
     if (!upcoming) return null;
     const rank = findNetRankForOpponent(netLookup, upcoming.opponent);
     const quadrant = getQuadrant(upcoming.location || 'vs', rank);
-    const vsOpponent = completedGames.filter(
-      (g) => g.opponent.toLowerCase() === upcoming.opponent.toLowerCase()
-    );
-    const vsWins = vsOpponent.filter((g) => g.result === 'W').length;
     return {
       opponent: upcoming.opponent,
       location: upcoming.location || 'vs',
       date: upcoming.date,
       netRank: Number.isFinite(rank) ? rank : null,
       quadrant,
-      allTimeRecord: vsOpponent.length ? { wins: vsWins, losses: vsOpponent.length - vsWins } : null,
+      allTimeRecord: recordAgainstOpponent(completedGames, upcoming.opponent),
     };
   }, [upcomingGame, netLookup, completedGames]);
 
-  // Per-outfit advisor for the upcoming game's quadrant + location.
-  const advisor = useMemo(() => {
-    if (!scoutingReport?.quadrant) return [];
-    const q = scoutingReport.quadrant;
-    const loc = scoutingReport.location;
-    const gamesByOutfitLocation = new Map();
-    for (const game of completedGames) {
-      const key = `${game.outfit}\0${game.location}`;
-      const list = gamesByOutfitLocation.get(key);
-      if (list) list.push(game);
-      else gamesByOutfitLocation.set(key, [game]);
-    }
-    return outfitStats
-      .map((stat) => {
-        const qW = stat.quadrants[q].wins;
-        const qL = stat.quadrants[q].losses;
-        const qGames = qW + qL;
-        const locGames = gamesByOutfitLocation.get(`${stat.outfit}\0${loc}`) || [];
-        const locW = locGames.filter((g) => g.result === 'W').length;
-        let confidence = 'unknown';
-        if (qGames === 0) confidence = 'untested';
-        else if (qGames >= 2 && qW / qGames >= 0.7) confidence = 'high';
-        else if (qGames >= 2 && qW / qGames >= 0.4) confidence = 'medium';
-        else if (qGames >= 1) confidence = 'low';
-        return {
-          outfit: stat.outfit,
-          confidence,
-          qRecord: `${qW}–${qL}`,
-          locRecord: locGames.length ? `${locW}–${locGames.length - locW}` : null,
-          qGames,
-          form: stat.form,
-        };
-      })
-      .sort((a, b) => {
-        const order = { high: 0, medium: 1, low: 2, untested: 3, unknown: 4 };
-        return (order[a.confidence] ?? 4) - (order[b.confidence] ?? 4);
-      });
-  }, [scoutingReport, outfitStats, completedGames]);
+  const advisor = useMemo(
+    () => buildQuadrantAdvisor(outfitStats, completedGames, scoutingReport),
+    [scoutingReport, outfitStats, completedGames]
+  );
 
   // Jinx alert — top recommendation has never been worn in this quadrant.
   const jinxAlert = useMemo(() => {
@@ -379,93 +334,16 @@ export default function VestTrackerDashboard({ showToast, coffeeVisits = [] }) {
     return null;
   }, [recommendation, scoutingReport, outfitStats]);
 
-  // Season storylines (single pass over completed games).
-  const milestones = useMemo(() => {
-    if (!completedGames.length) return [];
-    let maxStreak = 0;
-    let curStreak = 0;
-    const outfitStreaks = {};
-    let firstQ1Road = null;
-    let worstLoss = null;
-    let worstRank = 0;
-    let bestWin = null;
-    let bestRank = 999;
-    let otWins = 0;
-    let otTotal = 0;
-
-    for (const g of completedGames) {
-      if (g.result === 'W') {
-        curStreak += 1;
-        if (curStreak > maxStreak) maxStreak = curStreak;
-      } else {
-        curStreak = 0;
-      }
-
-      if (g.outfit) {
-        if (!outfitStreaks[g.outfit]) outfitStreaks[g.outfit] = { max: 0, cur: 0 };
-        if (g.result === 'W') {
-          outfitStreaks[g.outfit].cur += 1;
-          outfitStreaks[g.outfit].max = Math.max(outfitStreaks[g.outfit].max, outfitStreaks[g.outfit].cur);
-        } else {
-          outfitStreaks[g.outfit].cur = 0;
-        }
-      }
-
-      const rank = findNetRankForOpponent(netLookup, g.opponent);
-      if (!firstQ1Road && g.result === 'W' && g.location === '@' && getQuadrant('@', rank) === 1) {
-        firstQ1Road = g;
-      }
-      if (rank) {
-        if (g.result === 'W' && rank < bestRank) { bestRank = rank; bestWin = g; }
-        if (g.result === 'L' && rank > worstRank) { worstRank = rank; worstLoss = g; }
-      }
-      if (g.overtime) {
-        otTotal += 1;
-        if (g.result === 'W') otWins += 1;
-      }
-    }
-
-    const ms = [];
-    if (maxStreak >= 3) ms.push({ icon: '🔥', text: `Longest win streak: ${maxStreak} games` });
-
-    let bestOutfitStreak = { outfit: null, count: 0 };
-    for (const [outfit, data] of Object.entries(outfitStreaks)) {
-      if (data.max > bestOutfitStreak.count) bestOutfitStreak = { outfit, count: data.max };
-    }
-    if (bestOutfitStreak.count >= 3) ms.push({ icon: '👔', text: `Best outfit streak: ${bestOutfitStreak.count}W in ${bestOutfitStreak.outfit}` });
-    if (firstQ1Road) ms.push({ icon: '🏆', text: `First Q1 road win: ${formatLocationLabel('@', 'full')} ${firstQ1Road.opponent}` });
-    if (worstLoss && worstRank > 150) ms.push({ icon: '😬', text: `Worst loss: ${formatLocationLabel(worstLoss.location, 'full')} ${worstLoss.opponent} (NET #${worstRank})` });
-    if (bestWin && bestRank <= 25) ms.push({ icon: '⭐', text: `Best win: ${formatLocationLabel(bestWin.location, 'full')} ${bestWin.opponent} (NET #${bestRank})` });
-    if (otTotal >= 2) ms.push({ icon: '⏱️', text: `Overtime record: ${otWins}–${otTotal - otWins}` });
-
-    return ms;
-  }, [completedGames, netLookup]);
+  const milestones = useMemo(
+    () => buildSeasonMilestones(completedGames, netLookup),
+    [completedGames, netLookup]
+  );
 
   // Coffee crossover uses the journal fetch. Vest mode used to request it again.
-  const coffeeCrossover = useMemo(() => {
-    if (!coffeeVisits.length || !completedGames.length) return [];
-    const gameDateMap = indexByCentralDay(completedGames);
-    const drinkStats = {};
-    for (const visit of coffeeVisits) {
-      const game = gameDateMap.get(toIsoDate(visit.date || visit.visitDate));
-      if (!game) continue;
-      const drink = visit.coffee_order || visit.drink || visit.order || '';
-      if (!drink) continue;
-      if (!drinkStats[drink]) drinkStats[drink] = { wins: 0, losses: 0 };
-      if (game.result === 'W') drinkStats[drink].wins += 1;
-      else drinkStats[drink].losses += 1;
-    }
-    return Object.entries(drinkStats)
-      .filter(([, s]) => s.wins + s.losses >= 2)
-      .map(([drink, s]) => ({
-        drink,
-        wins: s.wins,
-        losses: s.losses,
-        total: s.wins + s.losses,
-        winRate: Math.round((s.wins / (s.wins + s.losses)) * 100),
-      }))
-      .sort((a, b) => b.winRate - a.winRate || b.total - a.total);
-  }, [coffeeVisits, completedGames]);
+  const coffeeCrossover = useMemo(
+    () => gameDayDrinks(coffeeVisits, completedGames),
+    [coffeeVisits, completedGames]
+  );
 
   // AI blurb — composes a context string and calls the worker.
   const [aiBlurb, setAiBlurb] = useState('');

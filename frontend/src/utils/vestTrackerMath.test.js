@@ -69,6 +69,11 @@ describe('opponent strength', () => {
     ['SIU Edwardsville', 300],
   ]);
 
+  it('treats a missing opponent as no rank instead of throwing', () => {
+    expect(findNetRankForOpponent(lookup, null)).toBeNull();
+    expect(findNetRankForOpponent(lookup, undefined)).toBeNull();
+  });
+
   it('uses the exact school and does not borrow a longer name', () => {
     expect(findNetRankForOpponent(lookup, 'Iowa')).toBe(40);
     expect(findNetRankForOpponent(lookup, 'Iowa Hawkeyes')).toBe(40);
