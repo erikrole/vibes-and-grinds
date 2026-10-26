@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import { fittedPhotoSize, VISIT_PHOTO_JPEG_QUALITY } from '../utils/photoExport';
 
 export default function PhotoCropper({ imageUrl, onComplete, onCancel }) {
   const [crop, setCrop] = useState();
@@ -92,22 +93,27 @@ export default function PhotoCropper({ imageUrl, onComplete, onCancel }) {
       pixelCrop.height = cropToUse.height * image.height / 100;
     }
 
-    canvas.width = pixelCrop.width * scaleX;
-    canvas.height = pixelCrop.height * scaleY;
+    const sourceW = pixelCrop.width * scaleX;
+    const sourceH = pixelCrop.height * scaleY;
+    const fitted = fittedPhotoSize(sourceW, sourceH);
+    const outputW = fitted?.width || sourceW;
+    const outputH = fitted?.height || sourceH;
+
+    canvas.width = outputW;
+    canvas.height = outputH;
 
     ctx.drawImage(
       image,
       pixelCrop.x * scaleX,
       pixelCrop.y * scaleY,
-      pixelCrop.width * scaleX,
-      pixelCrop.height * scaleY,
+      sourceW,
+      sourceH,
       0,
       0,
-      pixelCrop.width * scaleX,
-      pixelCrop.height * scaleY
+      outputW,
+      outputH
     );
 
-    // Convert canvas to blob
     canvas.toBlob((blob) => {
       if (!blob) {
         console.error('Canvas is empty');
@@ -115,7 +121,7 @@ export default function PhotoCropper({ imageUrl, onComplete, onCancel }) {
       }
       const file = new File([blob], 'cropped-photo.jpg', { type: 'image/jpeg' });
       onComplete(file);
-    }, 'image/jpeg', 0.95);
+    }, 'image/jpeg', VISIT_PHOTO_JPEG_QUALITY);
   };
 
   return (
@@ -140,7 +146,7 @@ export default function PhotoCropper({ imageUrl, onComplete, onCancel }) {
                   ref={imgRef}
                   src={imageUrl}
                   alt="Crop preview"
-                  crossOrigin="anonymous"
+                  crossOrigin={/^https?:/i.test(imageUrl || '') ? 'anonymous' : undefined}
                   onLoad={onImageLoad}
                   style={{ maxHeight: '55vh' }}
                 />
