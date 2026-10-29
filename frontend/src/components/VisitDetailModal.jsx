@@ -358,7 +358,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
               <a className="text-action" href={mapUrl} target="_blank" rel="noopener noreferrer">Open in Maps</a>
               {visit.shop_id && <button type="button" className="text-action" onClick={() => onShopClick(visit)}>Shop history</button>}
               <CopyLink />
-              <button type="button" className="text-action" onClick={handleShare}>Share image</button>
+              <button type="button" className="text-action" onClick={handleShare}>Share to Instagram</button>
               {canPhoto && !visit.photo_url && <button type="button" className="text-action" onClick={handleAddPhoto} disabled={uploading}>Add photo</button>}
             </div>
 
