@@ -12,6 +12,7 @@
 - Explicit Vest footer navigation. Browsing never saves games. Generated hype and outfit recommendations removed.
 - Missing locations have an owner repair flow; pins represent shops rather than duplicate visits.
 - Fun extras: save celebration, awards, state passport, trip replay, season wrapped card, game-day stats.
+- Share to Instagram: Post and Story share cards with a ready-made caption copied for pasting.
 - Insights opens with animated, journal-derived fun stats (counts, miles, weekday and rating bars).
 - Add visit offers Wisconsin games for the picked date (Sidearm iCal, ESPN fallback for men's basketball). Open: a home/away field, and track once the 2026–27 feed publishes.
 
