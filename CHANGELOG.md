@@ -1,5 +1,9 @@
 # Change notes
 
+## 2026-10-30 — Share a visit to Instagram
+
+The visit's "Share image" action is now "Share to Instagram". The share card comes in Post (1080×1350) and Story (1080×1920) sizes; the Story keeps the text clear of Instagram's reply bar. A ready-made caption (shop, city, scores, order, game, note, hashtags with a city tag) is shown with a Copy button. On a phone, Share to Instagram copies the caption and opens the share sheet with the image, since Instagram ignores text shared alongside an image; on a computer it saves the image and copies the caption. Nothing is stored. Checked at 375px in dark and light against read-only production data; the phone share sheet itself needs a check on a real device.
+
 ## 2026-10-15 — Share card uses the visit photo
 
 The share card fell back to the placeholder cup because the R2 photo host sends no CORS headers, so the canvas couldn't read the image. Cross-origin photos now load through a same-origin `GET /api/photo?url=…` stream that only fetches the configured `R2_PUBLIC_URL` host (other hosts, plain http and look-alike hosts return 400). No bucket or Cloudflare setting changed; adding CORS to the bucket would be the alternative. Checked with the real happy coffee photo against a local backend.

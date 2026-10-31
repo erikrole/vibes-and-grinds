@@ -7,43 +7,48 @@ import { formatDate } from './dates.js';
 import { formatEventContext, titleCaseOrder } from './display.js';
 
 const W = 1080;
-const H = 1350;
 const PAD = 72;
-const BOTTOM_PAD = 78;
+// Instagram feed posts are 4:5; Stories are 9:16 and cover the bottom ~250px
+// with the reply bar, so the text block sits higher there.
+export const CARD_FORMATS = {
+  post: { height: 1350, bottomPad: 78 },
+  story: { height: 1920, bottomPad: 300 },
+};
 const ACCENT = '#d96f2e';
 const SERIF = "'Fraunces', Georgia, serif";
 const SANS = "'Inter', system-ui, sans-serif";
 
 /**
  * Generate a styled share card image for a visit. Returns a Blob (image/png).
- * The `dark` option is accepted for call-site compatibility but ignored —
- * the card is always a dark-photo design.
+ * `format` is 'post' (1080×1350) or 'story' (1080×1920).
  */
-export async function generateShareCard(visit) {
+export async function generateShareCard(visit, format = 'post') {
   await ensureFontsReady();
+  const { height: H, bottomPad } = CARD_FORMATS[format] || CARD_FORMATS.post;
 
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  drawBackground(ctx);
+  drawBackground(ctx, H);
   const photo = visit.photo_url ? await loadImage(visit.photo_url) : null;
   if (photo) {
     drawCover(ctx, photo, 0, 0, W, H);
   } else {
-    drawWatermarkCup(ctx);
+    drawWatermarkCup(ctx, H);
   }
-  const layout = measureContent(ctx, visit);
-  drawScrim(ctx, layout.top);
+  const layout = measureContent(ctx, visit, H - bottomPad);
+  drawScrim(ctx, layout.top, H);
   drawContent(ctx, visit, layout);
 
   return await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
 }
 
-function cardFile(blob, visit) {
+function cardFile(blob, visit, format = 'post') {
   const safeName = (visit.coffee_shop_name || 'visit').replace(/\s+/g, '-').toLowerCase();
-  return new File([blob], `vibes-${safeName}.png`, { type: 'image/png' });
+  const suffix = format === 'story' ? '-story' : '';
+  return new File([blob], `vibes-${safeName}${suffix}.png`, { type: 'image/png' });
 }
 
 /** Whether the native share sheet can share this card (mobile, mainly). */
@@ -60,8 +65,8 @@ export function canShareCard(blob, visit) {
  * Share an already-generated card via the native share sheet, falling back to
  * a download where the Web Share API is unsupported.
  */
-export async function shareCardBlob(blob, visit) {
-  const file = cardFile(blob, visit);
+export async function shareCardBlob(blob, visit, format = 'post') {
+  const file = cardFile(blob, visit, format);
   if (canShareCard(blob, visit)) {
     try {
       await navigator.share({ files: [file], title: `${visit.coffee_shop_name} — Vibes & Grinds` });
@@ -70,15 +75,15 @@ export async function shareCardBlob(blob, visit) {
       if (e.name === 'AbortError') return 'cancelled';
     }
   }
-  return downloadCardBlob(blob, visit);
+  return downloadCardBlob(blob, visit, format);
 }
 
 /** Force a PNG download of an already-generated card. */
-export function downloadCardBlob(blob, visit) {
+export function downloadCardBlob(blob, visit, format = 'post') {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = cardFile(blob, visit).name;
+  a.download = cardFile(blob, visit, format).name;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -88,7 +93,7 @@ export function downloadCardBlob(blob, visit) {
 
 // ── Drawing ───────────────────────────────────────────────────────────────────
 
-function drawBackground(ctx) {
+function drawBackground(ctx, H) {
   // Diagonal copper gradient (≈155deg): top-right → bottom-left.
   const lin = ctx.createLinearGradient(W, 0, 0, H);
   lin.addColorStop(0, '#c25c22');
@@ -105,7 +110,7 @@ function drawBackground(ctx) {
   ctx.fillRect(0, 0, W, H);
 }
 
-function drawWatermarkCup(ctx) {
+function drawWatermarkCup(ctx, H) {
   ctx.save();
   ctx.globalAlpha = 0.18;
   ctx.font = `300px ${SANS}`;
@@ -116,7 +121,7 @@ function drawWatermarkCup(ctx) {
   ctx.restore();
 }
 
-function drawScrim(ctx, contentTop) {
+function drawScrim(ctx, contentTop, H) {
   // Bottom-anchored darkening that only reaches as high as the text does, so the
   // top of the photo stays untouched however long the note is.
   const fadeTop = Math.max(0, contentTop - 260);
@@ -133,7 +138,7 @@ const NOTE_SIZE = 38;
 const NOTE_LINE_H = 52;
 const NOTE_MAX_LINES = 2;
 
-function measureContent(ctx, visit) {
+function measureContent(ctx, visit, bottom) {
   const maxTextW = W - PAD * 2;
 
   ctx.font = `700 94px ${SERIF}`;
@@ -156,7 +161,7 @@ function measureContent(ctx, visit) {
   const footerH = 33;
   const contentH = pinH + shopH + subH + noteH + 54 + chipsH + 48 + footerH;
 
-  return { shopLines, shopLineH, pinText, subText, noteLines, pinH, subH, noteH, chipsH, top: H - BOTTOM_PAD - contentH };
+  return { shopLines, shopLineH, pinText, subText, noteLines, pinH, subH, noteH, chipsH, top: bottom - contentH };
 }
 
 function drawContent(ctx, visit, layout) {
@@ -362,8 +367,8 @@ async function ensureFontsReady() {
 
 // Dev-only preview hook: draws a scaled-down card for visual verification.
 if (import.meta.env?.DEV) {
-  window.__shareCardPreview = async (visit) => {
-    const blob = await generateShareCard(visit);
+  window.__shareCardPreview = async (visit, format) => {
+    const blob = await generateShareCard(visit, format);
     const url = URL.createObjectURL(blob);
     const img = new Image();
     await new Promise((r) => { img.onload = r; img.src = url; });
