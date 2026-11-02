@@ -6,7 +6,7 @@
 
 ## November 1, 2026 — Cloudflare photo optimization
 
-Backfilled 96 variants for 32 originals, with unchanged original sizes and ETags. The 160-pixel set is 177,022 bytes against 105,909,400 bytes of originals. CDN probes returned WebP, a one-year immutable cache policy, and MISS then HIT. Browser checks cover original-byte preservation, 160/320 square and 1600-bounded encoding, missing-variant fallback, and a narrow dark detail view. Frontend 73 tests, backend 31 tests, build and required syntax checks pass. Pages production branch was verified as `main`; deployment attestation follows publishing.
+Backfilled 96 variants for 32 originals, with unchanged original sizes and ETags. The 160-pixel set is 177,022 bytes against 105,909,400 bytes of originals. CDN probes returned WebP, a one-year immutable cache policy, and MISS then HIT. Browser checks cover original-byte preservation, 160/320 square and 1600-bounded encoding, missing-variant fallback, and a narrow dark detail view. Frontend 73 tests, backend 31 tests, build and required syntax checks pass. The photo feature shipped from `073936d73fba44690ed014e65c2d121733bb2b73` to https://c0a052ec.vibes-and-grinds.pages.dev and https://coffee.erikrole.com; hosted CI run `41370659427` passed. Production branch is `main` and production browser checks confirmed CDN variants.
 
 - Compact journal, clear sorting/filtering, warm light/dark themes, and restrained motion.
 - Shareable entry, shop, view, and season URLs with browser Back and full shop histories.
