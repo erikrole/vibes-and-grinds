@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import PhotoCropper from './PhotoCropper';
+import { createPhotoUpload } from '../utils/photoUpload';
 import AutocompleteInput from './AutocompleteInput';
 import PlacesAutocomplete from './PlacesAutocomplete';
 import { formatDate, getTodayDateString } from '../utils/dates';
@@ -299,8 +300,7 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
     try {
       let photoUrl = formData.photo_url;
       if (photoFile) {
-        const uploadFormData = new FormData();
-        uploadFormData.append('file', photoFile);
+        const uploadFormData = await createPhotoUpload(photoFile);
         const response = await fetch('/api/upload', { method: 'POST', body: uploadFormData });
         if (!response.ok) throw new Error('Failed to upload photo');
         const { url } = await response.json();

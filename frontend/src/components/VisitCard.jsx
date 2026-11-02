@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import RatingBadge from './RatingBadge';
 import CompositeBadge from './CompositeBadge';
+import VisitPhoto from './VisitPhoto';
 import { formatDate, getRelativeLabel } from '../utils/dates';
 import { formatEventContext, titleCaseOrder } from '../utils/display';
 
@@ -46,7 +47,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
         <div className="flex-1 flex gap-5 min-w-0">
           {visit.photo_url && (
             <div className="hidden sm:block flex-shrink-0 w-20 h-20 rounded-2xl overflow-hidden bg-surface-muted">
-              <img
+              <VisitPhoto size={160}
                 src={visit.photo_url}
                 alt=""
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

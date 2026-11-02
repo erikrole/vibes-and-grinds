@@ -50,6 +50,12 @@ VITE_PROXY_TARGET=https://coffee.erikrole.com VITE_PROXY_READ_ONLY=true npm run 
 
 Never use an unguarded production proxy to test writes. Keep databases, photos, tokens, and generated exports out of Git.
 
+## Photo delivery
+
+Visit cards use 160/320-pixel square WebP thumbnails; details and share cards use an aspect-preserving image bounded by 1600 pixels. `images.erikrole.com` serves these immutable variants from the existing coffee bucket. Uploads preserve the selected original and its database URL for recropping and recovery. Optional encoder or missing-variant failures fall back to the original.
+
+Existing photos can be backfilled with `npm --prefix frontend run photos:backfill -- --account-id <account> --output /absolute/private/receipt.json`. This is a dry run unless `--apply` is supplied. It writes only missing `variants/v1/` objects, verifies source metadata, and never deletes or overwrites originals. It uses an existing R2 credential or Wrangler OAuth; receipts and photos stay outside Git.
+
 ## Apple Maps setup
 
 Set `APPLE_MAPS_TOKEN` on the API to a public MapKit JS token restricted to the intended domains. `/api/maps-config` returns this browser token with `Cache-Control: no-store`. **Never put a private `.p8` signing key in this variable or in browser code.** The frontend uses Apple’s official loader and SDK 6. Saved Apple place IDs use the `apple:` prefix in the existing place-ID column; existing Google records keep their identity and coordinates.
@@ -90,7 +96,7 @@ Older immutable Pages deployments must be retired or access-restricted before ow
 
 ## Release branches
 
-`main` is the intended integration line. As verified on October 17, 2026, GitHub's default branch is still `claude/coffee-shop-tracker-iIWcb`. The last recorded Cloudflare Pages production-branch setting used that branch on October 4; it was not reverified during local maintenance. Check the current Pages setting and exact deployment source before publishing. Branch-setting changes require approval; do not assume changing GitHub's default also changes Pages.
+`main` is the integration and Cloudflare Pages production branch, verified November 1, 2026. Check the current Pages setting and exact deployment source before publishing. Branch-setting changes require approval; do not assume changing GitHub's default also changes Pages.
 
 See [ROADMAP.md](ROADMAP.md) for remaining work and dated verification, and [CHANGELOG.md](CHANGELOG.md) for change notes.
 

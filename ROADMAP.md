@@ -2,6 +2,12 @@
 
 ## Implemented in the whole-site update
 
+- Immutable CDN photo variants, responsive card thumbnails, and optional browser-generated WebP uploads with original-image fallback and preserved recropping sources.
+
+## November 1, 2026 — Cloudflare photo optimization
+
+Backfilled 96 variants for 32 originals, with unchanged original sizes and ETags. The 160-pixel set is 177,022 bytes against 105,909,400 bytes of originals. CDN probes returned WebP, a one-year immutable cache policy, and MISS then HIT. Browser checks cover original-byte preservation, 160/320 square and 1600-bounded encoding, missing-variant fallback, and a narrow dark detail view. Frontend 73 tests, backend 31 tests, build and required syntax checks pass. Pages production branch was verified as `main`; deployment attestation follows publishing.
+
 - Compact journal, clear sorting/filtering, warm light/dark themes, and restrained motion.
 - Shareable entry, shop, view, and season URLs with browser Back and full shop histories.
 - Stable internal shop IDs and evidence-based Apple/Google provider aliases; chain branches stay separate.
@@ -34,4 +40,4 @@ The release URLs, record counts and live checks below are dated evidence, not a 
 ## Follow-up maintenance
 
 - Review existing dependency audit findings separately.
-- `main` is the intended integration line and includes the season-review layout and monthly visit chart from PR #90. On 2026-10-17 GitHub's default branch was still `claude/coffee-shop-tracker-iIWcb`; the current Pages production-branch setting and live source were not reverified during local maintenance. Inspect both before publishing. Changing either setting requires explicit infrastructure approval, and every candidate release must preserve the server-enforced owner-session gate. Do not infer the current branch's security behavior from the October 4 deployment history.
+- `main` is the integration and Pages production branch, verified 2026-11-01. Inspect the setting and exact deployment source before publishing. Branch or binding changes require explicit infrastructure approval; every release must preserve the server-enforced owner-session gate.

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PhotoCropper from './PhotoCropper';
+import VisitPhoto from './VisitPhoto';
+import { createPhotoUpload } from '../utils/photoUpload';
 import { getRatingColor, getCompositeColor } from '../utils/colors';
 import { formatDate, getRelativeLabel } from '../utils/dates';
 import { DEFAULT_VISITOR_NAME, getRepeatVisits } from '../utils/repeats';
@@ -84,8 +86,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
     setUploading(true);
     try {
-      const uploadFormData = new FormData();
-      uploadFormData.append('file', file);
+      const uploadFormData = await createPhotoUpload(file);
 
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -278,7 +279,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
           {visit.photo_url && (
             <div className="visit-photo-stage">
-              <img src={visit.photo_url} alt={visit.coffee_shop_name} className="visit-photo-image" />
+              <VisitPhoto src={visit.photo_url} alt={visit.coffee_shop_name} className="visit-photo-image" />
               {visit.notes && (
                 <>
                   <button type="button" className="photo-note-pill" aria-expanded={showNote} aria-controls="photo-note" onClick={() => setShowNote((open) => !open)}>

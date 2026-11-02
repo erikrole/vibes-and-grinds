@@ -1,5 +1,9 @@
 # Change notes
 
+## 2026-11-01 — Smaller photos from the image CDN
+
+Cards now load responsive square WebP thumbnails and details/share cards use a bounded display image from `images.erikrole.com`, with a one-year immutable cache policy. Uploads retain the exact original for recropping and add optional browser-generated variants. Missing variants and encoder failures preserve the original-image path. All 32 existing originals were retained while 96 variants were added; no visit records were changed.
+
 ## 2026-10-30 — Share a visit to Instagram
 
 The visit's "Share image" action is now "Share to Instagram". The share card comes in Post (1080×1350) and Story (1080×1920) sizes; the Story keeps the text clear of Instagram's reply bar. A ready-made caption (shop, city, scores, order, game, note, hashtags with a city tag) is shown with a Copy button. On a phone, Share to Instagram copies the caption and opens the share sheet with the image, since Instagram ignores text shared alongside an image; on a computer it saves the image and copies the caption. Nothing is stored. Checked at 375px in dark and light against read-only production data; the phone share sheet itself needs a check on a real device.

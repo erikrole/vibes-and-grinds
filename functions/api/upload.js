@@ -1,4 +1,6 @@
-// POST /api/upload - Upload a photo to R2
+import { PHOTO_CACHE_CONTROL, PHOTO_VARIANT_SIZES, photoVariantKey } from '../../shared/photos.mjs';
+
+// POST /api/upload - Upload a photo and optional browser-encoded variants to R2.
 const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set([
   'image/jpeg',
@@ -34,6 +36,19 @@ export async function onRequestPost({ request, env }) {
       });
     }
 
+    const variants = [];
+    for (const size of PHOTO_VARIANT_SIZES) {
+      const variant = formData.get(`variant${size}`);
+      if (!variant) continue;
+      const maximum = size === 1600 ? 2 * 1024 * 1024 : 256 * 1024;
+      if (variant.type !== 'image/webp' || typeof variant.stream !== 'function' || variant.size <= 0 || variant.size > maximum) {
+        return new Response(JSON.stringify({ error: 'Could not use the resized photo. Please choose the photo again.' }), {
+          status: 400, headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      variants.push({ size, file: variant });
+    }
+
     // Generate unique filename
     const timestamp = Date.now();
     const randomString = crypto.randomUUID();
@@ -44,8 +59,14 @@ export async function onRequestPost({ request, env }) {
     await env.PHOTOS.put(filename, file.stream(), {
       httpMetadata: {
         contentType: file.type,
+        cacheControl: PHOTO_CACHE_CONTROL,
       },
     });
+
+    // The original is the recovery path if an optional variant could not be stored.
+    await Promise.allSettled(variants.map(({ size, file: variant }) => env.PHOTOS.put(photoVariantKey(filename, size), variant.stream(), {
+      httpMetadata: { contentType: 'image/webp', cacheControl: PHOTO_CACHE_CONTROL },
+    })));
 
     // Return public URL
     const url = `${env.R2_PUBLIC_URL}/${filename}`;

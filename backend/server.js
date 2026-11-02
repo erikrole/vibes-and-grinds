@@ -14,7 +14,7 @@ const FETCH_TIMEOUT_MS = 10000;
 
 // Middleware
 app.use(express.json({ limit: '64kb' }));
-app.use('/api/upload', express.raw({ type: 'multipart/form-data', limit: '13mb' }));
+app.use('/api/upload', express.raw({ type: 'multipart/form-data', limit: '16mb' }));
 
 // Initialize database then start listening — prevents requests arriving before db is ready
 let db;
@@ -183,7 +183,7 @@ app.post('/api/upload', async (req, res) => {
   const { onRequestPost } = await import('../functions/api/upload.js');
   await sendResponse(res, await onRequestPost({ request: webRequest(req), env: {
     R2_PUBLIC_URL: '/api/photos', PHOTOS: { put: async (name, stream) => {
-      await fs.mkdir(uploadsDir, { recursive: true });
+      await fs.mkdir(path.dirname(path.join(uploadsDir, name)), { recursive: true });
       await fs.writeFile(path.join(uploadsDir, name), Buffer.from(await new Response(stream).arrayBuffer()));
     } },
   } }));
