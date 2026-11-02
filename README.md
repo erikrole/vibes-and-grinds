@@ -52,6 +52,8 @@ Never use an unguarded production proxy to test writes. Keep databases, photos, 
 
 ## Photo delivery
 
+Public assets on the journal's custom domains advertise a host-only 30-day HSTS policy. It starts HTTPS persistence without preloading or applying the policy to unrelated subdomains.
+
 Visit cards use 160/320-pixel square WebP thumbnails; details and share cards use an aspect-preserving image bounded by 1600 pixels. `images.erikrole.com` serves these immutable variants from the existing coffee bucket. Uploads preserve the selected original and its database URL for recropping and recovery. Optional encoder or missing-variant failures fall back to the original.
 
 Existing photos can be backfilled with `npm --prefix frontend run photos:backfill -- --account-id <account> --output /absolute/private/receipt.json`. This is a dry run unless `--apply` is supplied. It writes only missing `variants/v1/` objects, verifies source metadata, and never deletes or overwrites originals. It uses an existing R2 credential or Wrangler OAuth; receipts and photos stay outside Git.

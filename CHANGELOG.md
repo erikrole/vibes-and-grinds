@@ -2,6 +2,8 @@
 
 ## 2026-11-01 — Smaller photos from the image CDN
 
+Journal assets also start a host-only 30-day HSTS policy for the custom domains, with no preload or subdomain expansion.
+
 Cards now load responsive square WebP thumbnails and details/share cards use a bounded display image from `images.erikrole.com`, with a one-year immutable cache policy. Uploads retain the exact original for recropping and add optional browser-generated variants. Missing variants and encoder failures preserve the original-image path. All 32 existing originals were retained while 96 variants were added; no visit records were changed.
 
 ## 2026-10-30 — Share a visit to Instagram
