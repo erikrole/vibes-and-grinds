@@ -31,3 +31,7 @@ yarn-error.log*
 
 backend/uploads/
 .owner-access
+
+# Claude Code: keep local state out of git, but track repo skills
+.claude/*
+!.claude/skills/
