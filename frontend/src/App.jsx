@@ -1,16 +1,18 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
 import FormModal from './components/FormModal';
-import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
-import OwnerPanel from './components/OwnerPanel';
 import { APP_MODES, isVestHostname, resolveAppMode } from './constants/appModes';
 import useDarkMode from './hooks/useDarkMode';
 import useJournalRoute from './hooks/useJournalRoute';
 import usePublishedVisits from './hooks/usePublishedVisits';
 import useToast from './hooks/useToast';
 import CoffeeJournalShell from './shells/CoffeeJournalShell';
-import VestShell from './shells/VestShell';
 import { ownerRequest } from './utils/api';
+
+// Dialogs and the Vest screen stay out of the entry chunk until they are opened.
+const KeyboardShortcutsModal = lazy(() => import('./components/KeyboardShortcutsModal'));
+const OwnerPanel = lazy(() => import('./components/OwnerPanel'));
+const VestShell = lazy(() => import('./shells/VestShell'));
 
 const isVestDomain = isVestHostname();
 
@@ -67,7 +69,9 @@ export default function App() {
   return (
     <ErrorBoundary>
       {appMode === APP_MODES.VEST ? (
-        <VestShell {...chrome} />
+        <Suspense fallback={<div role="status" className="flex items-center justify-center py-20 text-ink-faint animate-pulse">Loading...</div>}>
+          <VestShell {...chrome} />
+        </Suspense>
       ) : (
         <CoffeeJournalShell
           {...chrome}
@@ -87,6 +91,7 @@ export default function App() {
 
       {toastBag.toast && (
         <div
+          role={toastBag.toast.type === 'error' ? 'alert' : 'status'}
           className={`fixed top-4 right-4 z-[1004] ${toastBag.exiting ? 'animate-toast-out' : 'animate-toast-in'}`}
           onClick={() => {
             if (toastBag.toast.onUndo) {
@@ -109,11 +114,13 @@ export default function App() {
       )}
 
       {showShortcuts && (
-        <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />
+        <Suspense fallback={null}>
+          <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />
+        </Suspense>
       )}
 
       {showOwner && <FormModal topmost title={owner ? 'Manage journal' : contributor ? 'Signed in' : 'Sign in'} onClose={() => setShowOwner(false)}>
-        <OwnerPanel owner={owner} contributor={contributor} onSignedIn={(session) => { setOwner(Boolean(session?.owner)); setContributor(Boolean(session?.contributor)); setShowOwner(false); toastBag.show('Signed in.'); }} onSignedOut={() => { setOwner(false); setContributor(false); setShowOwner(false); }} onRestored={(visit) => { journal.setVisits((items) => [visit, ...items]); toastBag.show('Visit restored.'); }} />
+        <Suspense fallback={null}><OwnerPanel owner={owner} contributor={contributor} onSignedIn={(session) => { setOwner(Boolean(session?.owner)); setContributor(Boolean(session?.contributor)); setShowOwner(false); toastBag.show('Signed in.'); }} onSignedOut={() => { setOwner(false); setContributor(false); setShowOwner(false); }} onRestored={(visit) => { journal.setVisits((items) => [visit, ...items]); toastBag.show('Visit restored.'); }} /></Suspense>
       </FormModal>}
     </ErrorBoundary>
   );

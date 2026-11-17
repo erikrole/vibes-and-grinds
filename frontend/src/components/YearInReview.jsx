@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { formatMeter } from '../utils/display';
 import { computeSeasonReview, getAvailableSeasons } from '../utils/yearReview';
 import { formatDate } from '../utils/dates';
 import useFocusTrap from '../hooks/useFocusTrap';

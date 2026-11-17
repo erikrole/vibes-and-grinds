@@ -1,4 +1,5 @@
 import { getRatingColor } from '../utils/colors';
+import { formatMeter } from '../utils/display';
 
 export default function RatingBadge({ rating, label, maxRating = 10 }) {
   const accent = getRatingColor(rating);
@@ -21,7 +22,7 @@ export default function RatingBadge({ rating, label, maxRating = 10 }) {
           aria-valuemin={0}
           aria-valuemax={maxRating}
         >
-          {rating.toFixed(1)}
+          {formatMeter(rating)}
         </span>
       </div>
       <div

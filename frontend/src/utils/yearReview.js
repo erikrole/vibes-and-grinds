@@ -1,16 +1,16 @@
 import { getShopRepeatKey } from './repeats.js';
 import { titleCaseOrder } from './display.js';
-import { isHomeVisit } from './visitTypes.js';
 import { parseLocalDate } from './dates.js';
+import { getSeasonForDate, getSeasonVisits } from './seasons.js';
 
-export const getSeasonVisits = (visits = []) => visits.filter((visit) => !isHomeVisit(visit));
-export function getSeasonForDate(date) {
-  const parsed = date instanceof Date ? date : parseLocalDate(date);
-  const year = parsed.getFullYear() - (parsed.getMonth() < 6 ? 1 : 0);
-  return `${year}-${String(year + 1).slice(-2)}`;
-}
-export const getCurrentSeason = () => getSeasonForDate(new Date());
-export const getAvailableSeasons = (visits) => [...new Set(getSeasonVisits(visits).map((visit) => getSeasonForDate(visit.date)))].sort((a, b) => b.localeCompare(a));
+// Season boundaries live in seasons.js so the journal entry can show the
+// season link without loading this report.
+export { getAvailableSeasons, getCurrentSeason, getSeasonForDate, getSeasonVisits } from './seasons.js';
+
+const num = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 
 export function computeSeasonReview(visits, season, now = new Date()) {
   const selected = getSeasonVisits(visits).filter((visit) => getSeasonForDate(visit.date) === season).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
@@ -27,8 +27,8 @@ export function computeSeasonReview(visits, season, now = new Date()) {
     shops.get(key).push(visit);
   });
   const mostVisited = [...shops.values()].sort((a, b) => b.length - a.length)[0];
-  const bestVisit = selected.reduce((best, visit) => Number(visit.composite_score) > Number(best.composite_score) ? visit : best);
-  const avg = (field) => Number((selected.reduce((sum, visit) => sum + Number(visit[field]), 0) / selected.length).toFixed(1));
+  const bestVisit = selected.reduce((best, visit) => num(visit.composite_score) > num(best.composite_score) ? visit : best);
+  const avg = (field) => Number((selected.reduce((sum, visit) => sum + num(visit[field]), 0) / selected.length).toFixed(1));
   const startYear = Number(season.split('-')[0]);
   const complete = now >= new Date(startYear + 1, 6, 1);
   const names = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];

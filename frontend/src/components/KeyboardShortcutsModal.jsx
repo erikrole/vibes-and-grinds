@@ -11,8 +11,10 @@ const SHORTCUTS = [
 ];
 
 export default function KeyboardShortcutsModal({ onClose }) {
-  const ref = useRef(null);
-  useFocusTrap(ref, { onEscape: onClose });
+  const dialogRef = useRef(null);
+  const closeRef = useRef(null);
+
+  useFocusTrap(dialogRef, { onEscape: onClose, initialFocusRef: closeRef });
 
   useEffect(() => {
     const onKey = (e) => {
@@ -22,7 +24,6 @@ export default function KeyboardShortcutsModal({ onClose }) {
       }
     };
     window.addEventListener('keydown', onKey);
-    ref.current?.focus();
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
@@ -32,20 +33,22 @@ export default function KeyboardShortcutsModal({ onClose }) {
       onClick={onClose}
     >
       <div
-        ref={ref}
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="shortcuts-title"
+        aria-labelledby="keyboard-shortcuts-title"
         tabIndex={-1}
         className="animate-modal-in bg-surface-raised rounded-xl shadow-xl max-w-sm w-full border border-rule overflow-hidden outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 pt-6 pb-4 flex items-center justify-between">
-          <h3 id="shortcuts-title" className="text-lg font-bold text-ink">Keyboard Shortcuts</h3>
+          <h3 id="keyboard-shortcuts-title" className="text-lg font-bold text-ink">Keyboard Shortcuts</h3>
           <button
+            ref={closeRef}
+            type="button"
             onClick={onClose}
-            className="text-ink-faint hover:text-ink transition-colors p-1"
-            aria-label="Close"
+            className="text-ink-soft hover:text-ink transition-colors p-1"
+            aria-label="Close keyboard shortcuts"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

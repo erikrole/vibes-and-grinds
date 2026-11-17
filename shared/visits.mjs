@@ -5,8 +5,11 @@ import { vestRoute, mapGame } from './vest.mjs';
 const fields = ['date', 'coffee_shop_name', 'city', 'opponent', 'sport', 'visit_type', 'coffee_shop_address',
   'coffee_shop_place_id', 'coffee_shop_lat', 'coffee_shop_lng', 'coffee_order', 'vibe_rating', 'coffee_rating', 'notes', 'photo_url'];
 
+const MAX_BODY_BYTES = 256 * 1024;
+
 function cleanVisit(body) {
   const visit = Object.fromEntries(fields.map((field) => [field, body[field] ?? null]));
+  if (typeof visit.date === 'string') visit.date = visit.date.trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(visit.date || '') || !Number.isFinite(Date.parse(visit.date)) || new Date(visit.date).toISOString().slice(0, 10) !== visit.date) throw new Error('Choose a valid visit date.');
   if (typeof visit.coffee_shop_name !== 'string' || !visit.coffee_shop_name.trim()) throw new Error('Shop name is required.');
   for (const field of ['vibe_rating', 'coffee_rating']) {
@@ -43,7 +46,9 @@ export async function visitRoute(request, DB, id = null) {
     }
     if (!['POST', 'PUT'].includes(request.method) || (request.method === 'PUT' && !id)) return json({ error: 'Method not allowed.' }, 405);
     let body;
-    try { body = await request.json(); if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error(); } catch { return json({ error: 'Invalid visit details.' }, 400); }
+    const text = await request.text();
+    if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) return json({ error: 'Visit details are too large.' }, 413);
+    try { body = JSON.parse(text); if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error(); } catch { return json({ error: 'Invalid visit details.' }, 400); }
     let visit;
     try { visit = cleanVisit(body); } catch (error) { return json({ error: error.message }, 400); }
     const existing = id ? await DB.prepare('SELECT * FROM coffee_visits WHERE id = ? AND deleted_at IS NULL').bind(id).first() : null;

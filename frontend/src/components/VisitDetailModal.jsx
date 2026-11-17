@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import PhotoCropper from './PhotoCropper';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { revokeObjectUrl } from '../utils/photoExport';
 import VisitPhoto from './VisitPhoto';
 import { createPhotoUpload } from '../utils/photoUpload';
 import { getRatingColor, getCompositeColor } from '../utils/colors';
 import { formatDate, getRelativeLabel } from '../utils/dates';
 import { DEFAULT_VISITOR_NAME, getRepeatVisits } from '../utils/repeats';
-import ShareCardModal from './ShareCardModal';
 import ConfirmDialog from './ConfirmDialog';
 import CopyLink from './CopyLink';
 import useFocusTrap from '../hooks/useFocusTrap';
@@ -13,6 +12,9 @@ import { formatEventContext, titleCaseOrder } from '../utils/display';
 import { getAppleMapsUrl } from '../utils/maps';
 import { visitStanding } from '../utils/visitStanding';
 import { fetchVisitWeather, formatWeatherSummary } from '../utils/weather';
+
+const PhotoCropper = lazy(() => import('./PhotoCropper'));
+const ShareCardModal = lazy(() => import('./ShareCardModal'));
 
 export default function VisitDetailModal({ visit, visits, onClose, onNavigate, onUpdate, onEdit, onDelete, onLogReturnVisit, onShopClick, suspended = false }) {
   const modalRef = useRef(null);
@@ -41,6 +43,10 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
   const standing = useMemo(() => visitStanding(visit, visits), [visit, visits]);
   const closeTimerRef = useRef(null);
+  const cropUrlRef = useRef('');
+  const photoPickRef = useRef(0);
+
+  useEffect(() => () => revokeObjectUrl(cropUrlRef.current), []);
   useEffect(() => () => clearTimeout(closeTimerRef.current), []);
 
   const handleClose = useCallback(() => {
@@ -113,41 +119,45 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
     input.accept = 'image/*';
     input.onchange = (e) => {
       const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = () => {
-          setImageToCrop(reader.result);
-          setCropping(true);
-        };
-        reader.readAsDataURL(file);
-      }
+      if (file) openCropFile(file);
     };
     input.click();
+  };
+
+  const openCropFile = async (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    // Crop from the full-resolution original; createPhotoUpload keeps it and makes the variants.
+    ++photoPickRef.current;
+    revokeObjectUrl(cropUrlRef.current);
+    const url = URL.createObjectURL(file);
+    cropUrlRef.current = url;
+    setImageToCrop(url);
+    setCropping(true);
+  };
+
+  const releaseCropUrl = () => {
+    revokeObjectUrl(cropUrlRef.current);
+    cropUrlRef.current = '';
   };
 
   const handleCropComplete = async (croppedFile) => {
     setCropping(false);
     setImageToCrop(null);
+    releaseCropUrl();
     await handlePhotoUpload(croppedFile);
   };
 
   const handleCropCancel = () => {
     setCropping(false);
     setImageToCrop(null);
+    releaseCropUrl();
   };
 
   const handlePhotoDrop = (e) => {
     e.preventDefault();
     setDraggingPhoto(false);
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImageToCrop(reader.result);
-        setCropping(true);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (file) openCropFile(file);
   };
 
   const handleReplacePhoto = () => {
@@ -157,6 +167,7 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
 
   const handleRecropPhoto = () => {
     setShowMenu(false);
+    photoPickRef.current += 1;
     setImageToCrop(visit.photo_url);
     setCropping(true);
   };
@@ -395,11 +406,15 @@ export default function VisitDetailModal({ visit, visits, onClose, onNavigate, o
       )}
 
       {cropping && imageToCrop && (
-        <PhotoCropper imageUrl={imageToCrop} onComplete={handleCropComplete} onCancel={handleCropCancel} />
+        <Suspense fallback={<div role="status" className="fixed inset-0 z-[1003] bg-black/75" />}>
+          <PhotoCropper imageUrl={imageToCrop} onComplete={handleCropComplete} onCancel={handleCropCancel} />
+        </Suspense>
       )}
 
       {showShareCard && (
-        <ShareCardModal visit={visit} onClose={() => setShowShareCard(false)} />
+        <Suspense fallback={null}>
+          <ShareCardModal visit={visit} onClose={() => setShowShareCard(false)} />
+        </Suspense>
       )}
     </div>
   );

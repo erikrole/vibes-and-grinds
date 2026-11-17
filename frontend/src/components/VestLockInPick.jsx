@@ -40,7 +40,7 @@ function VestLockInPick({ upcomingGame, existingOutfits, onUpdate }) {
       <div className="flex items-center gap-3 flex-wrap">
         <select
           disabled={saving}
-          aria-label="Outfit for next game"
+          aria-label="Outfit for the next game"
           value={pick}
           onChange={(e) => handleSelect(e.target.value)}
           className="vt-condensed text-sm uppercase tracking-[0.04em] flex-1 min-w-[200px]"
@@ -60,7 +60,7 @@ function VestLockInPick({ upcomingGame, existingOutfits, onUpdate }) {
           <span
             className="vt-condensed text-xs uppercase tracking-[0.18em] px-3 py-1.5 rounded"
             style={{
-              color: 'var(--vt-red)',
+              color: 'var(--vt-red-text)',
               background: 'var(--vt-red-soft)',
               border: '1px solid var(--vt-red)',
             }}
