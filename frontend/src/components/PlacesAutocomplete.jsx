@@ -2,6 +2,30 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { resolvePlace, searchPlaces } from '../utils/mapkit';
 import { getShopRepeatKey } from '../utils/repeats';
 
+const MIN_QUERY_LENGTH = 3;
+const DEBOUNCE_MS = 300;
+const SUGGESTION_CACHE_LIMIT = 30;
+const SUGGESTION_CACHE_TTL_MS = 10 * 60 * 1000;
+
+// Survives remounts of the add-visit form for this page session, so retyping a
+// name or reopening the form does not repeat the same search.
+const suggestionCache = new Map();
+
+function readSuggestionCache(key) {
+  const hit = suggestionCache.get(key);
+  if (!hit) return null;
+  suggestionCache.delete(key);
+  if (Date.now() - hit.cachedAt > SUGGESTION_CACHE_TTL_MS) return null;
+  suggestionCache.set(key, hit);
+  return hit.suggestions.slice();
+}
+
+function writeSuggestionCache(key, suggestions) {
+  suggestionCache.delete(key);
+  suggestionCache.set(key, { suggestions: suggestions.slice(), cachedAt: Date.now() });
+  while (suggestionCache.size > SUGGESTION_CACHE_LIMIT) suggestionCache.delete(suggestionCache.keys().next().value);
+}
+
 export default function PlacesAutocomplete({
   id, onPlaceSelected, value, onChange, onBlur, disabled = false,
   inputClassName = 'input-field', ariaInvalid, ariaDescribedBy, enterKeyHint,
@@ -46,13 +70,22 @@ export default function PlacesAutocomplete({
     setActive(-1);
     setMessage('');
     setLoading(false);
-    if (!open || (value || '').trim().length < 2 || value === selectedValueRef.current) return;
+    const query = (value || '').trim();
+    if (!open || query.length < MIN_QUERY_LENGTH || value === selectedValueRef.current) return;
+    const cacheKey = `${(city || '').trim().toLowerCase()}|${query.toLowerCase()}`;
+    const cached = readSuggestionCache(cacheKey);
+    if (cached) {
+      setSuggestions(cached.slice(0, 6));
+      if (!cached.length) setMessage('No matching shops. Try adding the city, or enter the location manually.');
+      return;
+    }
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
-        const matches = await searchPlaces(value.trim(), { signal: controller.signal, city });
+        const matches = await searchPlaces(query, { signal: controller.signal, city });
         if (ticket !== requestRef.current) return;
+        writeSuggestionCache(cacheKey, matches);
         setSuggestions(matches.slice(0, 6));
         if (!matches.length) setMessage('No matching shops. Try adding the city, or enter the location manually.');
       } catch (error) {
@@ -61,7 +94,7 @@ export default function PlacesAutocomplete({
       } finally {
         if (ticket === requestRef.current) setLoading(false);
       }
-    }, 250);
+    }, DEBOUNCE_MS);
     return () => { clearTimeout(timer); controller.abort(); ++requestRef.current; };
   }, [value, open, city]);
 

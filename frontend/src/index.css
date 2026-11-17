@@ -130,10 +130,6 @@
     transition: background-color 200ms;
   }
 
-  .dark body {
-    background-image: none;
-  }
-
   h1, h2, h3 {
     font-family: var(--font-ui);
     letter-spacing: -0.02em;
@@ -258,7 +254,7 @@
 .year-report-hero h1 span { color: #f48a54; }
 .year-report-deck { max-width: 42rem; color: color-mix(in srgb, var(--cream) 72%, transparent); font-size: clamp(1.05rem, 2vw, 1.35rem); line-height: 1.55; }
 .year-report-stat-row { display: flex; flex-wrap: wrap; gap: 2rem clamp(2rem, 8vw, 7rem); margin-top: 3rem; }
-.year-report-stat-row dt { color: color-mix(in srgb, var(--cream) 48%, transparent); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .1em; }
+.year-report-stat-row dt { color: color-mix(in srgb, var(--cream) 78%, transparent); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .1em; }
 .year-report-stat-row dd { margin: .35rem 0 0; font-family: var(--font-display); font-size: 2.2rem; }
 .year-report-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-bottom: 1px solid color-mix(in srgb, var(--cream) 14%, transparent); }
 .year-report-card { min-height: 25rem; padding: clamp(1.5rem, 4vw, 3.5rem); border-right: 1px solid color-mix(in srgb, var(--cream) 14%, transparent); border-bottom: 1px solid color-mix(in srgb, var(--cream) 14%, transparent); }
@@ -274,15 +270,15 @@
 .year-report-rating-pair b { display: block; margin-top: .25rem; color: #251d17; font-family: var(--font-display); font-size: 2rem; }
 .year-report-favorites { background: #8d3f24; }
 .year-report-order { margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid rgba(255,255,255,.25); }
-.year-report-order span, .year-report-order small { display: block; color: rgba(255,255,255,.58); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .1em; }
+.year-report-order span, .year-report-order small { display: block; color: rgba(255,255,255,.86); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .1em; }
 .year-report-order strong { display: block; margin: .5rem 0; font-size: 1.4rem; }
 .year-report-rhythm { display: grid; grid-template-columns: minmax(15rem, .7fr) 1.3fr; gap: 3rem; padding: clamp(3rem, 7vw, 6rem) clamp(1.25rem, 6vw, 6rem); border-bottom: 1px solid color-mix(in srgb, var(--cream) 14%, transparent); }
 .year-report-chart { display: flex; height: 16rem; align-items: end; gap: clamp(.3rem, 1vw, .8rem); }
 .year-report-month { display: grid; grid-template-rows: 1.2rem 1fr 1.2rem; align-items: end; width: 100%; height: 100%; text-align: center; }
-.year-report-month span, .year-report-month small { color: color-mix(in srgb, var(--cream) 52%, transparent); font-size: var(--text-xs); }
+.year-report-month span, .year-report-month small { color: color-mix(in srgb, var(--cream) 78%, transparent); font-size: var(--text-xs); }
 .year-report-month i { display: block; width: 100%; min-height: .3rem; border-radius: .35rem .35rem 0 0; background: #f48a54; }
 .year-report-footer { padding: clamp(4rem, 9vw, 8rem) clamp(1.25rem, 6vw, 6rem); text-align: center; }
-.year-report-footer p { color: color-mix(in srgb, var(--cream) 48%, transparent); font-size: var(--text-sm); text-transform: uppercase; letter-spacing: .12em; }
+.year-report-footer p { color: color-mix(in srgb, var(--cream) 78%, transparent); font-size: var(--text-sm); text-transform: uppercase; letter-spacing: .12em; }
 .year-report-footer button, .year-report-empty button { margin-top: 2rem; border-radius: var(--radius-pill); background: #f48a54; color: #211711; padding: .85rem 1.3rem; font-weight: 800; }
 .year-report-empty { display: grid; min-height: 100vh; place-content: center; text-align: center; }
 
@@ -338,13 +334,6 @@
 
 
 
-  .rating-number {
-    font-weight: 700;
-    font-family: 'Fraunces', 'Georgia', serif;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0;
-  }
-
   .coffee-shop-name {
     color: var(--text-primary);
     font-family: 'Fraunces', 'Georgia', serif;
@@ -362,12 +351,6 @@
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--text-tertiary);
-  }
-
-  .smallcap {
-    font-family: var(--font-ui);
-    font-weight: 500;
-    color: var(--text-secondary);
   }
 
   .rule-h {
@@ -390,56 +373,7 @@
     color: var(--text-primary);
   }
 
-  .copper-accent { color: var(--accent-text); }
-
-  /* Modern pill */
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.875rem;
-    border-radius: var(--radius-pill);
-    background: var(--surface);
-    border: 1px solid var(--border-subtle);
-    font-family: var(--font-ui);
-    font-size: var(--text-base);
-    font-weight: 500;
-    color: var(--text-primary);
-    transition: all 180ms ease;
-  }
-  .pill:hover { transform: translateY(-1px); border-color: var(--accent); }
-  .pill .pill-count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 1.5rem;
-    height: 1.5rem;
-    padding: 0 0.4rem;
-    border-radius: var(--radius-pill);
-    background: var(--accent-soft);
-    color: var(--accent-text);
-    font-size: var(--text-xs);
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    font-variant-numeric: tabular-nums;
-  }
-  .dark .pill .pill-count { color: var(--accent-text); }
-
-  /* Dot-leader list (menu / index style) */
-  .dot-leader {
-    display: flex;
-    align-items: baseline;
-    gap: 0.5rem;
-  }
-  .dot-leader > .dots {
-    flex: 1 1 auto;
-    border-bottom: 1.5px dotted var(--latte);
-    opacity: 0.55;
-    transform: translateY(-0.25rem);
-    min-width: 1.5rem;
-  }
-
-  /* Modern tab — pill segment with accent */
+  /* Modern tab — underline on the pressed tab */
   .tab-edge {
     position: relative;
     padding: 0.5rem 0.25rem 0.7rem;
@@ -451,11 +385,13 @@
   }
   .tab-edge:hover { color: var(--text-primary); }
   .tab-edge[aria-pressed="true"],
+  .tab-edge[aria-selected="true"],
   .tab-edge.active {
     color: var(--text-primary);
     font-weight: 600;
   }
   .tab-edge[aria-pressed="true"]::after,
+  .tab-edge[aria-selected="true"]::after,
   .tab-edge.active::after {
     content: '';
     position: absolute;
@@ -463,55 +399,6 @@
     height: 2px;
     background: var(--accent);
     border-radius: 2px;
-  }
-
-  /* Modern FAB — espresso with persimmon ring on hover */
-  .fab-press {
-    background: var(--text-primary);
-    color: var(--canvas);
-    box-shadow:
-      0 1px 0 rgba(255,255,255,0.10) inset,
-      0 10px 30px -10px var(--scrim);
-    transition: all 240ms var(--ease-out);
-  }
-  .dark .fab-press {
-    background: var(--accent);
-    color: var(--on-solid);
-    box-shadow:
-      0 1px 0 rgba(255,255,255,0.15) inset,
-      0 10px 30px -10px color-mix(in srgb, var(--accent) 50%, transparent);
-  }
-  .fab-press:hover {
-    transform: translateY(-3px) scale(1.04);
-    box-shadow:
-      0 1px 0 rgba(255,255,255,0.10) inset,
-      0 18px 36px -12px rgba(29, 24, 21, 0.5),
-      0 0 0 6px color-mix(in srgb, var(--accent) 18%, transparent);
-  }
-  .fab-press:active { transform: translateY(0) scale(1); }
-
-  /* Modern soft card */
-  .paper-card {
-    background-color: var(--surface);
-    border-radius: 12px;
-    border: 1px solid var(--border-subtle);
-    box-shadow: none;
-  }
-  .dark .paper-card {
-    background-color: var(--surface);
-    box-shadow: none;
-  }
-
-  /* Subtle accent dot — for live/now markers */
-  .dot-now {
-    width: 0.5rem; height: 0.5rem; border-radius: var(--radius-pill);
-    background: var(--accent);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 15%, transparent);
-    animation: dot-pulse 2.4s ease-in-out infinite;
-  }
-  @keyframes dot-pulse {
-    0%, 100% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 15%, transparent); }
-    50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 6%, transparent); }
   }
 
   /* Vest Tracker: sans-serif override */
@@ -550,6 +437,25 @@
   border-bottom: 1px solid var(--border-subtle);
 }
 
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  z-index: 1100;
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+  background: var(--text-primary);
+  color: var(--canvas);
+  font-weight: 700;
+  transform: translateY(-200%);
+}
+.skip-link:focus {
+  transform: none;
+}
+.skip-target:focus {
+  outline: none;
+}
+
 .season-link {
   align-items: center;
   gap: 0.45rem;
@@ -586,6 +492,10 @@
   outline: none;
   color: var(--text-primary);
   background: var(--surface-muted);
+}
+.journal-search::placeholder {
+  color: var(--text-secondary);
+  opacity: 1;
 }
 .journal-search:focus {
   border-color: var(--accent);
@@ -815,15 +725,6 @@ input[type="number"] { -moz-appearance: textfield; }
 
 /* Detail modal decorative header when no photo */
 
-/* Year-in-Review slide animation */
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-in {
-  animation: fade-in 0.4s var(--ease-out) both;
-}
-
 /* Custom focus rings for accessibility */
 button:focus-visible,
 a:focus-visible,
@@ -835,7 +736,31 @@ a:focus-visible,
 .dark button:focus-visible,
 .dark a:focus-visible,
 .dark [tabindex]:focus-visible {
-  outline-color: #a8a29e;
+  outline-color: #f09a66;
+}
+
+/* stone-500 (#78716c) is about 3.7:1 on dark paper, under the 4.5:1 text minimum.
+   The utility is emitted later and with higher specificity, so this has to win outright. */
+.dark\:text-stone-500:is(.dark *) {
+  color: var(--text-secondary) !important;
+}
+/* stone-600 is darker still, and it was used for separators and icons on dark paper. */
+.dark\:text-stone-600:is(.dark *) {
+  color: var(--text-tertiary) !important;
+}
+
+/* stone-400 is about 2.5:1 on the journal paper, and stone-500 about 4.2:1.
+   The Vest tracker themes its own ground (light or dark), so its stone
+   utilities follow the scoreboard muted ink instead. */
+html:not(.dark) .text-stone-400 {
+  color: #57534e;
+}
+html:not(.dark) .text-stone-500 {
+  color: var(--text-secondary);
+}
+html .vest-tracker .text-stone-400,
+html .vest-tracker .text-stone-500 {
+  color: var(--vt-ink-mute);
 }
 
 /* Date picker calendar icon in dark mode */
@@ -884,7 +809,7 @@ a:focus-visible,
   background: var(--vt-red);
 }
 .vest-tracker-header h1,
-.vest-tracker-header button {
+.vest-tracker-header button:not([role="menuitemradio"]) {
   color: var(--vt-ink);
 }
 .vest-tracker-header .coffee-shop-name {
@@ -927,6 +852,7 @@ a:focus-visible,
   --vt-ink-faint: var(--vp-faint);
   --vt-red: var(--vp-red);
   --vt-red-hot: var(--vp-red-deep);
+  --vt-red-text: var(--vp-red);
   --vt-red-soft: color-mix(in srgb, var(--vp-red) 12%, white);
   --vt-win: var(--vp-win-ink);
   --vt-loss: var(--vp-loss-ink);
@@ -983,8 +909,7 @@ a:focus-visible,
   font-size: var(--text-xs);
   color: var(--vp-mute, var(--vt-ink-mute));
 }
-.vt-label-red { color: var(--vt-red-hot); }
-.vt-label-win { color: var(--vt-win); }
+.vt-label-red { color: var(--vt-red-text); }
 
 /* Surface primitives */
 .vt-card {
@@ -1054,30 +979,6 @@ a:focus-visible,
   color: var(--vt-ink);
 }
 
-/* Result chip — W is white inverse, L is muted outline */
-.vt-result-w {
-  background: var(--vp-win-bg);
-  color: var(--on-solid);
-  font-family: 'Barlow Condensed', sans-serif;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-}
-.vt-result-l {
-  background: var(--vp-loss-bg);
-  color: var(--on-solid);
-  border: 0;
-  font-family: 'Barlow Condensed', sans-serif;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-}
-.vt-result-pending {
-  background: transparent;
-  color: var(--vt-ink-faint);
-  border: 1px dashed var(--vt-rule-strong);
-  font-family: 'Barlow Condensed', sans-serif;
-  font-weight: 600;
-}
-
 /* Bar primitive — thin gray track with red (or white) fill */
 .vt-bar-track {
   height: 4px;
@@ -1108,7 +1009,6 @@ a:focus-visible,
   transition: color 120ms, border-color 120ms;
 }
 .vt-tab:hover { color: var(--vt-ink-dim); }
-.vt-tab[aria-selected="true"],
 .vt-tab.is-active {
   color: var(--vt-ink);
   border-bottom-color: var(--vt-red);
@@ -1129,8 +1029,17 @@ a:focus-visible,
 .vest-tracker input:focus,
 .vest-tracker select:focus,
 .vest-tracker textarea:focus {
-  outline: none;
   border-color: var(--vt-red);
+}
+.vest-tracker input:focus-visible,
+.vest-tracker select:focus-visible,
+.vest-tracker textarea:focus-visible {
+  outline: 2px solid var(--vt-red-text);
+  outline-offset: 2px;
+}
+.net-rank-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 2.75rem;
 }
 .vest-tracker input::placeholder { color: var(--vt-ink-faint); }
 
@@ -1167,13 +1076,6 @@ a:focus-visible,
 
 /* Tabular numerals everywhere for the scoreboard feel */
 .vt-tabular { font-feature-settings: 'tnum'; font-variant-numeric: tabular-nums; }
-
-/* Subtle row entry animation */
-@keyframes vt-row-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.vt-row-in { animation: vt-row-in 280ms ease-out both; }
 
 /* Reset Tailwind defaults the components still emit */
 .vest-tracker .bg-white { background-color: transparent !important; }

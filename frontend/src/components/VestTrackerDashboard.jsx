@@ -1,6 +1,9 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { centralToday } from '../../../functions/api/vest/_centralDate.js';
+import { freshPayload } from '../../../functions/api/vest/_freshCache.js';
 import { vestGames as seedGames } from '../utils/vestTrackerData';
 import { fetchVestGames, syncVestGames, fetchVisits, fetchVestSchedule, fetchVestScores } from '../utils/api';
+import { readStoredVestGames } from '../utils/vestGameSync';
 import {
   buildNetLookup,
   buildOutfitStats,
@@ -9,10 +12,11 @@ import {
   formatDate,
   formatLocationLabel,
   getQuadrant,
+  locationSplits,
   normalizeNetResponse,
   normalizeTeamName,
 } from '../utils/vestTrackerMath';
-import { getTodayDateString } from '../utils/dates';
+import { buildSeasonMilestones, recordAgainstOpponent } from '../utils/vestStory';
 import {
   buildCoffeeBrief,
   buildHalftimeSplit,
@@ -45,6 +49,8 @@ const GameStatsPanel = lazy(() => import('./GameStatsPanel'));
 const VEST_GAMES_KEY = 'vibes-and-grinds:vest-games';
 const NET_RANKINGS_URL = import.meta.env.VITE_NET_RANKINGS_URL || '';
 const NET_FETCH_PATHS = ['/api/vest/net-rankings', '/api/vest/net'];
+const NET_CACHE_TTL_MS = 5 * 60 * 1000;
+let netRankingsCache = null;
 
 const TABS = [
   { value: 'dashboard', label: 'Dashboard' },
@@ -54,12 +60,10 @@ const TABS = [
 
 const loadGames = () => {
   try {
-    const raw = localStorage.getItem(VEST_GAMES_KEY);
-    if (raw) return { games: JSON.parse(raw), corrupted: false };
+    return readStoredVestGames(localStorage.getItem(VEST_GAMES_KEY), seedGames);
   } catch {
     return { games: seedGames, corrupted: true };
   }
-  return { games: seedGames, corrupted: false };
 };
 
 export default function VestTrackerDashboard({ showToast, canEdit = false }) {
@@ -72,6 +76,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
   });
   const [netRankings, setNetRankings] = useState([]);
   const [netStatus, setNetStatus] = useState('idle');
+  const [netAttempt, setNetAttempt] = useState(0);
   const [selectedOutfit, setSelectedOutfit] = useState(null);
   const [editingGame, setEditingGame] = useState(null);
   const [viewingGame, setViewingGame] = useState(null);
@@ -94,7 +99,10 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
 
   // Persist game changes.
   useEffect(() => {
-    try { localStorage.setItem(VEST_GAMES_KEY, JSON.stringify(games)); } catch { /* ignore */ }
+    try {
+      const next = JSON.stringify(games);
+      if (localStorage.getItem(VEST_GAMES_KEY) !== next) localStorage.setItem(VEST_GAMES_KEY, next);
+    } catch { /* ignore */ }
   }, [games]);
 
   // Browsing only reads. Save handlers explicitly persist validated owner changes.
@@ -128,6 +136,16 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
         .filter(Boolean);
 
     const load = async () => {
+      if (netAttempt > 0) netRankingsCache = null;
+      const cachedRows = freshPayload(netRankingsCache, Date.now(), NET_CACHE_TTL_MS);
+      if (cachedRows) {
+        if (!cancelled) {
+          setNetRankings(cachedRows);
+          setNetStatus('loaded');
+        }
+        return;
+      }
+
       setNetStatus('loading');
       for (const url of sources) {
         try {
@@ -143,6 +161,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
           }
           const rows = toRows(payload);
           if (!rows.length) continue;
+          netRankingsCache = { storedAt: Date.now(), payload: rows };
           if (!cancelled) {
             setNetRankings(rows);
             setNetStatus('loaded');
@@ -158,7 +177,9 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
 
     load();
     return () => { cancelled = true; };
-  }, []);
+  }, [netAttempt]);
+
+  const retryNet = useCallback(() => setNetAttempt((attempt) => attempt + 1), []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -262,19 +283,19 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
     [completedGames, selectedOutfit]
   );
 
+  const splits = useMemo(() => locationSplits(completedGames), [completedGames]);
+
   // Secondary scoreboard pills — only when not filtered.
   const scoreboardSecondary = useMemo(() => {
     if (selectedOutfit) return [];
-    const road = completedGames.filter((g) => g.location === '@');
-    const roadW = road.filter((g) => g.result === 'W').length;
-    const neutral = completedGames.filter((g) => g.location === 'N');
-    const neutralW = neutral.filter((g) => g.result === 'W').length;
     const ot = completedGames.filter((g) => g.overtime);
     const otW = ot.filter((g) => g.result === 'W').length;
 
     const pills = [];
-    if (road.length) pills.push({ label: 'Road', wins: roadW, losses: road.length - roadW });
-    if (neutral.length) pills.push({ label: 'Neutral', wins: neutralW, losses: neutral.length - neutralW });
+    for (const split of splits) {
+      if (split.location === 'vs' || split.wins + split.losses === 0) continue;
+      pills.push({ label: split.label, wins: split.wins, losses: split.losses });
+    }
     if (ot.length) pills.push({ label: 'OT', wins: otW, losses: ot.length - otW });
 
     if (netStatus === 'loaded') {
@@ -286,7 +307,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
       if (q1q2.length) pills.push({ label: 'Q1+Q2', wins: q1q2W, losses: q1q2.length - q1q2W });
     }
     return pills;
-  }, [completedGames, selectedOutfit, netLookup, netStatus]);
+  }, [completedGames, selectedOutfit, netLookup, netStatus, splits]);
 
   // Per-outfit stats with smoothing + WoE.
   const outfitStats = useMemo(
@@ -318,7 +339,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
       if (s && s.count >= 3 && s.result === 'W') list.push(`${s.count} consecutive wins`);
       else if (s && s.count >= 3 && s.result === 'L') list.push(`${s.count} consecutive losses`);
       if (stat.roadWins >= 3) list.push(`Road record (${stat.roadWins}-${stat.roadLosses})`);
-      if (stat.quadrants[1].wins >= 2) list.push(`Q1 record (${stat.quadrants[1].wins}-${stat.quadrants[1].losses})`);
+      if (stat.quadrants?.[1]?.wins >= 2) list.push(`Q1 record (${stat.quadrants[1].wins}-${stat.quadrants[1].losses})`);
       if (stat.games >= 3 && stat.losses === 0) list.push('Undefeated');
       if (stat.otWins >= 2) list.push(`Overtime record (${stat.otWins}-${stat.otLosses})`);
       if (list.length) badges[stat.outfit] = list;
@@ -340,7 +361,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
   // switch from the lock-in card to the post-game result card.
   // Recompute each render (cheap) rather than memoizing forever, so the
   // post-game switch reflects the correct day if the tab is left open past midnight.
-  const todayStr = getTodayDateString();
+  const todayStr = centralToday();
   const showPostGame = Boolean(
     upcomingGame?.outfit && upcomingGame?.date && upcomingGame.date <= todayStr
   );
@@ -351,81 +372,20 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
     const useNet = upcoming.source !== 'espn' || completedGames.length > 0;
     const rank = useNet ? findNetRankForOpponent(netLookup, upcoming.opponent) : null;
     const quadrant = useNet ? getQuadrant(upcoming.location || 'vs', rank) : null;
-    const vsOpponent = completedGames.filter(
-      (g) => g.opponent.toLowerCase() === upcoming.opponent.toLowerCase()
-    );
-    const vsWins = vsOpponent.filter((g) => g.result === 'W').length;
     return {
       opponent: upcoming.opponent,
       location: upcoming.location || 'vs',
       date: upcoming.date,
       netRank: Number.isFinite(rank) ? rank : null,
       quadrant,
-      allTimeRecord: vsOpponent.length ? { wins: vsWins, losses: vsOpponent.length - vsWins } : null,
+      allTimeRecord: recordAgainstOpponent(completedGames, upcoming.opponent),
     };
   }, [upcomingGame, upcomingSchedule, netLookup, completedGames]);
 
-  // Season storylines (single pass over completed games).
-  const milestones = useMemo(() => {
-    if (!completedGames.length) return [];
-    let maxStreak = 0;
-    let curStreak = 0;
-    const outfitStreaks = {};
-    let firstQ1Road = null;
-    let worstLoss = null;
-    let worstRank = 0;
-    let bestWin = null;
-    let bestRank = 999;
-    let otWins = 0;
-    let otTotal = 0;
-
-    for (const g of completedGames) {
-      if (g.result === 'W') {
-        curStreak += 1;
-        if (curStreak > maxStreak) maxStreak = curStreak;
-      } else {
-        curStreak = 0;
-      }
-
-      if (g.outfit) {
-        if (!outfitStreaks[g.outfit]) outfitStreaks[g.outfit] = { max: 0, cur: 0 };
-        if (g.result === 'W') {
-          outfitStreaks[g.outfit].cur += 1;
-          outfitStreaks[g.outfit].max = Math.max(outfitStreaks[g.outfit].max, outfitStreaks[g.outfit].cur);
-        } else {
-          outfitStreaks[g.outfit].cur = 0;
-        }
-      }
-
-      const rank = findNetRankForOpponent(netLookup, g.opponent);
-      if (!firstQ1Road && g.result === 'W' && g.location === '@' && getQuadrant('@', rank) === 1) {
-        firstQ1Road = g;
-      }
-      if (rank) {
-        if (g.result === 'W' && rank < bestRank) { bestRank = rank; bestWin = g; }
-        if (g.result === 'L' && rank > worstRank) { worstRank = rank; worstLoss = g; }
-      }
-      if (g.overtime) {
-        otTotal += 1;
-        if (g.result === 'W') otWins += 1;
-      }
-    }
-
-    const ms = [];
-    if (maxStreak >= 3) ms.push({ text: `Longest win streak: ${maxStreak} games` });
-
-    let bestOutfitStreak = { outfit: null, count: 0 };
-    for (const [outfit, data] of Object.entries(outfitStreaks)) {
-      if (data.max > bestOutfitStreak.count) bestOutfitStreak = { outfit, count: data.max };
-    }
-    if (bestOutfitStreak.count >= 3) ms.push({ text: `Best outfit streak: ${bestOutfitStreak.count}W in ${bestOutfitStreak.outfit}` });
-    if (firstQ1Road) ms.push({ text: `First Q1 road win: ${formatLocationLabel('@', 'full')} ${firstQ1Road.opponent}` });
-    if (worstLoss && worstRank > 150) ms.push({ text: `Worst loss: ${formatLocationLabel(worstLoss.location, 'full')} ${worstLoss.opponent} (NET #${worstRank})` });
-    if (bestWin && bestRank <= 25) ms.push({ text: `Best win: ${formatLocationLabel(bestWin.location, 'full')} ${bestWin.opponent} (NET #${bestRank})` });
-    if (otTotal >= 2) ms.push({ text: `Overtime record: ${otWins}–${otTotal - otWins}` });
-
-    return ms;
-  }, [completedGames, netLookup]);
+  const milestones = useMemo(
+    () => buildSeasonMilestones(completedGames, netLookup),
+    [completedGames, netLookup]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -481,11 +441,14 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
       <main id="vest-dashboard" className="vest-tracker vp-wrap py-6 sm:py-8">
         <VestPageHero preseason={preseason} endYear={seasonEndYearNow} priorLabel={priorSeason ? seasonTitle(priorSeason) : ''} recordSeason={recordSeason} vestSeason={vestSeason} seasonOptions={seasonOptions} onSeason={setVestSeason} />
         <TabBar value={vestTab} onChange={setVestTab} />
-        <NetRankingsPage
-          netRankings={netRankings}
-          netStatus={netStatus}
-          seasonTitle={seasonTitle(vestSeason)}
-        />
+        <div role="tabpanel" id="vest-panel-rankings" aria-labelledby="vest-tab-rankings">
+          <NetRankingsPage
+            netRankings={netRankings}
+            netStatus={netStatus}
+            onRetry={retryNet}
+            seasonTitle={seasonTitle(vestSeason)}
+          />
+        </div>
       </main>
     );
   }
@@ -495,9 +458,11 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
       <main id="vest-dashboard" className="vest-tracker vp-wrap py-6 sm:py-8">
         <VestPageHero preseason={preseason} endYear={seasonEndYearNow} priorLabel={priorSeason ? seasonTitle(priorSeason) : ''} recordSeason={recordSeason} vestSeason={vestSeason} seasonOptions={seasonOptions} onSeason={setVestSeason} />
         <TabBar value={vestTab} onChange={setVestTab} />
-        <Suspense fallback={<LoadingPanel />}>
-          <GameStatsPanel games={seasonSortedGames} />
-        </Suspense>
+        <div role="tabpanel" id="vest-panel-game-stats" aria-labelledby="vest-tab-game-stats">
+          <Suspense fallback={<LoadingPanel />}>
+            <GameStatsPanel games={seasonSortedGames} />
+          </Suspense>
+        </div>
       </main>
     );
   }
@@ -528,6 +493,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
       </VestPageHero>
       <TabBar value={vestTab} onChange={setVestTab} />
 
+      <div role="tabpanel" id="vest-panel-dashboard" aria-labelledby="vest-tab-dashboard">
       {saveError && <p role="alert" className="vp-tip">{saveError}</p>}
       {syncReady && <VestGameForm
         enabled={canEdit}
@@ -565,7 +531,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
         />
       )}
 
-      <NetDegradedBanner netStatus={netStatus} seasonTitle={seasonTitle(seasonEndYearNow)} />
+      <NetDegradedBanner netStatus={netStatus} seasonTitle={seasonTitle(seasonEndYearNow)} onRetry={retryNet} />
 
       {canEdit && syncReady && upcomingGame && (
         showPostGame ? (
@@ -611,6 +577,7 @@ export default function VestTrackerDashboard({ showToast, canEdit = false }) {
         outfitBadges={outfitBadges}
         netStatus={netStatus}
       />
+      </div>
 
       {(viewingGame || viewingOutfit) && (
         <VestDetailModal
@@ -636,14 +603,21 @@ function StorylineStrip({ milestones }) {
   );
 }
 
-function NetDegradedBanner({ netStatus, seasonTitle: title }) {
+function NetDegradedBanner({ netStatus, seasonTitle: title, onRetry }) {
   if (netStatus === 'loaded') return null;
   const detail = netStatus === 'loading'
     ? 'Loading NET rankings. Quadrants will show up once they are in.'
     : netStatus === 'unreleased'
       ? `The ${title} NET is not out yet. Rankings usually arrive early in the new year.`
       : 'NET rankings are offline. Saved results and outfit records are still here.';
-  return <p className="vp-note">{detail}</p>;
+  return (
+    <div role={netStatus === 'error' ? 'alert' : 'status'}>
+      <p className="vp-note">{detail}</p>
+      {netStatus === 'error' && (
+        <button type="button" onClick={onRetry} className="vt-btn-ghost text-xs">Try again</button>
+      )}
+    </div>
+  );
 }
 
 function VestPageHero({ preseason, endYear, priorLabel, vestSeason, seasonOptions, onSeason, children }) {
@@ -674,14 +648,32 @@ function VestPageHero({ preseason, endYear, priorLabel, vestSeason, seasonOption
 }
 
 function TabBar({ value, onChange }) {
+  const onKeyDown = (event) => {
+    const tabs = [...event.currentTarget.querySelectorAll('[role="tab"]')];
+    const index = tabs.indexOf(document.activeElement);
+    if (index < 0) return;
+    let next = index;
+    if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = tabs.length - 1;
+    else return;
+    event.preventDefault();
+    tabs[next].focus();
+    onChange(TABS[next].value);
+  };
+
   return (
-    <div className="vp-nav" role="tablist" aria-label="Vest tracker">
+    <div className="vp-nav" role="tablist" aria-label="Vest tracker" onKeyDown={onKeyDown}>
       {TABS.map((tab) => (
         <button
           key={tab.value}
+          id={`vest-tab-${tab.value}`}
           type="button"
           role="tab"
           aria-selected={value === tab.value}
+          aria-controls={`vest-panel-${tab.value}`}
+          tabIndex={value === tab.value ? 0 : -1}
           onClick={() => onChange(tab.value)}
           className={value === tab.value ? 'is-active' : ''}
         >
@@ -694,7 +686,7 @@ function TabBar({ value, onChange }) {
 
 function LoadingPanel() {
   return (
-    <div className="text-center py-12">
+    <div className="text-center py-12" role="status">
       <span className="inline-block w-5 h-5 border-2 border-[color:var(--vt-red)] border-t-transparent rounded-full animate-spin mr-2 align-middle" />
       <span className="vt-label">Loading</span>
     </div>

@@ -22,6 +22,17 @@
           var s = localStorage.getItem('vibes-and-grinds:dark-mode');
           var d = s === 'true' || (s === null && window.matchMedia('(prefers-color-scheme: dark)').matches);
           if (d) document.documentElement.classList.add('dark');
+          var host = location.hostname.indexOf('vests.') === 0;
+          var mode = null;
+          var raw = localStorage.getItem('vibes-and-grinds:view-preferences');
+          if (raw) mode = JSON.parse(raw).appMode;
+          if (host || mode === 'vest') {
+            var link = document.createElement('link');
+            link.id = 'vest-fonts';
+            link.rel = 'stylesheet';
+            link.href = 'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=JetBrains+Mono:wght@400&display=swap';
+            document.head.appendChild(link);
+          }
         } catch (e) {}
       })();
     </script>

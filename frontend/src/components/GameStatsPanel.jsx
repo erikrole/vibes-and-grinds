@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { centralGameDate } from '../../../functions/api/vest/_centralDate.js';
 import { fetchVestScores, fetchVestGameStats } from '../utils/api';
 import { computeScoreStats } from '../utils/scoreStats';
 import { formatDate } from '../utils/dates';
-import { formatLocationLabel } from '../utils/vestTrackerMath';
+import { formatLocationLabel, locationSplits } from '../utils/vestTrackerMath';
+import { recentLoggedResults } from '../utils/vestStory';
 
 const locationLabel = (location) => `${formatLocationLabel(location, 'full')} `;
+// ESPN dates can be UTC timestamps; show the Central game day.
+const gameDay = (value) => formatDate(centralGameDate(value) || value);
 const signed = (value) => `${value > 0 ? '+' : ''}${value}`;
 const boxRows = [
   ['Field goals', 'wi_fg', 'opp_fg'],
@@ -21,6 +25,8 @@ export default function GameStatsPanel({ games: vestGames }) {
   const [expandedGame, setExpandedGame] = useState(null);
   const [gameDetail, setGameDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState(false);
+  const [scoreAttempt, setScoreAttempt] = useState(0);
   const detailRequest = useRef(0);
 
   useEffect(() => {
@@ -28,6 +34,7 @@ export default function GameStatsPanel({ games: vestGames }) {
     setExpandedGame(null);
     setGameDetail(null);
     setDetailLoading(false);
+    setDetailError(false);
     setScoreStatus('loading');
     fetchVestScores().then((data) => {
       if (cancelled) return;
@@ -36,30 +43,40 @@ export default function GameStatsPanel({ games: vestGames }) {
       setScoreStatus('loaded');
     }).catch(() => { if (!cancelled) setScoreStatus('error'); });
     return () => { cancelled = true; detailRequest.current++; };
-  }, [vestGames]);
+  }, [vestGames, scoreAttempt]);
 
   const stats = useMemo(() => computeScoreStats(scoreData, vestGames), [scoreData, vestGames]);
-  const handleExpand = async (game) => {
+  const loadDetail = async (game) => {
+    if (!game.espn_event_id) return;
     const request = ++detailRequest.current;
     setGameDetail(null);
+    setDetailError(false);
+    setDetailLoading(true);
+    try {
+      const { stats: detail } = await fetchVestGameStats(game.espn_event_id);
+      if (detailRequest.current === request) setGameDetail(detail);
+    } catch {
+      // Keep the saved final score visible when enrichment is unavailable.
+      if (detailRequest.current === request) setDetailError(true);
+    } finally { if (detailRequest.current === request) setDetailLoading(false); }
+  };
+  const handleExpand = async (game) => {
     if (expandedGame === game.espn_event_id) {
+      detailRequest.current++;
+      setGameDetail(null);
+      setDetailError(false);
       setExpandedGame(null);
       setDetailLoading(false);
       return;
     }
     setExpandedGame(game.espn_event_id);
-    setDetailLoading(true);
-    try {
-      const { stats: detail } = await fetchVestGameStats(game.espn_event_id);
-      if (detailRequest.current === request) setGameDetail(detail);
-    } catch { /* Keep the saved final score visible when enrichment is unavailable. */ }
-    finally { if (detailRequest.current === request) setDetailLoading(false); }
+    await loadDetail(game);
   };
 
   if (scoreStatus === 'loading') {
     return <p role="status" className="vt-card p-6 text-sm text-[color:var(--vt-ink-dim)]">Loading ESPN scores…</p>;
   }
-  if (scoreStatus === 'error' || !stats) return <LocalSeasonStats games={vestGames} scoreStatus={scoreStatus} />;
+  if (scoreStatus === 'error' || !stats) return <LocalSeasonStats games={vestGames} scoreStatus={scoreStatus} onRetry={scoreStatus === 'error' ? () => setScoreAttempt((attempt) => attempt + 1) : null} />;
 
   return (
     <div className="space-y-6">
@@ -84,13 +101,13 @@ export default function GameStatsPanel({ games: vestGames }) {
           const win = game.wisconsin_score > game.opponent_score;
           return (
             <div key={game.espn_event_id} className="border-t border-[color:var(--vt-rule)]">
-              <button onClick={() => handleExpand(game)} aria-expanded={expanded} aria-controls={`box-${game.espn_event_id}`}
+              <button type="button" onClick={() => handleExpand(game)} aria-expanded={expanded} aria-controls={`box-${game.espn_event_id}`}
                 className="w-full p-4 sm:px-5 text-left hover:bg-[color:var(--vt-surface-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[color:var(--vt-red-hot)]">
                 <div className="flex items-start gap-3">
                   <span className={`vp-mini-result ${win ? 'is-w' : 'is-l'}`}>{win ? 'W' : 'L'}</span>
                   <div className="min-w-0 flex-1">
                     <strong className="block text-sm text-[color:var(--vt-ink)]">{locationLabel(game.location)}{game.opponent}</strong>
-                    <span className="block text-xs text-[color:var(--vt-ink-mute)] mt-1">{formatDate(game.date)}{game.outfit ? ` · ${game.outfit}` : ''}</span>
+                    <span className="block text-xs text-[color:var(--vt-ink-mute)] mt-1">{gameDay(game.date)}{game.outfit ? ` · ${game.outfit}` : ''}</span>
                   </div>
                   <span className="shrink-0 text-right">
                     <strong className="vt-mono text-sm sm:text-base text-[color:var(--vt-ink)]">{game.wisconsin_score}–{game.opponent_score}</strong>
@@ -100,7 +117,12 @@ export default function GameStatsPanel({ games: vestGames }) {
                 {(game.venue || game.broadcast) && <p className="text-xs text-[color:var(--vt-ink-mute)] mt-2 pl-5">{[game.venue, game.broadcast].filter(Boolean).join(' · ')}</p>}
               </button>
               <div id={`box-${game.espn_event_id}`} hidden={!expanded} className="px-4 pb-4 sm:px-5">
-                {detailLoading ? <p role="status" className="text-sm text-[color:var(--vt-ink-dim)]">Loading box score…</p> : gameDetail?.wi_fg ? (
+                {detailLoading ? <p role="status" className="text-sm text-[color:var(--vt-ink-dim)]">Loading box score…</p> : detailError ? (
+                  <div role="alert" className="text-sm text-[color:var(--vt-ink-dim)]">
+                    <p className="mb-2">Couldn’t load this box score.</p>
+                    <button type="button" onClick={() => loadDetail(game)} className="vt-btn-ghost text-xs">Try again</button>
+                  </div>
+                ) : gameDetail?.wi_fg ? (
                   <table className="w-full text-sm vt-card-inset">
                     <caption className="sr-only">{game.opponent} game box score</caption>
                     <thead><tr className="text-xs text-[color:var(--vt-ink-mute)]"><th scope="col" className="p-3 text-left">Stat</th><th scope="col" className="p-3 text-right">Wisconsin</th><th scope="col" className="p-3 text-right">Opponent</th></tr></thead>
@@ -141,19 +163,11 @@ export default function GameStatsPanel({ games: vestGames }) {
   );
 }
 
-function LocalSeasonStats({ games, scoreStatus }) {
+function LocalSeasonStats({ games, scoreStatus, onRetry }) {
   const completed = games.filter((game) => game.result === 'W' || game.result === 'L');
   const wins = completed.filter((game) => game.result === 'W').length;
-  const splits = [
-    ['Home', 'vs'],
-    ['Road', '@'],
-    ['Neutral', 'N'],
-  ].map(([label, location]) => {
-    const subset = completed.filter((game) => game.location === location);
-    const subsetWins = subset.filter((game) => game.result === 'W').length;
-    return { label, wins: subsetWins, losses: subset.length - subsetWins };
-  });
-  const recent = completed.slice(-10).reverse();
+  const splits = locationSplits(games);
+  const recent = recentLoggedResults(games);
   const outfitCounts = Object.entries(completed.reduce((counts, game) => {
     if (game.outfit) counts[game.outfit] = (counts[game.outfit] || 0) + 1;
     return counts;
@@ -170,6 +184,9 @@ function LocalSeasonStats({ games, scoreStatus }) {
           <LocalMetric label="Outfits worn" value={new Set(completed.map((game) => game.outfit).filter(Boolean)).size} />
         </div>
         <p className="text-xs text-[color:var(--vt-ink-mute)] mt-4">ESPN scores are {scoreStatus === 'error' ? 'temporarily unavailable' : 'not available for this season'}. These records use your saved games.</p>
+        {onRetry && (
+          <button type="button" onClick={onRetry} className="vt-btn-ghost text-xs mt-4">Try again</button>
+        )}
       </section>
       <div className="grid lg:grid-cols-2 gap-6">
         <section className="vt-card overflow-hidden">

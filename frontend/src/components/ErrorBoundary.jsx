@@ -1,9 +1,9 @@
-import { Component } from 'react';
+import { Component, Fragment } from 'react';
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, resetKey: 0 };
   }
 
   static getDerivedStateFromError() {
@@ -26,19 +26,20 @@ export default class ErrorBoundary extends Component {
             </div>
             <h2 className="text-xl font-bold text-ink mb-2">Something went wrong</h2>
             <p className="text-ink-soft text-sm mb-6">
-              An unexpected error occurred. Try reloading the page.
+              Something unexpected happened.
             </p>
             <button
-              onClick={() => window.location.reload()}
+              type="button"
+              onClick={() => this.setState((state) => ({ hasError: false, resetKey: state.resetKey + 1 }))}
               className="px-6 py-3 bg-ink text-canvas rounded-2xl font-semibold text-sm hover:bg-accent hover:text-white transition-colors"
             >
-              Reload
+              Try again
             </button>
           </div>
         </div>
       );
     }
 
-    return this.props.children;
+    return <Fragment key={this.state.resetKey}>{this.props.children}</Fragment>;
   }
 }

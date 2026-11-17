@@ -1,14 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import RatingBadge from './RatingBadge';
 import CompositeBadge from './CompositeBadge';
 import VisitPhoto from './VisitPhoto';
 import { formatDate, getRelativeLabel } from '../utils/dates';
 import { formatEventContext, titleCaseOrder } from '../utils/display';
 
-export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLogReturnVisit, visitCount = 1 }) {
+function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLogReturnVisit, visitCount = 1 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const menuRef = useRef(null);
+  const triggerRef = useRef(null);
+  const deleteButtonRef = useRef(null);
 
   const formattedDate = formatDate(visit.date);
   const relativeLabel = getRelativeLabel(visit.date);
@@ -21,8 +23,28 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
 
     const onKeyDown = (event) => {
       if (event.key === 'Escape') {
+        event.preventDefault();
         setShowMenu(false);
+        triggerRef.current?.focus();
+        return;
       }
+
+      if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'Home' && event.key !== 'End') return;
+      const items = [...menuRef.current?.querySelectorAll('button') || []];
+      if (!items.length) return;
+      event.preventDefault();
+      const current = items.indexOf(document.activeElement);
+      if (event.key === 'Home') {
+        items[0].focus();
+        return;
+      }
+      if (event.key === 'End') {
+        items[items.length - 1].focus();
+        return;
+      }
+      const delta = event.key === 'ArrowDown' ? 1 : -1;
+      const next = current === -1 ? 0 : (current + delta + items.length) % items.length;
+      items[next].focus();
     };
 
     const onPointerDown = (event) => {
@@ -40,6 +62,17 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
     };
   }, [showMenu]);
 
+  useEffect(() => {
+    if (!showMenu) return undefined;
+    const frame = requestAnimationFrame(() => {
+      const target = confirmingDelete
+        ? deleteButtonRef.current
+        : menuRef.current?.querySelector('[role="menuitem"]');
+      target?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [showMenu, confirmingDelete]);
+
   return (
     <article className="visit-row group p-5 sm:px-6 sm:py-5 transition-colors">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
@@ -50,8 +83,11 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
               <VisitPhoto size={160}
                 src={visit.photo_url}
                 alt=""
+                width="80"
+                height="80"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 loading="lazy"
+                decoding="async"
               />
             </div>
           )}
@@ -62,6 +98,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                 <button
                   type="button"
                   onClick={() => onViewDetails(visit)}
+                  aria-label={`View details for ${visit.coffee_shop_name}`}
                   className="text-left text-xl sm:text-2xl md:text-[1.65rem] leading-tight hover:underline decoration-1 underline-offset-4"
                 style={{
                   fontFamily: 'Fraunces, Georgia, serif',
@@ -86,8 +123,10 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
             </div>
             {onEdit && <div className="relative ml-4 flex-shrink-0" ref={menuRef}>
               <button
+                ref={triggerRef}
+                type="button"
                 onClick={(e) => { e.stopPropagation(); setShowMenu((prev) => !prev); }}
-                className="text-ink-faint hover:text-ink p-3 -m-2 rounded-xl transition-colors"
+                className="text-ink-soft hover:text-ink p-3 -m-2 rounded-xl transition-colors"
                 aria-label={`Open actions for ${visit.coffee_shop_name}`}
                 aria-expanded={showMenu}
                 aria-haspopup="menu"
@@ -102,6 +141,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                   role="menu"
                 >
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       onEdit(visit);
@@ -113,6 +153,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                     Edit visit
                   </button>
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       onLogReturnVisit?.(visit);
@@ -128,12 +169,15 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                       <p className="text-xs text-ink-soft mb-2.5">Move to deleted visits? You can restore it later.</p>
                       <div className="flex gap-2">
                         <button
+                          ref={deleteButtonRef}
+                          type="button"
                           onClick={(e) => { e.stopPropagation(); onDelete(visit.id); setShowMenu(false); }}
                           className="flex-1 text-xs py-2 bg-danger hover:opacity-90 text-white rounded-xl font-medium transition-colors"
                         >
                           Delete
                         </button>
                         <button
+                          type="button"
                           onClick={(e) => { e.stopPropagation(); setConfirmingDelete(false); }}
                           className="flex-1 text-xs py-2 bg-surface-muted text-ink rounded-xl font-medium transition-colors"
                         >
@@ -143,6 +187,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
                     </div>
                   ) : (
                     <button
+                      type="button"
                       onClick={(e) => { e.stopPropagation(); setConfirmingDelete(true); }}
                       className="w-full text-left px-4 py-3 text-sm text-danger hover:bg-surface-muted transition-colors"
                       role="menuitem"
@@ -160,7 +205,7 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
               {relativeLabel ? (
                 <>
                   <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{relativeLabel}</span>
-                  <span className="text-ink-faint">{formattedDate}</span>
+                  <span className="text-ink-soft">{formattedDate}</span>
                 </>
               ) : (
                 <span>{formattedDate}</span>
@@ -186,3 +231,5 @@ export default function VisitCard({ visit, onEdit, onDelete, onViewDetails, onLo
     </article>
   );
 }
+
+export default memo(VisitCard);

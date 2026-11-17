@@ -2,8 +2,14 @@ import { toScheduleGames } from '../../../shared/vest-schedule.mjs';
 
 // Use relative URLs in production (for Cloudflare Pages Functions)
 // Use full URL in development
+import { freshPayload } from '../../../functions/api/vest/_freshCache.js';
+
 const API_URL = import.meta.env.VITE_API_URL || '';
 const ESPN_SCHEDULE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/275/schedule';
+const SCORE_CACHE_TTL_MS = 2 * 60 * 1000;
+const BOX_CACHE_TTL_MS = 60 * 1000;
+const scoreCache = new Map();
+const boxCache = new Map();
 
 async function parseErrorResponse(response, fallbackMessage) {
   const errorData = await response.json().catch(() => ({}));
@@ -62,6 +68,8 @@ export async function deleteVisit(id) {
   const response = await fetch(`${API_URL}/api/visits/${id}`, {
     method: 'DELETE',
   });
+  // The row is already gone. Callers should drop it from the list.
+  if (response.status === 404) return;
   if (!response.ok) {
     await parseErrorResponse(response, 'Failed to delete visit');
   }
@@ -120,14 +128,26 @@ export async function fetchVestSchedule(season) {
 }
 
 export async function fetchVestScores(season) {
+  const key = String(season || '');
+  const cached = freshPayload(scoreCache.get(key), Date.now(), SCORE_CACHE_TTL_MS);
+  if (cached) return cached;
+
   const query = season ? `?${new URLSearchParams({ season })}` : '';
   const response = await fetch(`${API_URL}/api/vest/scores${query}`);
   if (!response.ok) throw new Error('Failed to fetch vest scores');
-  return response.json();
+  const payload = await response.json();
+  scoreCache.set(key, { storedAt: Date.now(), payload });
+  return payload;
 }
 
 export async function fetchVestGameStats(eventId) {
+  const key = String(eventId);
+  const cached = freshPayload(boxCache.get(key), Date.now(), BOX_CACHE_TTL_MS);
+  if (cached) return cached;
+
   const response = await fetch(`${API_URL}/api/vest/game-stats/${eventId}`);
   if (!response.ok) throw new Error('Failed to fetch game stats');
-  return response.json();
+  const payload = await response.json();
+  boxCache.set(key, { storedAt: Date.now(), payload });
+  return payload;
 }

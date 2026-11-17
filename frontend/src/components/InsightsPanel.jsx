@@ -10,11 +10,11 @@ export default function InsightsPanel({ visits, onVisitClick, onShopClick }) {
   const [minVisits, setMinVisits] = useState(1);
   const [rankBy, setRankBy] = useState('coffee_rating');
   const [city, setCity] = useState('');
-  const cities = [...new Set(visits.map((visit) => visit.city).filter(Boolean))].sort();
-  const source = city ? visits.filter((visit) => visit.city === city) : visits;
-  const comparisons = useMemo(() => buildComparisons(source, groupBy, minVisits, rankBy), [visits, city, groupBy, minVisits, rankBy]);
-  const best = source.reduce((winner, visit) => !winner || Number(visit.coffee_rating) > Number(winner.coffee_rating) ? visit : winner, null);
-  const repeatGroups = buildComparisons(source, 'shop', 2);
+  const cities = useMemo(() => [...new Set(visits.map((visit) => visit.city).filter(Boolean))].sort(), [visits]);
+  const source = useMemo(() => (city ? visits.filter((visit) => visit.city === city) : visits), [visits, city]);
+  const comparisons = useMemo(() => buildComparisons(source, groupBy, minVisits, rankBy), [source, groupBy, minVisits, rankBy]);
+  const best = useMemo(() => source.reduce((winner, visit) => !winner || Number(visit.coffee_rating) > Number(winner.coffee_rating) ? visit : winner, null), [source]);
+  const repeatGroups = useMemo(() => buildComparisons(source, 'shop', 2), [source]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const detail = comparisons.find((item) => item.key === selectedGroup);
   if (!visits.length) return <p className="empty-state">Ratings and comparisons will appear after the first visit.</p>;
