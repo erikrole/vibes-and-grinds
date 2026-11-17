@@ -86,9 +86,16 @@ async function switchMode(page, label) {
     await browser.close();
   }
   report.external = [...report.external];
+  // The only expected error: Places lookups return 503 locally (no Maps key). Anything else fails.
+  const places503 = (r) => / 503 GET .*\/api\/places-autocomplete\?/.test(r);
+  const expected = report.failedRequests.filter(places503).length;
+  const unexpectedRequests = report.failedRequests.filter((r) => !places503(r));
+  const console503 = report.consoleErrors.filter((m) => /status of 503/.test(m));
+  const unexpectedConsole = [...report.consoleErrors.filter((m) => !/status of 503/.test(m)), ...console503.slice(expected)];
+  report.unexpected = [...unexpectedRequests, ...unexpectedConsole];
+  const ok = !report.error && report.blockedWrites.length === 0 && report.pageErrors.length === 0
+    && report.unexpected.length === 0 && Object.values(report.checks).every(Boolean);
   fs.writeFileSync(path.join(out, 'report.json'), JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
-  const ok = !report.error && report.blockedWrites.length === 0 && report.pageErrors.length === 0
-    && Object.values(report.checks).every(Boolean);
   process.exit(ok ? 0 : 1);
 })();

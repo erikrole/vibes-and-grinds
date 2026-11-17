@@ -14,9 +14,9 @@ no `VITE_PROXY_TARGET` pointing at production). All output goes under `.claude/v
 ## 0. Setup (always)
 
 ```bash
-O=.claude/verify-output; mkdir -p $O
+O=.claude/verify-output; mkdir -p $O; rm -f "${O:?}/backend.pid" "${O:?}/frontend.pid" "${O:?}/db-before.db"   # stale files would make step 4 kill or restore the wrong thing
 for p in 3000 3001; do lsof -nP -iTCP:$p -sTCP:LISTEN >/dev/null && echo "PORT $p BUSY: stop, don't start a second copy" || echo "port $p free"; done
-grep -HE '^(VITE_PROXY_TARGET|VITE_API_URL|NET_RANKINGS_URL)=' frontend/.env backend/.env .env 2>/dev/null   # anything not localhost/empty: stop and ask
+grep -HE '^(VITE_PROXY_TARGET|VITE_API_URL)=' frontend/.env backend/.env .env 2>/dev/null   # anything not localhost/empty: stop and ask
 [ -f backend/vibes-and-grinds.db ] && cp backend/vibes-and-grinds.db $O/db-before.db && echo "backed up local db" || echo "no local db"
 export NODE_PATH="${NODE_PATH:-$HOME/Code/wisconsin-creative/node_modules}"   # playwright is not a repo dependency
 node -e "require('playwright')" && echo "playwright ok"
@@ -26,7 +26,7 @@ A busy port is a stop: Vite would silently move to 3001+ and the backend would f
 If playwright doesn't resolve, point `NODE_PATH` at any `node_modules` that has it; don't
 add it to package.json and don't run `playwright install` (the driver uses installed Chrome).
 
-## 1. Cheap checks (always, ~15 s after `npm ci`)
+## 1. Cheap checks (always, ~5 s after `npm ci`)
 
 ```bash
 (cd frontend && npm ci --no-audit --no-fund > ../$O/ci-frontend.log 2>&1); echo "frontend ci exit $?"   # only if node_modules is missing or a lockfile changed
@@ -69,22 +69,24 @@ node .claude/skills/verify/drive.cjs $O/shots; echo "drive exit $?"    # ~6 s
 curl -s localhost:3001/api/visits | head -c 300; echo
 ```
 
-Pass = exit 0, every `checks` value `true`, `blockedWrites` and `pageErrors` empty, and the
-new "Verify Cafe <n>" row in the API output. The one expected error is
-`503 GET /api/places-autocomplete` (no Maps key); any other `consoleErrors` or
-`failedRequests` entry is a failure. Then **open the PNGs yourself** (`$O/shots/`:
+Pass = exit 0 and the new "Verify Cafe <n>" row in the API output. The driver exits 1 on a
+thrown error, any `false` in `checks`, any `blockedWrites` or `pageErrors`, or any `unexpected`
+entry. The one allowed error is `503 GET /api/places-autocomplete` (no Maps key) and its console line. Then **open the PNGs yourself** (`$O/shots/`:
 `desktop-vibes-before/after`, `desktop-add-visit-form`, `desktop-vest`, `phone-vibes`,
 `phone-vest`) and look at the screens you changed.
 
 Pick the extra coverage that matches the change:
 
 - **UI / layout / copy:** add a `shot()` for the screen you changed in `drive.cjs`, at both
-  widths. For dark mode, click the "Switch to dark mode" button before the shot.
-- **Visit form, list, filters, journal math:** extend the desktop block (edit, delete, filter)
+  widths. Only when the change touches dark mode: click the "Switch to dark mode" button before
+  the shot (not run in the dry run).
+- **Visit form, list, filters, journal math:** extend the desktop block (edit, delete, filter; not run in the dry run)
   and assert the result through `curl localhost:3001/api/visits` as well as on screen.
-- **Vest tracker:** the Dashboard tab reads `/api/vest/games` from local SQLite (covered above).
-  Only when the diff touches Game Stats or NET Rankings, click those tabs in `drive.cjs` too:
-  the backend fetches them from ESPN / Warren Nolan with plain GETs (not run in the dry run).
+- **Vest tracker:** the Dashboard tab reads `/api/vest/games` from local SQLite and
+  `/api/vest/net-rankings`, which the backend fetches from Warren Nolan with a plain GET. The
+  score can shift by a point or two once NET data lands, so a desktop and phone shot may
+  differ; that's timing, not a bug. Only when the diff touches Game Stats or NET Rankings,
+  click those tabs in `drive.cjs` too (ESPN / Warren Nolan GETs; not run in the dry run).
   "Generate AI take" (`/api/vest/blurb`) is a Pages function with no Express route, so it
   can't be verified locally.
 - **`functions/` (Cloudflare Pages handlers):** they don't run locally; `backend/test/handlers.test.mjs`
