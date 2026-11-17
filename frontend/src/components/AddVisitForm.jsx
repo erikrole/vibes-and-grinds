@@ -1,5 +1,5 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import PhotoCropper from './PhotoCropper';
+import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { revokeObjectUrl } from '../utils/photoExport';
 import { createPhotoUpload } from '../utils/photoUpload';
 import AutocompleteInput from './AutocompleteInput';
 import PlacesAutocomplete from './PlacesAutocomplete';
@@ -13,6 +13,8 @@ import { HOME_CITY, VISIT_TYPES, getVisitType, isMadisonArea } from '../utils/vi
 function moreSummary({ city, sport, opponent, notes }) {
   return [city, sport, opponent, notes && 'Note'].filter(Boolean).join(' · ');
 }
+
+const PhotoCropper = lazy(() => import('./PhotoCropper'));
 
 function getDefaultVisitData() {
   return {
@@ -61,6 +63,14 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
   const [imageToCrop, setImageToCrop] = useState(null);
   const [dragging, setDragging] = useState(false);
   const formRef = useRef(null);
+  const cropUrlRef = useRef('');
+  const previewUrlRef = useRef('');
+  const photoPickRef = useRef(0);
+
+  useEffect(() => () => {
+    revokeObjectUrl(cropUrlRef.current);
+    revokeObjectUrl(previewUrlRef.current);
+  }, []);
   const reactId = useId().replace(/:/g, '');
   const fieldIds = useMemo(() => ({
     date: `${reactId}-date`,
@@ -213,11 +223,15 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
     setErrors((prev) => ({ ...prev, coffee_shop_name: '' }));
   };
 
-  const processPhotoFile = (file) => {
+  const processPhotoFile = async (file) => {
     if (!file || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = () => { setImageToCrop(reader.result); setCropping(true); };
-    reader.readAsDataURL(file);
+    // Crop from the full-resolution original; createPhotoUpload keeps it and makes the variants.
+    ++photoPickRef.current;
+    revokeObjectUrl(cropUrlRef.current);
+    const url = URL.createObjectURL(file);
+    cropUrlRef.current = url;
+    setImageToCrop(url);
+    setCropping(true);
   };
 
   const handlePhotoChange = (e) => {
@@ -237,23 +251,41 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
 
   const handleDragLeave = () => setDragging(false);
 
+  const releaseCropUrl = () => {
+    if (cropUrlRef.current && cropUrlRef.current !== previewUrlRef.current) {
+      revokeObjectUrl(cropUrlRef.current);
+    }
+    cropUrlRef.current = '';
+  };
+
   const handleCropComplete = (croppedFile) => {
     setCropping(false);
     setImageToCrop(null);
+    releaseCropUrl();
     setPhotoFile(croppedFile);
-    const reader = new FileReader();
-    reader.onloadend = () => setPhotoPreview(reader.result);
-    reader.readAsDataURL(croppedFile);
+    revokeObjectUrl(previewUrlRef.current);
+    const url = URL.createObjectURL(croppedFile);
+    previewUrlRef.current = url;
+    setPhotoPreview(url);
   };
 
-  const handleCropCancel = () => { setCropping(false); setImageToCrop(null); };
+  const handleCropCancel = () => {
+    setCropping(false);
+    setImageToCrop(null);
+    releaseCropUrl();
+  };
 
   const handleRecropPhoto = () => {
-    if (photoPreview) { setImageToCrop(photoPreview); setCropping(true); }
+    if (!photoPreview) return;
+    photoPickRef.current += 1;
+    setImageToCrop(photoPreview);
+    setCropping(true);
   };
 
   const removePhoto = () => {
     setPhotoFile(null);
+    revokeObjectUrl(previewUrlRef.current);
+    previewUrlRef.current = '';
     setPhotoPreview(null);
     setFormData({ ...formData, photo_url: '' });
   };
@@ -586,7 +618,9 @@ export default function AddVisitForm({ onSubmit, initialData = null, visits = []
       </form>
 
       {cropping && imageToCrop && (
-        <PhotoCropper imageUrl={imageToCrop} onComplete={handleCropComplete} onCancel={handleCropCancel} />
+        <Suspense fallback={<div role="status" className="fixed inset-0 z-[1003] bg-black/75" />}>
+          <PhotoCropper imageUrl={imageToCrop} onComplete={handleCropComplete} onCancel={handleCropCancel} />
+        </Suspense>
       )}
     </div>
   );

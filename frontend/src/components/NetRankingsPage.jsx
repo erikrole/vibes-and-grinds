@@ -7,7 +7,7 @@ const SORT_FIELDS = {
   RECORD: 'record',
 };
 
-export default function NetRankingsPage({ netRankings, netStatus, seasonTitle: title = '2026–27' }) {
+export default function NetRankingsPage({ netRankings, netStatus, onRetry, seasonTitle: title = '2026–27' }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState(SORT_FIELDS.RANK);
   const [sortAsc, setSortAsc] = useState(true);
@@ -40,7 +40,7 @@ export default function NetRankingsPage({ netRankings, netStatus, seasonTitle: t
       <h2 id="net-rankings-heading" className="sr-only">NET rankings for {title}</h2>
 
       {netStatus === 'loading' && (
-        <p className="vp-note">Loading NET rankings…</p>
+        <p role="status" className="vp-note">Loading NET rankings…</p>
       )}
 
       {netStatus === 'unreleased' && (
@@ -53,7 +53,12 @@ export default function NetRankingsPage({ netRankings, netStatus, seasonTitle: t
       )}
 
       {netStatus === 'error' && (
-        <p className="vp-note">Unable to load NET rankings. Try refreshing the page.</p>
+        <div role="alert">
+          <p className="vp-note">Unable to load NET rankings. {onRetry ? '' : 'Try refreshing the page.'}</p>
+          {onRetry && (
+            <button type="button" onClick={onRetry} className="vt-btn-ghost text-xs">Try again</button>
+          )}
+        </div>
       )}
 
       {netStatus === 'loaded' && (
@@ -92,8 +97,18 @@ export default function NetRankingsPage({ netRankings, netStatus, seasonTitle: t
                     { field: SORT_FIELDS.TEAM, label: 'Team' },
                     { field: SORT_FIELDS.RECORD, label: 'Record' },
                   ].map(({ field, label }) => (
-                    <th key={field} onClick={() => handleSort(field)}>
-                      {label}{sortIcon(field)}
+                    <th
+                      key={field}
+                      aria-sort={sortField === field ? (sortAsc ? 'ascending' : 'descending') : 'none'}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleSort(field)}
+                        className="inline-flex items-center gap-1"
+                      >
+                        {label}
+                        <span aria-hidden="true">{sortIcon(field)}</span>
+                      </button>
                     </th>
                   ))}
                 </tr>
@@ -102,7 +117,7 @@ export default function NetRankingsPage({ netRankings, netStatus, seasonTitle: t
                 {sorted.map((entry) => {
                   const wisconsin = /wisconsin/i.test(entry.team);
                   return (
-                    <tr key={`${entry.rank}-${entry.team}`}>
+                    <tr key={`${entry.rank}-${entry.team}`} className="net-rank-row">
                       <td className={`vt-mono ${wisconsin ? 'vt-net-wisconsin' : ''}`}>{entry.rank}</td>
                       <td className={wisconsin ? 'vt-net-wisconsin' : ''}>{entry.team}</td>
                       <td className="vt-mono">{entry.record || '—'}</td>

@@ -12,6 +12,7 @@ export default function ShareCardModal({ visit, onClose }) {
   const modalRef = useRef(null);
   const [format, setFormat] = useState('post');
   const [status, setStatus] = useState('loading'); // loading | ready | error
+  const [attempt, setAttempt] = useState(0);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [shareSupported, setShareSupported] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -48,7 +49,7 @@ export default function ShareCardModal({ visit, onClose }) {
       cancelled = true;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [visit, format]);
+  }, [visit, format, attempt]);
 
   // One tap: put the caption on the clipboard, then hand the image to the
   // share sheet (pick Instagram) or, on desktop, save it. Instagram ignores
@@ -140,14 +141,15 @@ export default function ShareCardModal({ visit, onClose }) {
             <img src={previewUrl} alt={`Share card preview for ${visit.coffee_shop_name}`} className="absolute inset-0 w-full h-full object-cover" />
           )}
           {status === 'loading' && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" role="status">
               <div className="w-6 h-6 border-2 border-rule border-t-ink-soft rounded-full animate-spin" />
               <span className="text-sm text-ink-soft">Generating card…</span>
             </div>
           )}
           {status === 'error' && (
-            <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
-              <span className="text-sm text-ink-soft">Couldn’t generate the card. Please try again.</span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center" role="alert">
+              <p className="text-sm text-ink-soft">Couldn’t generate the card.</p>
+              <button type="button" onClick={() => setAttempt((current) => current + 1)} className="text-sm font-medium underline text-ink">Try again</button>
             </div>
           )}
         </div>

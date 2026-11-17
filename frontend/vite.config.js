@@ -35,6 +35,9 @@ export default defineConfig({
     },
   ],
   server: {
+    fs: {
+      allow: ['..'],
+    },
     port: 3000,
     proxy: {
       '/api': {
@@ -42,5 +45,33 @@ export default defineConfig({
         changeOrigin: true
       }
     }
-  }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          const path = id.replaceAll('\\', '/');
+          if (!path.includes('/node_modules/') || path.endsWith('.css')) return;
+
+          if (
+            path.includes('/node_modules/leaflet/') ||
+            path.includes('/node_modules/react-leaflet/') ||
+            path.includes('/node_modules/@react-leaflet/')
+          ) {
+            return 'map';
+          }
+
+          // Keep React out of the map chunk. Otherwise Rollup parks the shared
+          // runtime there and the entry preloads Leaflet on every page.
+          if (
+            path.includes('/node_modules/react/') ||
+            path.includes('/node_modules/react-dom/') ||
+            path.includes('/node_modules/scheduler/')
+          ) {
+            return 'react';
+          }
+        },
+      },
+    },
+  },
 })

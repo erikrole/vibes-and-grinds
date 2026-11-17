@@ -15,6 +15,14 @@ export function seasonForDate(date) {
   return year && month ? year + (month >= 7 ? 1 : 0) : null;
 }
 
+// ESPN sends `records` (summary) on some feeds and `record` (displayValue) on others.
+function readRecord(competitor) {
+  const raw = competitor?.records ?? competitor?.record;
+  const list = Array.isArray(raw) ? raw : [];
+  const overall = list.find((record) => record?.type === 'total') || list[0];
+  return overall?.summary || overall?.displayValue || null;
+}
+
 export function parseScheduleEvent(event) {
   const competition = event.competitions?.[0];
   const wi = competition?.competitors?.find((c) => String(c.team?.id) === TEAM_ID);
@@ -33,7 +41,7 @@ export function parseScheduleEvent(event) {
     broadcast: competition.broadcasts?.[0]?.names?.[0] || competition.broadcasts?.[0]?.media?.shortName || null,
     attendance: competition.attendance || null,
     oppRanking: opponent.curatedRank?.current ?? null, wiRanking: wi.curatedRank?.current ?? null,
-    wiRecord: wi.records?.[0]?.summary || null,
+    wiRecord: readRecord(wi),
   };
 }
 
@@ -95,7 +103,7 @@ export async function vestScoresRoute(request, DB, fetcher = fetch) {
       if (!response.ok) throw new Error('ESPN unavailable');
       return response.json();
     }));
-    const events = new Map(schedules.flatMap((data) => data.events || []).map((event) => [String(event.id), event]));
+    const events = new Map(schedules.flatMap((data) => data.events || []).filter((event) => event && typeof event === 'object' && event.id != null).map((event) => [String(event.id), event]));
     const known = await DB.prepare('SELECT espn_event_id FROM vest_game_stats WHERE wisconsin_h1 IS NOT NULL').all();
     const knownH1 = new Set((known.results || []).map((row) => String(row.espn_event_id)));
     const pending = [];
